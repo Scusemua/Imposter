@@ -55,7 +55,26 @@ public class GameOptions : MonoBehaviour
     public int crewmateVision;              // How far can crewmates see?
     public int imposterVision;              // How far can imposters see?
 
-    /* Visual */
+    /* Dark-mode Related */
+    public bool darkModeEnabled;
+
+    /* Gun Related */
+    public bool gunsEnabled;
+    public bool crewmatesHaveGuns;
+    public bool sheriffHasGun;  // If crewmatesHaveGUns is true, then this is ignored.
+    public int numBulletsImposter;
+    public int numBulletsAssassin;
+    public int numBulletsSheriff;
+    public int numBulletsSaboteur;
+    public int numBulletsCrewmate;
+    public float gunshotVolume;
+    public float gunshotBrightness;
+    public float firerate;
+    public bool reloadsRequired;    // If false, then players can shoot infinitely without reloading.
+    public float reloadTime;
+    public float magazineSize;
+
+    /* Player Visuals */
     public float playerScale;   // Multiplier for visual size of players.
     public bool trailEnabled;   // Should players leave a trail (of particles or some shit)
     public float trailDuration; // How far back does the trail go?
