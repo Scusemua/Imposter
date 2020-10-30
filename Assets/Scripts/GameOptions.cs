@@ -62,6 +62,8 @@ public class GameOptions : MonoBehaviour
     public bool gunsEnabled;
     public bool crewmatesHaveGuns;
     public bool sheriffHasGun;  // If crewmatesHaveGUns is true, then this is ignored.
+    public bool instakill;      // If true, all guns insta-kill.
+    public float playerHealth;  // If instakill is false, then bullets do damage.
     public int numBulletsImposter;
     public int numBulletsAssassin;
     public int numBulletsSheriff;
@@ -73,6 +75,28 @@ public class GameOptions : MonoBehaviour
     public bool reloadsRequired;    // If false, then players can shoot infinitely without reloading.
     public float reloadTime;
     public float magazineSize;
+    public float accuracy;
+    public float numProjectiles;
+    public float range;
+    public float projectileDamage;  // How much damage each individual projectile does.
+    
+    public enum ProjectileType
+    {
+        BULLET, // Regular bullets
+        ROCKET  // AoE
+    }
+
+    // Presets.
+    public enum GunType
+    {
+        PISTOL,
+        RIFLE,
+        SHOTGUN,
+        SMG,
+        ASSAULT_RIFLE,
+        LMG,
+        RPG
+    }
 
     /* Player Visuals */
     public float playerScale;   // Multiplier for visual size of players.
