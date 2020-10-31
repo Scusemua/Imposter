@@ -73,9 +73,5 @@ public class PlayerUI : MonoBehaviour
         {
             PrimaryActionLabel.text = "KILL";
         }
-        else
-        {
-            PrimaryActionButton.gameObject.SetActive(false);
-        }
     }
 }

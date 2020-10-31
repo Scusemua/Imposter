@@ -1,39 +1,69 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using Mirror;
+using UnityEngine.UI;
 
-public class ImposterRole : MonoBehaviour, IRole {
-   public string Name { get => throw new System.NotImplementedException(); set => throw new System.NotImplementedException(); }
-   public float MovementSpeed { get => throw new System.NotImplementedException(); set => throw new System.NotImplementedException(); }
-   public float SprintDuration { get => throw new System.NotImplementedException(); set => throw new System.NotImplementedException(); }
-   public float SprintBoost { get => throw new System.NotImplementedException(); set => throw new System.NotImplementedException(); }
-   public float PrimaryActionCooldown { get => throw new System.NotImplementedException(); set => throw new System.NotImplementedException(); }
-   public float SecondaryActionCooldown { get => throw new System.NotImplementedException(); set => throw new System.NotImplementedException(); }
-   public float TertiaryActionCooldown { get => throw new System.NotImplementedException(); set => throw new System.NotImplementedException(); }
-   public float PrimaryActionLastUse { get => throw new System.NotImplementedException(); set => throw new System.NotImplementedException(); }
-   public float SecondaryActionLastUse { get => throw new System.NotImplementedException(); set => throw new System.NotImplementedException(); }
-   public float TertiaryActionLastUse { get => throw new System.NotImplementedException(); set => throw new System.NotImplementedException(); }
+public class ImposterRole : Role
+{
+    public override string Name { get => "IMPOSTER"; }
 
-   public void PrimaryAction()
-   {
-      throw new System.NotImplementedException();
-   }
+    public override float SprintDuration => throw new System.NotImplementedException();
 
-   public void SecondaryAction()
-   {
-      throw new System.NotImplementedException();
-   }
+    public override float PrimaryActionLastUse { get { return primaryActionLastUse; } set { primaryActionLastUse = value; } }
 
-   public void TertiaryAction()
-   {
-      throw new System.NotImplementedException();
-   }
+    public override float SecondaryActionLastUse { get { return secondaryActionLastUse; } set { secondaryActionLastUse = value; } }
 
-   void Start() {
+    public override float TertiaryActionLastUse { get { return tertiaryActionLastUse; } set { tertiaryActionLastUse = value; } }
 
+    public override float PrimaryActionCooldown { get => gameOptions.killIntervalStandard; }
+
+    public override float SecondaryActionCooldown => throw new System.NotImplementedException();
+
+    public override float TertiaryActionCooldown => throw new System.NotImplementedException();
+
+    private GameOptions gameOptions;
+
+    void Start()
+    {
+        gameOptions = GameOptions.singleton;
+    }
+
+    public override void PerformPrimaryAction()
+    {
+        if (PrimaryActionLastUse > 0)
+        {
+            Debug.Log("User tried to perform primary action, but cooldown is " + PrimaryActionLastUse);
+            return;
+        }
+
+        Debug.Log("Performing primary action now.");
+
+        Player[] allPlayers = FindObjectsOfType<Player>();
+
+        foreach (Player player in allPlayers)
+        {
+
+        }
+
+        PrimaryActionLastUse = PrimaryActionCooldown;
+    }
+
+    public override void PerformSecondaryAction()
+    {
+        throw new System.NotImplementedException();
+    }
+
+    public override void PerformTertiaryAction()
+    {
+        throw new System.NotImplementedException();
     }
 
     void Update() {
+        if (PrimaryActionLastUse > 0)
+            PrimaryActionLastUse -= Time.deltaTime;
 
+            if (PrimaryActionLastUse < 0)
+            PrimaryActionLastUse = 0;
     }
 }

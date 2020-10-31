@@ -10,31 +10,26 @@ public class CustomNetworkRoomPlayer : NetworkRoomPlayer
 
     private GameObject LobbyUI;
 
-    private Button readyButton;
     private Button startButton;
-    private Button leaveButton;
 
     private bool ready = false;
 
-    private NetworkRoomManager manager;
-    private NetworkRoomManager Manager
+    private GameManager GameManagerInstance
     {
         get
         {
-            if (manager != null)
-                return manager;
-
-            manager = NetworkManager.singleton as NetworkRoomManager;
-            return manager;
+            return GameManager.singleton as GameManager;
         }
     }
 
     // Start is called before the first frame update
-    new void Start()
+    void Start()
     {
         base.Start();
 
-        LobbyUI = Instantiate(LobbyUIPrefab);
+        // LobbyUI = Instantiate(LobbyUIPrefab);
+
+        GameObject LobbyUI = GameObject.FindWithTag("LobbyUI");
 
         Button[] buttons = LobbyUI.GetComponentsInChildren<Button>();
 
@@ -43,23 +38,45 @@ public class CustomNetworkRoomPlayer : NetworkRoomPlayer
             Debug.Log(button.name);
 
             if (button.name.Equals("ReadyButton"))
-            {
-                if (!isClientOnly)
-                    // If host, disable button...
-                    button.gameObject.SetActive(false);
-                else
-                    button.onClick.AddListener(ReadyUp);
-
-            }
+                button.onClick.AddListener(ReadyUp);
             else if (button.name.Equals("LeaveButton"))
                 button.onClick.AddListener(LeaveLobby);
-            else if (button.name.Equals("HostReadyButton"))
+            else if (button.name.Equals("StartButton"))
             {
-                if (isClientOnly)
-                    // If not host, disable button...
-                    button.gameObject.SetActive(false);
-                else
-                    button.onClick.AddListener(HostReadyUp);
+                startButton = button;
+
+                if (!isClientOnly)
+                    // This feels like a dirty hack...
+                    button.onClick.AddListener(GameManagerInstance.OnStartButtonClicked);
+            }
+        }
+    }
+
+    private void Awake()
+    {
+        base.Start();
+
+        // LobbyUI = Instantiate(LobbyUIPrefab);
+
+        GameObject LobbyUI = GameObject.FindWithTag("LobbyUI");
+
+        Button[] buttons = LobbyUI.GetComponentsInChildren<Button>();
+
+        foreach (Button button in buttons)
+        {
+            Debug.Log(button.name);
+
+            if (button.name.Equals("ReadyButton"))
+                button.onClick.AddListener(ReadyUp);
+            else if (button.name.Equals("LeaveButton"))
+                button.onClick.AddListener(LeaveLobby);
+            else if (button.name.Equals("StartButton"))
+            {
+                startButton = button;
+
+                if (!isClientOnly)
+                    // This feels like a dirty hack...
+                    button.onClick.AddListener(GameManagerInstance.OnStartButtonClicked);
             }
         }
     }
@@ -70,23 +87,15 @@ public class CustomNetworkRoomPlayer : NetworkRoomPlayer
 
     }
 
-    public void HostReadyUp()
-    {
-        Debug.Log("Ready button clicked.");
-        ready = !ready;
-        Debug.Log("Player ready: " + ready);
-        CmdChangeReadyState(ready);
-    }
-
     public void LeaveLobby()
     {
         Debug.Log("Leave button clicked.");
         if (NetworkServer.active && NetworkClient.isConnected) // Stop host if host mode.
-            Manager.StopHost();
+            GameManagerInstance.StopHost();
         else if (NetworkClient.isConnected)     // Stop client only.
-            Manager.StopClient();
+            GameManagerInstance.StopClient();
         else if (NetworkServer.active)          // Stop server only.
-            Manager.StopServer();
+            GameManagerInstance.StopServer();
     }
 
     public void ReadyUp()

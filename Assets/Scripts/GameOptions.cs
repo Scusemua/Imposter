@@ -6,11 +6,11 @@ using UnityEngine;
 public class GameOptions : MonoBehaviour
 {
     /* Movement related. */
-    public float playerSpeed;
-    public bool springEnabled;              // Is the sprint mechanic enabled?
-    public float sprintBoost;               // Base speed is multiplied by this value when sprinting.
-    public float crewmateSprintDuration;    // How long can crewmates sprint?
-    public float imposterSprintDuration;    // How long can imposters sprint?
+    public float playerSpeed = 5;
+    public bool springEnabled = true;               // Is the sprint mechanic enabled?
+    public float sprintBoost = 2;                   // Base speed is multiplied by this value when sprinting.
+    public float crewmateSprintDuration = 10;       // How long can crewmates sprint?
+    public float imposterSprintDuration = 15;       // How long can imposters sprint?
 
     /* Footprint related. */
     public bool bloodyFootprintsEnabled;    // Are there bloody footprints after killing?
@@ -21,10 +21,10 @@ public class GameOptions : MonoBehaviour
     public float footprintDuration;         // How long do footprints stick around before disappearing?
 
     /* Killing related. */
-    public float killIntervalStandard;      // How long inbetween kills by standard imposter?
-    public float killIntervalAssassin;      // How long do assassins wait inbetween kills?
-    public float killDistanceStandard;      // Minimum distance required between crewmate and standard imposter for kill to be available.
-    public float killDistanceAssassin;      // Minimum distance required between crewmate and assassin imposter for kill to be available.
+    public float killIntervalStandard;              // How long inbetween kills by standard imposter?
+    public float killIntervalAssassin;              // How long do assassins wait inbetween kills?
+    public float killDistanceStandard = 0.5f;       // Minimum distance required between crewmate and standard imposter for kill to be available.
+    public float killDistanceAssassin;              // Minimum distance required between crewmate and assassin imposter for kill to be available.
 
     /* Task-related settings. */
     public int numCommonTasks;              // How many tasks do ALL players have?
@@ -42,14 +42,14 @@ public class GameOptions : MonoBehaviour
     public float emergencyCooldownSaboteur; // How long must Saboteurs wait inbetween causing emergencies?
 
     /* Role related */
-    public bool saboteurEnabled;            // Is the "Saboteur" imposter role enabled?
-    public bool assassinEnabled;            // Is the "Assassin" imposter role enabled?
-    public bool sheriffEnabled;             // Is the "Sheriff" crewmate role enabed?
-    public int maxSaboteurs;                // What is the maximum number of Saboteur imposters allowed?
-    public int maxAssassins;                // What is the maximum number of Assassin imposters allowed?
-    public int maxSheriffs;                 // What is the maximum number of sheriffs allowed?
-    public int numberOfImposters;           // How many imposters are there?
-    public float sheriffScannerCooldown;    // How long must the sheriff wait inbetween uses of his/her scanner?
+    public bool saboteurEnabled;                // Is the "Saboteur" imposter role enabled?
+    public bool assassinEnabled;                // Is the "Assassin" imposter role enabled?
+    public bool sheriffEnabled;                 // Is the "Sheriff" crewmate role enabed?
+    public int maxSaboteurs;                    // What is the maximum number of Saboteur imposters allowed?
+    public int maxAssassins;                    // What is the maximum number of Assassin imposters allowed?
+    public int maxSheriffs;                     // What is the maximum number of sheriffs allowed?
+    public int numberOfImposters = 1;           // How many imposters are there?
+    public float sheriffScannerCooldown;        // How long must the sheriff wait inbetween uses of his/her scanner?
 
     /* Vision related. */
     public int crewmateVision;              // How far can crewmates see?

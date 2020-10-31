@@ -51,6 +51,8 @@ public class Player : NetworkBehaviour
 
     private System.Random RNG = new System.Random();
 
+    private GameManager gameManager;
+
     public bool isDead
     {
         get { return _isDead; }
@@ -61,6 +63,7 @@ public class Player : NetworkBehaviour
 
     void Start()
     {
+        gameManager = GameManager.singleton as GameManager;
         if (!isLocalPlayer)
         {
             DisableComponents();
@@ -94,24 +97,28 @@ public class Player : NetworkBehaviour
         switch(role)
         {
             case "crewmate":
-                Role = new CrewmateRole();
+                Role = gameObject.AddComponent<CrewmateRole>() as CrewmateRole;
                 break;
             case "imposter":
-                Role = new ImposterRole();
+                Role = gameObject.AddComponent<ImposterRole>() as ImposterRole;
                 break;
             case "assassin":
-                Role = new AssassinRole();
+                Role = gameObject.AddComponent<AssassinRole>() as AssassinRole;
                 break;
             case "saboteur":
-                Role = new SaboteurRole();
+                Role = gameObject.AddComponent<SaboteurRole>() as SaboteurRole;
                 break;
             case "sheriff":
-                Role = new SheriffRole();
+                Role = gameObject.AddComponent<SheriffRole>() as SheriffRole;
                 break;
             default:
                 Debug.LogError("Unknown role assigned to player " + nickname + ": " + role);
                 break;
         }
+
+        Debug.Log("Role assigned: " + role);
+
+        Role.AssignPlayer(this);
 
         playerUI.SetRole(role);
     }
@@ -132,6 +139,7 @@ public class Player : NetworkBehaviour
     {
         RpcSetupPlayerOnAllClients();
     }
+
 
     [ClientRpc]
     private void RpcSetupPlayerOnAllClients()
@@ -165,15 +173,6 @@ public class Player : NetworkBehaviour
         {
             disableGameObjectsOnDeath[i].SetActive(true);
         }
-
-        // Enable the collider.
-        Collider _col = GetComponent<Collider>();
-        if (_col != null)
-            _col.enabled = true;
-
-        // Create spawn effect.
-        // GameObject _gfxIns = (GameObject)Instantiate(spawnEffect, transform.position, Quaternion.identity);
-        // Destroy(_gfxIns, 3f);
     }
 
     public override void OnStartClient()
@@ -185,7 +184,7 @@ public class Player : NetworkBehaviour
 
         _player.nickname = nickname;
 
-        GameManager.RegisterPlayer(_netID, _player);
+        gameManager.RegisterPlayer(_netID, _player);
     }
 
     void AssignRemoteLayer()
@@ -219,6 +218,6 @@ public class Player : NetworkBehaviour
         //if (isLocalPlayer)
         //    GameManager.singleton.SetSceneCameraActive(true);
 
-        GameManager.UnRegisterPlayer(transform.name);
+        gameManager.UnRegisterPlayer(transform.name);
     }
 }

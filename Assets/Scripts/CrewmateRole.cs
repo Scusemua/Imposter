@@ -1,40 +1,51 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using Mirror;
+using UnityEngine.UI;
 
-public class CrewmateRole : MonoBehaviour, IRole
+public class CrewmateRole : Role
 {
-   public string Name { get => throw new System.NotImplementedException(); set => throw new System.NotImplementedException(); }
-   public float MovementSpeed { get => throw new System.NotImplementedException(); set => throw new System.NotImplementedException(); }
-   public float SprintDuration { get => throw new System.NotImplementedException(); set => throw new System.NotImplementedException(); }
-   public float SprintBoost { get => throw new System.NotImplementedException(); set => throw new System.NotImplementedException(); }
-   public float PrimaryActionCooldown { get => throw new System.NotImplementedException(); set => throw new System.NotImplementedException(); }
-   public float SecondaryActionCooldown { get => throw new System.NotImplementedException(); set => throw new System.NotImplementedException(); }
-   public float TertiaryActionCooldown { get => throw new System.NotImplementedException(); set => throw new System.NotImplementedException(); }
-   public float PrimaryActionLastUse { get => throw new System.NotImplementedException(); set => throw new System.NotImplementedException(); }
-   public float SecondaryActionLastUse { get => throw new System.NotImplementedException(); set => throw new System.NotImplementedException(); }
-   public float TertiaryActionLastUse { get => throw new System.NotImplementedException(); set => throw new System.NotImplementedException(); }
+    public override string Name { get => "Crewmate"; }
+    public override float SprintDuration { get => gameOptions.crewmateSprintDuration;  }
+    
+    public override float PrimaryActionLastUse { get { return primaryActionLastUse; } set { primaryActionLastUse = value; } }
+    
+    public override float SecondaryActionLastUse { get { return secondaryActionLastUse; } set { secondaryActionLastUse = value; } }
 
-   public void PrimaryAction()
-   {
-      throw new System.NotImplementedException();
-   }
+    public override float TertiaryActionLastUse { get { return tertiaryActionLastUse; } set { tertiaryActionLastUse = value; } }
 
-   public void SecondaryAction()
-   {
-      throw new System.NotImplementedException();
-   }
+    public override float PrimaryActionCooldown => throw new System.NotImplementedException();
 
-   public void TertiaryAction()
-   {
-      throw new System.NotImplementedException();
-   }
+    public override float SecondaryActionCooldown => throw new System.NotImplementedException();
 
-   void Start() {
+    public override float TertiaryActionCooldown => throw new System.NotImplementedException();
+
+    private GameOptions gameOptions;
+
+
+    void Start()
+    {
+        gameOptions = GameOptions.singleton;
+    }
+
+    void Update()
+    {
 
     }
 
-    void Update() {
+    public override void PerformPrimaryAction()
+    {
+        throw new System.NotImplementedException();
+    }
 
+    public override void PerformSecondaryAction()
+    {
+        throw new System.NotImplementedException();
+    }
+
+    public override void PerformTertiaryAction()
+    {
+        throw new System.NotImplementedException();
     }
 }

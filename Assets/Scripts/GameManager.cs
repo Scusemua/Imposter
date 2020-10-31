@@ -17,54 +17,46 @@ public class GameManager : NetworkRoomManager
 
     private GameState currentGameState;
 
-    [SerializeField]
-    private GameObject sceneCamera;
-
     private static System.Random RNG = new System.Random();
 
     #region Player Tracking 
     private const string PLAYER_ID_PREFIX = "Player ";
 
-    private static Dictionary<string, Player> players = new Dictionary<string, Player>();
+    private Dictionary<string, Player> players = new Dictionary<string, Player>();
 
-    /// <summary>
-    /// This is called on the server when all the players in the room are ready.
-    /// <para>The default implementation of this function uses ServerChangeScene() to switch to the game player scene. By implementing this callback you can customize what happens when all the players in the room are ready, such as adding a countdown or a confirmation for a group leader.</para>
-    /// </summary>
-    public override void OnRoomServerPlayersReady()
-    {
-        AssignRoles();
+    public GameObject startButton;
 
-        // All players are readyToBegin, start the game.
-        base.ServerChangeScene(GameplayScene);
-    }
-
-    public static Player[] GetAllPlayers()
+    public Player[] GetAllPlayers()
     {
         return players.Values.ToArray();
     }
 
-    public static void RegisterPlayer(string _netID, Player _player)
+    public void RegisterPlayer(string _netID, Player _player)
     {
         string _playerID = PLAYER_ID_PREFIX + _netID;
         Debug.Log("Registering player with PlayerID " + _playerID);
         players.Add(_playerID, _player);
         _player.transform.name = _playerID;
+
+        if (players.Count == roomSlots.Count)
+        {
+            AssignRoles();
+        }
     }
 
-    public static void UnRegisterPlayer(string _playerID)
+    public void UnRegisterPlayer(string _playerID)
     {
         players.Remove(_playerID);
     }
 
-    public static Player GetPlayer(string _playerID)
+    public Player GetPlayer(string _playerID)
     {
         Player player = null;
         try
         {
             player = players[_playerID];
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             Debug.LogError("Error: there is no player with ID \"" + _playerID + "\".");
             Debug.Log("Valid player IDs: " + players.Keys.ToArray());
@@ -121,6 +113,8 @@ public class GameManager : NetworkRoomManager
 
         List<Player> allPlayers = new List<Player>(GetAllPlayers());
 
+        Debug.Log("Number of Imposters: " + numImposters);
+
         // Assign imposter roles randomly.
         for (int i = 0; i < numImposters; i++)
         {
@@ -133,7 +127,7 @@ public class GameManager : NetworkRoomManager
 
         // The remaining players are crewmates.
         crewmates.AddRange(allPlayers);
-
+        
         foreach (Player p in imposters)
             p.AssignRole("imposter");
 
@@ -141,12 +135,27 @@ public class GameManager : NetworkRoomManager
             p.AssignRole("crewmate");
     }
 
-    void StartGame()
+    public override void OnRoomServerPlayersReady()
     {
-        currentGameState = GameState.STARTING;
-        AssignRoles();
+        
+    }
 
-        currentGameState = GameState.IN_PROGRESS;
+    public bool AreAllPlayersReady()
+    {
+        return allPlayersReady;
+    }
+
+    public void OnStartButtonClicked()
+    {
+        if (allPlayersReady)
+        {
+            currentGameState = GameState.STARTING;
+            AssignRoles();
+
+            // All players are readyToBegin, start the game.
+            base.ServerChangeScene(GameplayScene);
+            currentGameState = GameState.IN_PROGRESS;
+        }
     }
 
     void StopGame()
@@ -154,24 +163,11 @@ public class GameManager : NetworkRoomManager
         currentGameState = GameState.LOBBY;
     }
 
-    public void SetSceneCameraActive(bool isActive)
-    {
-        if (sceneCamera == null)
-            return;
-
-        sceneCamera.SetActive(isActive);
-    }
-
-    void Awake()
-    {
-        base.Awake();
-    }
-
     // Start is called before the first frame update
     void Start()
     {
-        currentGameState = GameState.LOBBY;
         base.Start();
+        currentGameState = GameState.LOBBY;
     }
 
     // Update is called once per frame
