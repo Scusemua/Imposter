@@ -69,9 +69,9 @@ public class PlayerUI : MonoBehaviour
     {
         roleText.text = roleName.ToUpper();
 
-        if (GameManager.IsImposterRole(roleName))
-        {
-            PrimaryActionLabel.text = "KILL";
-        }
+        //if (GameManager.IsImposterRole(roleName))
+        //{
+        //    PrimaryActionLabel.text = "KILL";
+        //}
     }
 }
