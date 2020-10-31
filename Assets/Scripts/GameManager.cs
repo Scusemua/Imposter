@@ -113,6 +113,7 @@ public class GameManager : NetworkRoomManager
 
         List<Player> allPlayers = new List<Player>(GetAllPlayers());
 
+        Debug.Log("Number of Players: " + allPlayers.Count);
         Debug.Log("Number of Imposters: " + numImposters);
 
         // Assign imposter roles randomly.
@@ -127,17 +128,23 @@ public class GameManager : NetworkRoomManager
 
         // The remaining players are crewmates.
         crewmates.AddRange(allPlayers);
-        
-        foreach (Player p in imposters)
-            p.AssignRole("imposter");
 
-        foreach (Player p in crewmates)
-            p.AssignRole("crewmate");
+        if (imposters.Count > 0)
+        {
+            foreach (Player p in imposters)
+                p.AssignRole("imposter");
+        }
+
+        if (crewmates.Count > 0)
+        {
+            foreach (Player p in crewmates)
+                p.AssignRole("crewmate");
+        }
     }
 
     public override void OnRoomServerPlayersReady()
     {
-        
+        // base.OnRoomServerPlayersReady();
     }
 
     public bool AreAllPlayersReady()
@@ -150,7 +157,7 @@ public class GameManager : NetworkRoomManager
         if (allPlayersReady)
         {
             currentGameState = GameState.STARTING;
-            AssignRoles();
+            //AssignRoles();
 
             // All players are readyToBegin, start the game.
             base.ServerChangeScene(GameplayScene);

@@ -27,7 +27,7 @@ public class CustomNetworkRoomPlayer : NetworkRoomPlayer
     {
         base.Start();
 
-        // LobbyUI = Instantiate(LobbyUIPrefab);
+        //LobbyUI = Instantiate(LobbyUIPrefab);
 
         GameObject LobbyUI = GameObject.FindWithTag("LobbyUI");
 
@@ -54,31 +54,31 @@ public class CustomNetworkRoomPlayer : NetworkRoomPlayer
 
     private void Awake()
     {
-        base.Start();
+        //base.Start();
 
-        // LobbyUI = Instantiate(LobbyUIPrefab);
+        //LobbyUI = Instantiate(LobbyUIPrefab);
 
-        GameObject LobbyUI = GameObject.FindWithTag("LobbyUI");
+        ////GameObject LobbyUI = GameObject.FindWithTag("LobbyUI");
 
-        Button[] buttons = LobbyUI.GetComponentsInChildren<Button>();
+        //Button[] buttons = LobbyUI.GetComponentsInChildren<Button>();
 
-        foreach (Button button in buttons)
-        {
-            Debug.Log(button.name);
+        //foreach (Button button in buttons)
+        //{
+        //    Debug.Log(button.name);
 
-            if (button.name.Equals("ReadyButton"))
-                button.onClick.AddListener(ReadyUp);
-            else if (button.name.Equals("LeaveButton"))
-                button.onClick.AddListener(LeaveLobby);
-            else if (button.name.Equals("StartButton"))
-            {
-                startButton = button;
+        //    if (button.name.Equals("ReadyButton"))
+        //        button.onClick.AddListener(ReadyUp);
+        //    else if (button.name.Equals("LeaveButton"))
+        //        button.onClick.AddListener(LeaveLobby);
+        //    else if (button.name.Equals("StartButton"))
+        //    {
+        //        startButton = button;
 
-                if (!isClientOnly)
-                    // This feels like a dirty hack...
-                    button.onClick.AddListener(GameManagerInstance.OnStartButtonClicked);
-            }
-        }
+        //        if (!isClientOnly)
+        //            // This feels like a dirty hack...
+        //            button.onClick.AddListener(GameManagerInstance.OnStartButtonClicked);
+        //    }
+        //}
     }
 
     // Update is called once per frame
