@@ -27,7 +27,6 @@ public class UserAccountManager : MonoBehaviour
 
    public static bool IsLoggedIn { get; protected set; }
 
-
    public string loggedInSceneName = "Lobby";
    public string loggedOutSceneName = "LoginMenu";
 

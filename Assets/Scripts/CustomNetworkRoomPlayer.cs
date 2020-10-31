@@ -30,8 +30,10 @@ public class CustomNetworkRoomPlayer : NetworkRoomPlayer
     }
 
     // Start is called before the first frame update
-    void Start()
+    new void Start()
     {
+        base.Start();
+
         LobbyUI = Instantiate(LobbyUIPrefab);
 
         Button[] buttons = LobbyUI.GetComponentsInChildren<Button>();
@@ -41,13 +43,23 @@ public class CustomNetworkRoomPlayer : NetworkRoomPlayer
             Debug.Log(button.name);
 
             if (button.name.Equals("ReadyButton"))
-                button.onClick.AddListener(ReadyUp);
-            else if (button.name.Equals("LeaveButton")) 
-                button.onClick.AddListener(LeaveLobby)
-            else if (button.name.Equals("StartButton"))
             {
-                // If not host, disable button...
-                button.onClick.AddListener(StartGame);
+                if (!isClientOnly)
+                    // If host, disable button...
+                    button.gameObject.SetActive(false);
+                else
+                    button.onClick.AddListener(ReadyUp);
+
+            }
+            else if (button.name.Equals("LeaveButton"))
+                button.onClick.AddListener(LeaveLobby);
+            else if (button.name.Equals("HostReadyButton"))
+            {
+                if (isClientOnly)
+                    // If not host, disable button...
+                    button.gameObject.SetActive(false);
+                else
+                    button.onClick.AddListener(HostReadyUp);
             }
         }
     }
@@ -55,26 +67,33 @@ public class CustomNetworkRoomPlayer : NetworkRoomPlayer
     // Update is called once per frame
     void Update()
     {
-        
+
     }
 
-    [Command]
-    public void StartGame()
+    public void HostReadyUp()
     {
-
+        Debug.Log("Ready button clicked.");
+        ready = !ready;
+        Debug.Log("Player ready: " + ready);
+        CmdChangeReadyState(ready);
     }
 
-    [Command]
     public void LeaveLobby()
     {
-
+        Debug.Log("Leave button clicked.");
+        if (NetworkServer.active && NetworkClient.isConnected) // Stop host if host mode.
+            Manager.StopHost();
+        else if (NetworkClient.isConnected)     // Stop client only.
+            Manager.StopClient();
+        else if (NetworkServer.active)          // Stop server only.
+            Manager.StopServer();
     }
 
-    [Command]
     public void ReadyUp()
     {
-        this.ready = !this.ready;
-        Debug.Log("Player ready: " + this.ready);
-        this.CmdChangeReadyState(this.ready);
+        Debug.Log("Ready button clicked.");
+        ready = !ready;
+        Debug.Log("Player ready: " + ready);
+        CmdChangeReadyState(ready);
     }
 }

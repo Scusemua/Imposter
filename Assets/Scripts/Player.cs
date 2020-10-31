@@ -1,6 +1,7 @@
 using UnityEngine;
 using Mirror;
 using System.Collections;
+using System;
 
 public class Player : NetworkBehaviour 
 {
@@ -46,6 +47,10 @@ public class Player : NetworkBehaviour
 
     private bool firstSetup = true;
 
+    private static string[] default_nicknames = { "Sally", "Betty", "Charlie", "Anne", "Bob" };
+
+    private System.Random RNG = new System.Random();
+
     public bool isDead
     {
         get { return _isDead; }
@@ -53,8 +58,6 @@ public class Player : NetworkBehaviour
     }
 
     public IRole Role { get; set; }
-
-    public string Nickname { get; set; }
 
     void Start()
     {
@@ -65,9 +68,6 @@ public class Player : NetworkBehaviour
         }
         else
         {
-            // Disable player graphics for local player
-            //SetLayerRecursively(playerGraphics, LayerMask.NameToLayer(dontDrawLayerName));
-
             // Create PlayerUI
             playerUIInstance = Instantiate(playerUIPrefab);
 
@@ -77,16 +77,10 @@ public class Player : NetworkBehaviour
                 Debug.LogError("No PlayerUI component on PlayerUI prefab.");
             playerUI = ui;
 
+            nickname = PlayerPrefs.GetString("nickname", default_nicknames[RNG.Next(default_nicknames.Length)]);
+
             ui.SetPlayer(GetComponent<Player>());
             GetComponent<Player>().SetupPlayer();
-
-            string _nickname = "Loading...";
-            if (UserAccountManager.IsLoggedIn)
-                _nickname = UserAccountManager.PlayerUsername;
-            else
-                _nickname = transform.name;
-
-            CmdSetUsername(transform.name, _nickname);
         }
     }
 
@@ -127,7 +121,6 @@ public class Player : NetworkBehaviour
         if (isLocalPlayer)
         {
             //Switch cameras
-            GameManager.instance.SetSceneCameraActive(false);
             playerUIInstance.SetActive(true);
         }
 
@@ -155,17 +148,6 @@ public class Player : NetworkBehaviour
         }
 
         SetDefaults();
-    }
-
-    [Command]
-    void CmdSetNickname(string playerID, string nickname)
-    {
-        Player player = GameManager.GetPlayer(playerID);
-        if (player != null)
-        {
-            Debug.Log(nickname + " has joined!");
-            player.Nickname = nickname;
-        }
     }
 
     public void SetDefaults()
@@ -201,18 +183,9 @@ public class Player : NetworkBehaviour
         string _netID = GetComponent<NetworkIdentity>().netId.ToString();
         Player _player = GetComponent<Player>();
 
-        GameManager.RegisterPlayer(_netID, _player);
-    }
+        _player.nickname = nickname;
 
-    [Command]
-    void CmdSetUsername(string playerID, string nickname)
-    {
-        Player player = GameManager.GetPlayer(playerID);
-        if (player != null)
-        {
-            Debug.Log(nickname + " has joined!");
-            player.nickname = nickname;
-        }
+        GameManager.RegisterPlayer(_netID, _player);
     }
 
     void AssignRemoteLayer()
@@ -243,8 +216,8 @@ public class Player : NetworkBehaviour
     {
         Destroy(playerUIInstance);
 
-        if (isLocalPlayer)
-            GameManager.instance.SetSceneCameraActive(true);
+        //if (isLocalPlayer)
+        //    GameManager.singleton.SetSceneCameraActive(true);
 
         GameManager.UnRegisterPlayer(transform.name);
     }

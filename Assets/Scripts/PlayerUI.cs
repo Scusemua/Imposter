@@ -5,49 +5,56 @@ using UnityEngine.UI;
 
 public class PlayerUI : MonoBehaviour
 {
-   [SerializeField]
-   Text nicknameText;
+    [SerializeField]
+    Text nicknameText;
 
-   [SerializeField]
-   Text roleText;
+    [SerializeField]
+    Text roleText;
 
-   private Player player;
-   private PlayerController playerController;
+    private Player player;
+    private PlayerController playerController;
 
-   void Alive()
-   {
+    public Button PrimaryActionButton;
+    public Text PrimaryActionLabel;
 
-   }
+    private GameOptions gameOptions;
+    private GameManager gameManager;
 
-   // Start is called before the first frame update
-   void Start()
-   {
-      if (nicknameText == null)
-      {
-         AssignTextComponents();
-      }
-   }
+    void Alive()
+    {
+        gameOptions = GameOptions.singleton;
+        gameManager = GameManager.singleton as GameManager;
+    }
 
-   // Update is called once per frame
-   void Update()
-   {
+    // Start is called before the first frame update
+    void Start()
+    {
+        if (nicknameText == null)
+        {
+            AssignTextComponents();
+        }
+    }
+
+    // Update is called once per frame
+    void Update()
+    {
         
-   }
+    }
 
-   public void SetPlayer(Player player)
-   {
-      this.player = player;
-      this.playerController = player.GetComponent<PlayerController>();
+    public void SetPlayer(Player player)
+    {
+        this.player = player;
+        this.playerController = player.GetComponent<PlayerController>();
 
-      SetNickname(player.Nickname);
-   }
+        SetNickname(player.nickname);
+    }
 
-   void AssignTextComponents()
-   {
-      Text[] textComponents = GetComponentsInChildren<Text>();
-      nicknameText = textComponents[0];
-      roleText = textComponents[1];
-   }
+    void AssignTextComponents()
+    {
+        Text[] textComponents = GetComponentsInChildren<Text>();
+        nicknameText = textComponents[0];
+        roleText = textComponents[1];
+    }
 
     public void SetNickname(string nickname)
     {
@@ -61,5 +68,14 @@ public class PlayerUI : MonoBehaviour
     public void SetRole(string roleName)
     {
         roleText.text = roleName.ToUpper();
+
+        if (GameManager.IsImposterRole(roleName))
+        {
+            PrimaryActionLabel.text = "KILL";
+        }
+        else
+        {
+            PrimaryActionButton.gameObject.SetActive(false);
+        }
     }
 }

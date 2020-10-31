@@ -43,7 +43,8 @@ public class MainMenu : MonoBehaviour
 
     private bool hostingGame;
 
-    private const string ERROR_INVALID_NICKNAME = "ERROR: Invalid nickname.";
+    private const string ERROR_INVALID_NICKNAME_LENGTH = "ERROR: Nickname length should be between 1 and 10.";
+    private const string ERROR_INVALID_NICKNAME_CONTENT = "ERROR: Invalid nickname (letters only, please).";
     private const string ERROR_INVALID_IP = "ERROR: Invalid IPv4 address.";
 
     // Start is called before the first frame update
@@ -107,16 +108,24 @@ public class MainMenu : MonoBehaviour
 
         Debug.Log("Nickname: \"" + enteredNickname + "\", IP Address: " + enteredIPAddress + ".");
 
-        if (enteredNickname.Length == 0 || !Regex.IsMatch(enteredNickname, @"^[a-zA-Z]+$"))
+        if (!Regex.IsMatch(enteredNickname, @"^[a-zA-Z]+$"))
         {
             Debug.LogWarning("User entered invalid nickname: \"" + enteredNickname + "\".");
-            errorMessageText.text = ERROR_INVALID_NICKNAME;
+            errorMessageText.text = ERROR_INVALID_NICKNAME_CONTENT;
+            warningPopup.SetActive(true);
+            return;
+        }
+
+        if (enteredNickname.Length == 0 || enteredNickname.Length > 10)
+        {
+            Debug.LogWarning("User entered invalid nickname: \"" + enteredNickname + "\".");
+            errorMessageText.text = ERROR_INVALID_NICKNAME_LENGTH;
             warningPopup.SetActive(true);
             return;
         }
 
         // So we can retrieve this in the next scene! 
-        PlayerPrefs.SetString("Nickname", enteredNickname);
+        PlayerPrefs.SetString("nickname", enteredNickname);
 
         if (!hostingGame)
         {
