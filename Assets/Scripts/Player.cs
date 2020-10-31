@@ -46,6 +46,9 @@ public class Player : NetworkBehaviour
     [HideInInspector]
     public PlayerUI playerUI;
 
+    [SerializeField]
+    private GameObject mainCamera;
+
     private bool firstSetup = true;
 
     private static string[] default_nicknames = { "Sally", "Betty", "Charlie", "Anne", "Bob" };
@@ -62,12 +65,17 @@ public class Player : NetworkBehaviour
 
     public IRole Role { get; set; }
 
-    [Command]
     public void DisplayEndOfGameUI(bool crewmateVictory)
     {
         playerUI.DisplayEndOfGameUI(crewmateVictory);
     }
 
+    public override void OnStartAuthority()
+    {
+        mainCamera.GetComponent<Camera>().enabled = true;
+    }
+
+    [Client]
     void Start()
     {
         gameManager = GameManager.singleton as GameManager;
@@ -78,6 +86,8 @@ public class Player : NetworkBehaviour
         }
         else
         {
+            if (!hasAuthority) return;
+
             // Create PlayerUI
             playerUIInstance = Instantiate(playerUIPrefab);
 
@@ -240,6 +250,7 @@ public class Player : NetworkBehaviour
         //if (isLocalPlayer)
         //    GameManager.singleton.SetSceneCameraActive(true);
 
-        gameManager.UnRegisterPlayer(transform.name);
+        if (isLocalPlayer && hasAuthority)
+            gameManager.UnRegisterPlayer(transform.name);
     }
 }

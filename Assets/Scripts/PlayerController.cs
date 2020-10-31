@@ -13,6 +13,11 @@ public class PlayerController : NetworkBehaviour
 
     private Player player;
 
+    public override void OnStartAuthority()
+    {
+        enabled = true;
+    }
+
     // Start is called before the first frame update
     void Start()
     {
@@ -23,26 +28,27 @@ public class PlayerController : NetworkBehaviour
     }
 
     // Update is called once per frame
+    [ClientCallback]
     void Update()
     {
-        
-    }
+        if (!hasAuthority) return;
 
-    void FixedUpdate()
-    {
-        if (this.isLocalPlayer && !player.isDead)
+        if (!player.isDead)
         {
             float horizontalMovement = Input.GetAxis("Horizontal");
             float verticalMovement = Input.GetAxis("Vertical");
 
             float movementSpeed = walkingSpeed;
-
             if (Input.GetKey(KeyCode.LeftShift))
-            {
-            movementSpeed *= runMultiplier;
-            }
+                movementSpeed *= runMultiplier;
 
-            GetComponent<Rigidbody2D>().velocity = new Vector2(horizontalMovement * movementSpeed, verticalMovement * movementSpeed);
+            Move(horizontalMovement, verticalMovement, movementSpeed);
         }
+    }
+
+    [Client]
+    private void Move(float horizontalMovement, float verticalMovement, float movementSpeed)
+    {
+        GetComponent<Rigidbody2D>().velocity = new Vector2(horizontalMovement * movementSpeed, verticalMovement * movementSpeed);
     }
 }

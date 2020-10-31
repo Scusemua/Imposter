@@ -29,7 +29,7 @@ public class PlayerUI : MonoBehaviour
     void Alive()
     {
         gameOptions = GameOptions.singleton;
-        gameManager = GameManager.singleton as GameManager;
+        gameManager = NetworkManager.singleton as GameManager;
     }
 
     // Start is called before the first frame update
@@ -40,6 +40,9 @@ public class PlayerUI : MonoBehaviour
         ImposterVictoryImage.enabled = false;
         ReturnToLobbyButton.SetActive(false);
         WaitingOnHostText.enabled = false;
+
+        gameOptions = GameOptions.singleton;
+        gameManager = NetworkManager.singleton as GameManager;
     }
 
     public void OnReturnToLobbyPressed()

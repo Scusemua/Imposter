@@ -29,6 +29,8 @@ public class ImposterRole : Role
     void Start()
     {
         gameOptions = GameOptions.singleton;
+
+        if (hasAuthority) enabled = true;
     }
 
     public override void PerformPrimaryAction()
@@ -100,7 +102,11 @@ public class ImposterRole : Role
         throw new System.NotImplementedException();
     }
 
-    void Update() {
+    [ClientCallback]
+    void Update()
+    {
+        if (!hasAuthority) return;
+
         KillTarget = GetClosestKillablePlayer();
 
         if (!PrimaryActionReady)
