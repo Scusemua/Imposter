@@ -6,23 +6,27 @@ using UnityEngine.UI;
 
 public abstract class Role : NetworkBehaviour, IRole
 {
-    protected float primaryActionLastUse;
-    protected float secondaryActionLastUse;
-    protected float tertiaryActionLastUse;
+    protected float primaryActionLastUse = 0.0f;
+    protected float secondaryActionLastUse = 0.0f;
+    protected float tertiaryActionLastUse = 0.0f;
 
     public abstract string Name { get; }
-    public float MovementSpeed { get => gameOptions.playerSpeed; }
     public abstract float SprintDuration { get; }
-    public float SprintBoost { get => gameOptions.sprintBoost; }
     public abstract float PrimaryActionCooldown { get; }
     public abstract float SecondaryActionCooldown { get; }
     public abstract float TertiaryActionCooldown { get; }
-    public abstract float PrimaryActionLastUse { get; set; }
-    public abstract float SecondaryActionLastUse { get; set; }
-    public abstract float TertiaryActionLastUse { get; set; }
     public abstract void PerformPrimaryAction();
     public abstract void PerformSecondaryAction();
     public abstract void PerformTertiaryAction();
+
+    public float MovementSpeed { get => gameOptions.playerSpeed; }
+    public float SprintBoost { get => gameOptions.sprintBoost; }
+
+    public float PrimaryActionLastUse { get { return primaryActionLastUse; } set { primaryActionLastUse = value; } }
+    public float SecondaryActionLastUse { get { return secondaryActionLastUse; } set { secondaryActionLastUse = value; } }
+    public float TertiaryActionLastUse { get { return tertiaryActionLastUse; } set { tertiaryActionLastUse = value; } }
+
+    public abstract bool PrimaryActionReady { get; set; }
 
     [HideInInspector]
     public Player player;
@@ -49,8 +53,18 @@ public abstract class Role : NetworkBehaviour, IRole
     public virtual void AssignPlayer(Player _player)
     {
         player = _player;
+
+        if (player == null)
+            Debug.LogError("Player is null during Role.AssignPlayer()");
+
         playerUI = player.playerUI;
 
-        playerUI.PrimaryActionButton.onClick.AddListener(PerformPrimaryAction);
+        if (_player.isLocalPlayer)
+        {
+            if (playerUI == null)
+                Debug.LogError("PlayerUI is null during Role.AssignPlayer()");
+
+            playerUI.PrimaryActionButtonGameObject.GetComponent<Button>().onClick.AddListener(PerformPrimaryAction);
+        }
     }
 }

@@ -41,6 +41,9 @@ public class GameOptions : MonoBehaviour
     public float emergencyCooldownStandard; // How long must regular imposters wait inbetween causing emergencies?
     public float emergencyCooldownSaboteur; // How long must Saboteurs wait inbetween causing emergencies?
 
+    /* Win Conditions */
+    public bool impostersMustKillAllCrewmates;
+
     /* Role related */
     public bool saboteurEnabled;                // Is the "Saboteur" imposter role enabled?
     public bool assassinEnabled;                // Is the "Assassin" imposter role enabled?

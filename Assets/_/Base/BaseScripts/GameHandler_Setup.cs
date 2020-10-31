@@ -30,7 +30,7 @@ public class GameHandler_Setup : MonoBehaviour {
 
     private void Start() {
         //Sound_Manager.Init();
-        cameraFollow.Setup(GetCameraPosition, () => 70f, true, true);
+        //cameraFollow.Setup(GetCameraPosition, () => 70f, true, true);
 
         //FunctionPeriodic.Create(SpawnEnemy, 1.5f);
         //for (int i = 0; i < 1000; i++) SpawnEnemy();

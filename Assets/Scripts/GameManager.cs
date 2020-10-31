@@ -16,6 +16,7 @@ public class GameManager : NetworkRoomManager
     }
 
     private GameState currentGameState;
+    private GameOptions gameOptions;
 
     private static System.Random RNG = new System.Random();
 
@@ -25,6 +26,14 @@ public class GameManager : NetworkRoomManager
     private Dictionary<string, Player> players = new Dictionary<string, Player>();
 
     public GameObject startButton;
+
+    private int numCrewmatesAlive;
+    private int numImpostersAlive;
+
+    /// <summary>
+    /// Have the roles been assigned yet? Used to prevent win-condition checking before the game has really started.
+    /// </summary>
+    private bool rolesAssigned = false;
 
     public Player[] GetAllPlayers()
     {
@@ -47,6 +56,70 @@ public class GameManager : NetworkRoomManager
     public void UnRegisterPlayer(string _playerID)
     {
         players.Remove(_playerID);
+    }
+
+    public void VictoryCheck()
+    {
+        bool imposterVictory = false;
+        bool crewmateVictory = false;
+
+        // Win condition for imposters is simply equal number of crewmates and imposters alive.
+        if (numImpostersAlive == numCrewmatesAlive && !gameOptions.impostersMustKillAllCrewmates)
+        {
+            // Imposters win.
+            Debug.Log("Imposters have won!");
+            imposterVictory = true;
+        }
+        // Imposters must kill all crewmates, all crewmates are dead, and at least one imposter is alive.
+        else if (gameOptions.impostersMustKillAllCrewmates && numCrewmatesAlive == 0 && numImpostersAlive > 0)
+        {
+            // Imposters win.
+            Debug.Log("Imposters have won!");
+            imposterVictory = true;
+        }
+        // There are no imposters remaining and at least one crewmate lives.
+        else if (numImpostersAlive == 0 && numCrewmatesAlive > 0)
+        {
+            Debug.Log("Crewmates have won!");
+            crewmateVictory = true;
+        }
+        else if (numImpostersAlive == 0 && numCrewmatesAlive == 0)
+        {
+            Debug.Log("It's a draw... for now, draw goes to the crewmates.");
+            crewmateVictory = true;
+        }
+
+        if (crewmateVictory || imposterVictory)
+        {
+            Player[] players = GetAllPlayers();
+
+            // Kill the remaining players.
+            foreach (Player p in players)
+            {
+                if (!p.isDead)
+                    p.Kill(null, serverKilled: true);
+
+                p.DisplayEndOfGameUI(crewmateVictory);
+            }
+
+            currentGameState = GameState.ENDING;
+        }
+    }
+
+    public void PlayerDied(string _playerID)
+    {
+        Player deceasedPlayer = GetPlayer(_playerID);
+
+        if (IsImposterRole(deceasedPlayer.Role.Name))
+        {
+            Debug.Log("Server has noted that player " + _playerID + ", who was an imposter, has died.");
+            numImpostersAlive--;
+        }
+        else
+        {
+            Debug.Log("Server has noted that player " + _playerID + ", who was a crewmate, has died.");
+            numCrewmatesAlive--;
+        }
     }
 
     public Player GetPlayer(string _playerID)
@@ -140,11 +213,27 @@ public class GameManager : NetworkRoomManager
             foreach (Player p in crewmates)
                 p.AssignRole("crewmate");
         }
+
+        numCrewmatesAlive = crewmates.Count;
+        numImpostersAlive = imposters.Count;
+
+        rolesAssigned = true;
+
+        // Game has officially started.
+        currentGameState = GameState.IN_PROGRESS;
     }
 
     public override void OnRoomServerPlayersReady()
     {
         // base.OnRoomServerPlayersReady();
+    }
+
+    public override void OnRoomServerSceneChanged(string sceneName)
+    {
+        base.OnRoomServerSceneChanged(sceneName);
+
+        if (sceneName == RoomScene)
+            currentGameState = GameState.LOBBY;
     }
 
     public bool AreAllPlayersReady()
@@ -161,7 +250,6 @@ public class GameManager : NetworkRoomManager
 
             // All players are readyToBegin, start the game.
             base.ServerChangeScene(GameplayScene);
-            currentGameState = GameState.IN_PROGRESS;
         }
     }
 
@@ -175,12 +263,18 @@ public class GameManager : NetworkRoomManager
     {
         base.Start();
         currentGameState = GameState.LOBBY;
+        gameOptions = GameOptions.singleton;
     }
 
     // Update is called once per frame
     void Update()
     {
+        if (rolesAssigned && currentGameState == GameState.IN_PROGRESS)
+            // Do a victory check.
+            VictoryCheck();
 
+        if (gameOptions == null)
+            gameOptions = GameOptions.singleton;
     }
 
     public static bool IsImposterRole(string roleName)

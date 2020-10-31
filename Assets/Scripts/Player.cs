@@ -3,6 +3,7 @@ using Mirror;
 using System.Collections;
 using System;
 
+[RequireComponent(typeof(PlayerController))]
 public class Player : NetworkBehaviour 
 {
     [SyncVar]
@@ -60,6 +61,12 @@ public class Player : NetworkBehaviour
     }
 
     public IRole Role { get; set; }
+
+    [Command]
+    public void DisplayEndOfGameUI(bool crewmateVictory)
+    {
+        playerUI.DisplayEndOfGameUI(crewmateVictory);
+    }
 
     void Start()
     {
@@ -120,7 +127,22 @@ public class Player : NetworkBehaviour
 
         Role.AssignPlayer(this);
 
-        playerUI.SetRole(role);
+        if (isLocalPlayer)
+            playerUI.SetRole(role);
+    }
+
+    public void Kill(Player killer, bool serverKilled = false)
+    {
+        if (killer == null && serverKilled)
+        {
+            Debug.Log("The server has killed player " + this.nickname);
+        }
+        else if (killer != null)
+            Debug.Log("Player " + nickname + " has been killed by player " + killer.nickname + ", who is a/an " + killer.Role.Name);
+        else
+            Debug.LogError("Player " + nickname + "(" + this.netId + ") was killed by NULL, and the server didn't kill the player...");
+
+        _isDead = true;
     }
 
     public void SetupPlayer()

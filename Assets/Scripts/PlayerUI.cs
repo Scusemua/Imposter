@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
+using Mirror;
 
 public class PlayerUI : MonoBehaviour
 {
@@ -14,8 +15,13 @@ public class PlayerUI : MonoBehaviour
     private Player player;
     private PlayerController playerController;
 
-    public Button PrimaryActionButton;
+    [Header("UI Elements")]
+    public GameObject PrimaryActionButtonGameObject;
     public Text PrimaryActionLabel;
+    public Image CrewmateVictoryImage;
+    public Image ImposterVictoryImage;
+    public GameObject ReturnToLobbyButton;
+    public Text WaitingOnHostText;
 
     private GameOptions gameOptions;
     private GameManager gameManager;
@@ -29,16 +35,36 @@ public class PlayerUI : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-        if (nicknameText == null)
-        {
-            AssignTextComponents();
-        }
+        // Hide end-of-game UI.
+        CrewmateVictoryImage.enabled = false;
+        ImposterVictoryImage.enabled = false;
+        ReturnToLobbyButton.SetActive(false);
+        WaitingOnHostText.enabled = false;
+    }
+
+    public void OnReturnToLobbyPressed()
+    {
+        // Go back to the room.
+        gameManager.ServerChangeScene(gameManager.RoomScene);
     }
 
     // Update is called once per frame
     void Update()
     {
         
+    }
+
+    public void DisplayEndOfGameUI(bool crewmateVictory)
+    {
+        if (crewmateVictory)
+            CrewmateVictoryImage.enabled = true;
+        else
+            ImposterVictoryImage.enabled = true;
+
+        if (player.isClientOnly)
+            WaitingOnHostText.enabled = true;
+        else
+            ReturnToLobbyButton.SetActive(true);
     }
 
     public void SetPlayer(Player player)
@@ -68,10 +94,5 @@ public class PlayerUI : MonoBehaviour
     public void SetRole(string roleName)
     {
         roleText.text = roleName.ToUpper();
-
-        //if (GameManager.IsImposterRole(roleName))
-        //{
-        //    PrimaryActionLabel.text = "KILL";
-        //}
     }
 }
