@@ -46,9 +46,6 @@ public class Player : NetworkBehaviour
     [HideInInspector]
     public PlayerUI playerUI;
 
-    [SerializeField]
-    private GameObject mainCamera;
-
     private bool firstSetup = true;
 
     private static string[] default_nicknames = { "Sally", "Betty", "Charlie", "Anne", "Bob" };
@@ -68,11 +65,6 @@ public class Player : NetworkBehaviour
     public void DisplayEndOfGameUI(bool crewmateVictory)
     {
         playerUI.DisplayEndOfGameUI(crewmateVictory);
-    }
-
-    public override void OnStartAuthority()
-    {
-        mainCamera.GetComponent<Camera>().enabled = true;
     }
 
     [Client]

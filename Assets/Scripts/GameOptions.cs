@@ -7,7 +7,7 @@ public class GameOptions : MonoBehaviour
 {
     /* Movement related. */
     public float playerSpeed = 5;
-    public bool springEnabled = true;               // Is the sprint mechanic enabled?
+    public bool sprintEnabled = true;               // Is the sprint mechanic enabled?
     public float sprintBoost = 2;                   // Base speed is multiplied by this value when sprinting.
     public float crewmateSprintDuration = 10;       // How long can crewmates sprint?
     public float imposterSprintDuration = 15;       // How long can imposters sprint?
