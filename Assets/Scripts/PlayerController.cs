@@ -46,6 +46,8 @@ public class PlayerController : NetworkBehaviour
             {
                 cameraObject.GetComponent<AudioListener>().enabled = true;
                 Camera.enabled = true;
+
+                Camera.transform.position += transform.position;
             }
         }
     }
@@ -92,11 +94,6 @@ public class PlayerController : NetworkBehaviour
 
         rigidbody.MovePosition(transform.position + movement);
 
-        if (Camera != null && Camera.enabled)
-        {
-            Camera.transform.position += movement;
-        }
-
         Ray cameraRay = Camera.ScreenPointToRay(Input.mousePosition);
         Plane groundPlane = new Plane(Vector3.up, Vector3.zero);
         float rayLength;
@@ -114,6 +111,16 @@ public class PlayerController : NetworkBehaviour
                 animator.SetBool("backwards", true);
             else
                 animator.SetBool("backwards", false);
+        }
+    }
+
+    void LateUpdate()
+    {
+        if (!hasAuthority) return;
+
+        if (Camera != null && Camera.enabled)
+        {
+            Camera.transform.position = transform.position;
         }
     }
 }
