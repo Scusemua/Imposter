@@ -13,6 +13,8 @@ public class PlayerController : NetworkBehaviour
 
     private Player player;
 
+    private Vector3 previousInput = Vector3.zero;
+
     public override void OnStartAuthority()
     {
         enabled = true;
@@ -49,6 +51,20 @@ public class PlayerController : NetworkBehaviour
     [Client]
     private void Move(float horizontalMovement, float verticalMovement, float movementSpeed)
     {
-        GetComponent<Rigidbody2D>().velocity = new Vector2(horizontalMovement * movementSpeed, verticalMovement * movementSpeed);
+        //GetComponent<Rigidbody>().velocity = new Vector3(horizontalMovement * movementSpeed, verticalMovement * movementSpeed, 0);
+
+        Vector3 right = transform.right;
+        Vector3 forward = transform.forward;
+
+        right.y = 0f;
+        forward.y = 0f;
+
+        Vector3 movement = right.normalized * previousInput.x + forward.normalized * previousInput.y;
+
+        transform.position += transform.TransformDirection(movement * movementSpeed * Time.deltaTime);
+
+        transform.position += transform.TransformDirection(new Vector3(horizontalMovement * movementSpeed, verticalMovement * movementSpeed, 0));
+
+        previousInput = movement;
     }
 }

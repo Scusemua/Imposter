@@ -58,8 +58,13 @@ public class GameManager : NetworkRoomManager
         players.Remove(_playerID);
     }
 
+    /// <summary>
+    /// Check various win conditions for crewmates and imposters.
+    /// </summary>
     public void VictoryCheck()
     {
+        if (gameOptions.disableWinChecking) return;
+
         bool imposterVictory = false;
         bool crewmateVictory = false;
 

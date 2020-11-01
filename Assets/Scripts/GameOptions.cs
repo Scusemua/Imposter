@@ -82,7 +82,10 @@ public class GameOptions : MonoBehaviour
     public float numProjectiles;
     public float range;
     public float projectileDamage;  // How much damage each individual projectile does.
-    
+
+    /* Debug */
+    public bool disableWinChecking;
+
     public enum ProjectileType
     {
         BULLET, // Regular bullets
