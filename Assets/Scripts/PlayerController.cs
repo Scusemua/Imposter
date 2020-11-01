@@ -24,6 +24,8 @@ public class PlayerController : NetworkBehaviour
 
     private GameOptions gameOptions;
 
+    public Vector3 CameraOffset;
+
     public override void OnStartAuthority()
     {
         enabled = true;
@@ -120,7 +122,7 @@ public class PlayerController : NetworkBehaviour
 
         if (Camera != null && Camera.enabled)
         {
-            Camera.transform.position = transform.position;
+            Camera.transform.position = transform.position + CameraOffset;
         }
     }
 }

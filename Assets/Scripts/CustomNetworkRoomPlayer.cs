@@ -14,11 +14,11 @@ public class CustomNetworkRoomPlayer : NetworkRoomPlayer
 
     private bool ready = false;
 
-    private GameManager GameManagerInstance
+    private NetworkGameManager NetworkGameManagerInstance
     {
         get
         {
-            return GameManager.singleton as GameManager;
+            return NetworkGameManager.singleton as NetworkGameManager;
         }
     }
 
@@ -47,7 +47,7 @@ public class CustomNetworkRoomPlayer : NetworkRoomPlayer
 
                 if (!isClientOnly)
                     // This feels like a dirty hack...
-                    button.onClick.AddListener(GameManagerInstance.OnStartButtonClicked);
+                    button.onClick.AddListener(NetworkGameManagerInstance.OnStartButtonClicked);
             }
         }
     }
@@ -76,7 +76,7 @@ public class CustomNetworkRoomPlayer : NetworkRoomPlayer
 
         //        if (!isClientOnly)
         //            // This feels like a dirty hack...
-        //            button.onClick.AddListener(GameManagerInstance.OnStartButtonClicked);
+        //            button.onClick.AddListener(NetworkGameManagerInstance.OnStartButtonClicked);
         //    }
         //}
     }
@@ -91,11 +91,11 @@ public class CustomNetworkRoomPlayer : NetworkRoomPlayer
     {
         Debug.Log("Leave button clicked.");
         if (NetworkServer.active && NetworkClient.isConnected) // Stop host if host mode.
-            GameManagerInstance.StopHost();
+            NetworkGameManagerInstance.StopHost();
         else if (NetworkClient.isConnected)     // Stop client only.
-            GameManagerInstance.StopClient();
+            NetworkGameManagerInstance.StopClient();
         else if (NetworkServer.active)          // Stop server only.
-            GameManagerInstance.StopServer();
+            NetworkGameManagerInstance.StopServer();
     }
 
     public void ReadyUp()

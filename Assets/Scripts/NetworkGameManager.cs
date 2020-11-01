@@ -5,7 +5,7 @@ using UnityEngine;
 using System.Linq;
 using Mirror;
 
-public class GameManager : NetworkRoomManager
+public class NetworkGameManager : NetworkRoomManager
 {
     public enum GameState
     {
@@ -14,6 +14,14 @@ public class GameManager : NetworkRoomManager
         IN_PROGRESS,
         ENDING
     }
+
+    [SerializeField] private GameObject roundManager = null;
+
+    public static event Action OnPlayerRegistered;
+    public static event Action OnClientConnected;
+    public static event Action OnClientDisconnected;
+    public static event Action<NetworkConnection> OnServerReadied;
+    public static event Action OnServerStopped;
 
     private GameState currentGameState;
     private GameOptions gameOptions;
@@ -24,8 +32,7 @@ public class GameManager : NetworkRoomManager
     private const string PLAYER_ID_PREFIX = "Player ";
 
     private Dictionary<string, Player> players = new Dictionary<string, Player>();
-
-    public GameObject startButton;
+    public Dictionary<string, Player> Players { get => players; }
 
     private int numCrewmatesAlive;
     private int numImpostersAlive;
@@ -40,6 +47,11 @@ public class GameManager : NetworkRoomManager
         return players.Values.ToArray();
     }
 
+    public List<Player> GetAllPlayersAsList()
+    {
+        return players.Values.ToList<Player>();
+    }
+
     public void RegisterPlayer(string _netID, Player _player)
     {
         string _playerID = PLAYER_ID_PREFIX + _netID;
@@ -47,10 +59,8 @@ public class GameManager : NetworkRoomManager
         players.Add(_playerID, _player);
         _player.transform.name = _playerID;
 
-        if (players.Count == roomSlots.Count)
-        {
-            AssignRoles();
-        }
+        Debug.Log("Players registered: " + players.Count + ", Room Slots: " + roomSlots.Count);
+        OnPlayerRegistered?.Invoke();
     }
 
     public void UnRegisterPlayer(string _playerID)
@@ -204,8 +214,9 @@ public class GameManager : NetworkRoomManager
             imposters.Add(imposter);
         }
 
-        // The remaining players are crewmates.
-        crewmates.AddRange(allPlayers);
+        if (allPlayers.Count > 0)
+            // The remaining players are crewmates.
+            crewmates.AddRange(allPlayers);
 
         if (imposters.Count > 0)
         {
@@ -235,10 +246,14 @@ public class GameManager : NetworkRoomManager
 
     public override void OnRoomServerSceneChanged(string sceneName)
     {
-        base.OnRoomServerSceneChanged(sceneName);
-
         if (sceneName == RoomScene)
             currentGameState = GameState.LOBBY;
+
+        if (sceneName == GameplayScene)
+        {
+            GameObject roundManagerInstance = Instantiate(roundManager);
+            NetworkServer.Spawn(roundManagerInstance);
+        }
     }
 
     public bool AreAllPlayersReady()
@@ -280,6 +295,36 @@ public class GameManager : NetworkRoomManager
 
         if (gameOptions == null)
             gameOptions = GameOptions.singleton;
+    }
+
+    public override void OnServerReady(NetworkConnection conn)
+    {
+        base.OnServerReady(conn);
+
+        OnServerReadied?.Invoke(conn);
+    }
+
+    public override void OnClientConnect(NetworkConnection conn)
+    {
+        base.OnClientConnect(conn);
+
+        OnClientConnected?.Invoke();
+    }
+
+    public override void OnClientDisconnect(NetworkConnection conn)
+    {
+        base.OnClientDisconnect(conn);
+
+        OnClientDisconnected?.Invoke();
+    }
+
+    public override void OnStopServer()
+    {
+        base.OnStopServer();
+
+        OnServerStopped?.Invoke();
+
+        Players.Clear();
     }
 
     public static bool IsImposterRole(string roleName)

@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.UI;
 using Mirror;
 using System.Collections;
 using System;
@@ -9,7 +10,7 @@ public class Player : NetworkBehaviour
     [SyncVar]
     private bool _isDead = false;
 
-    [SyncVar]
+    [SyncVar(hook = nameof(OnNameChanged))]
     public string nickname = "Loading...";
 
     [SerializeField]
@@ -52,12 +53,28 @@ public class Player : NetworkBehaviour
 
     private System.Random RNG = new System.Random();
 
-    private GameManager gameManager;
+    private NetworkGameManager networkGameManager;
+    private NetworkGameManager NetworkGameManager
+    {
+        get
+        {
+            if (networkGameManager == null)
+                networkGameManager = NetworkManager.singleton as NetworkGameManager;
+            return networkGameManager;
+        }
+    }
+
+    public TextMesh playerNameText;
 
     public bool isDead
     {
         get { return _isDead; }
         protected set { _isDead = value; }
+    }
+
+    void OnNameChanged(string _Old, string _New)
+    {
+        playerNameText.text = nickname;
     }
 
     public IRole Role { get; set; }
@@ -67,43 +84,30 @@ public class Player : NetworkBehaviour
         playerUI.DisplayEndOfGameUI(crewmateVictory);
     }
 
-    [Client]
-    void Start()
+    [Command]
+    public void CmdSetupPlayer(string _name)
     {
-        gameManager = GameManager.singleton as GameManager;
-        if (!isLocalPlayer)
+        isDead = false;
+
+        // player info sent to server, then server updates sync vars which handles it on all clients
+        nickname = _name;
+
+        if (isLocalPlayer)
         {
-            DisableComponents();
-            AssignRemoteLayer();
+            //Switch cameras
+            playerUIInstance.SetActive(true);
         }
-        else
-        {
-            if (!hasAuthority) return;
-
-            // Create PlayerUI
-            playerUIInstance = Instantiate(playerUIPrefab);
-
-            // Configure PlayerUI
-            PlayerUI ui = playerUIInstance.GetComponent<PlayerUI>();
-            if (ui == null)
-                Debug.LogError("No PlayerUI component on PlayerUI prefab.");
-            playerUI = ui;
-
-            nickname = PlayerPrefs.GetString("nickname", default_nicknames[RNG.Next(default_nicknames.Length)]);
-
-            ui.SetPlayer(GetComponent<Player>());
-            GetComponent<Player>().SetupPlayer();
-        }
-    }
-
-    void Update()
-    {
-
     }
 
     public void AssignRole(string role)
     {
-        switch(role)
+        CmdAssignedRole(role);
+    }
+
+    [Command]
+    public void CmdAssignedRole(string role)
+    {
+        switch (role)
         {
             case "crewmate":
                 Role = gameObject.AddComponent<CrewmateRole>() as CrewmateRole;
@@ -147,73 +151,31 @@ public class Player : NetworkBehaviour
         _isDead = true;
     }
 
-    public void SetupPlayer()
-    {
-        if (isLocalPlayer)
-        {
-            //Switch cameras
-            playerUIInstance.SetActive(true);
-        }
-
-        CmdBroadCastNewPlayerSetup();
-    }
-
-    [Command]
-    private void CmdBroadCastNewPlayerSetup()
-    {
-        RpcSetupPlayerOnAllClients();
-    }
-
-
-    [ClientRpc]
-    private void RpcSetupPlayerOnAllClients()
-    {
-        if (firstSetup)
-        {
-            wasEnabled = new bool[disableOnDeath.Length];
-            for (int i = 0; i < wasEnabled.Length; i++)
-            {
-            wasEnabled[i] = disableOnDeath[i].enabled;
-            }
-
-            firstSetup = false;
-        }
-
-        SetDefaults();
-    }
-
-    public void SetDefaults()
-    {
-        isDead = false;
-
-        // Enable the components.
-        for (int i = 0; i < disableOnDeath.Length; i++)
-        {
-            disableOnDeath[i].enabled = wasEnabled[i];
-        }
-
-        // Enable the gameobjects.
-        for (int i = 0; i < disableGameObjectsOnDeath.Length; i++)
-        {
-            disableGameObjectsOnDeath[i].SetActive(true);
-        }
-    }
-
     public override void OnStartClient()
     {
-        base.OnStartClient();
+        if (!isLocalPlayer) return;
 
-        string _netID = GetComponent<NetworkIdentity>().netId.ToString();
         Player _player = GetComponent<Player>();
 
-        _player.nickname = nickname;
+        // Create PlayerUI
+        playerUIInstance = Instantiate(playerUIPrefab);
 
-        gameManager.RegisterPlayer(_netID, _player);
-    }
+        // Configure PlayerUI
+        PlayerUI ui = playerUIInstance.GetComponent<PlayerUI>();
+        if (ui == null)
+            Debug.LogError("No PlayerUI component on PlayerUI prefab.");
+        playerUI = ui;
 
-    void AssignRemoteLayer()
-    {
-        gameObject.layer = LayerMask.NameToLayer(remoteLayerName);
+        nickname = PlayerPrefs.GetString("nickname", default_nicknames[RNG.Next(default_nicknames.Length)]);
+
+        Debug.Log("Player nickname: " + nickname);
+
+        ui.SetPlayer(GetComponent<Player>());
+
+        string _netID = GetComponent<NetworkIdentity>().netId.ToString();
+        NetworkGameManager.RegisterPlayer(_netID, _player);
+
+        CmdSetupPlayer(nickname);
     }
 
     void SetLayerRecursively(GameObject obj, int newLayer)
@@ -226,14 +188,6 @@ public class Player : NetworkBehaviour
         }
     }
 
-    void DisableComponents()
-    {
-        for (int i = 0; i < componentsToDisable.Length; i++)
-        {
-            componentsToDisable[i].enabled = false;
-        }
-    }
-
     // When we are destroyed
     void OnDisable()
     {
@@ -243,6 +197,6 @@ public class Player : NetworkBehaviour
         //    GameManager.singleton.SetSceneCameraActive(true);
 
         if (isLocalPlayer && hasAuthority)
-            gameManager.UnRegisterPlayer(transform.name);
+            NetworkGameManager.UnRegisterPlayer(transform.name);
     }
 }

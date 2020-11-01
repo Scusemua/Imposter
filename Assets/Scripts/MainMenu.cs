@@ -129,13 +129,17 @@ public class MainMenu : MonoBehaviour
 
         if (!hostingGame)
         {
-            if (enteredIPAddress.Length == 0 || !ValidateIPv4(enteredIPAddress))
+            if (enteredIPAddress.Length > 0 && !ValidateIPv4(enteredIPAddress))
             {
                 Debug.LogWarning("User did not enter a valid IP address: " + enteredIPAddress + ".");
                 errorMessageText.text = ERROR_INVALID_IP;
                 warningPopup.SetActive(true);
                 return;
             }
+
+            if (enteredIPAddress.Length == 0)
+                enteredIPAddress = "127.0.0.1";
+
             Manager.networkAddress = enteredIPAddress;
             Manager.StartClient();
         }

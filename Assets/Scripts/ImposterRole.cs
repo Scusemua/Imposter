@@ -76,7 +76,7 @@ public class ImposterRole : Role
         foreach (Player player in allPlayers)
         {
             // Don't check distance between us and other imposters or dead players.
-            if (GameManager.IsImposterRole(player.Role.Name) || player.isDead)
+            if (NetworkGameManager.IsImposterRole(player.Role.Name) || player.isDead)
                 continue;
 
             Vector3 directionToTarget = player.GetComponent<Transform>().position - currentPosition;
@@ -102,10 +102,9 @@ public class ImposterRole : Role
         throw new System.NotImplementedException();
     }
 
-    [ClientCallback]
     void Update()
     {
-        if (!hasAuthority) return;
+        if (!hasAuthority || !isLocalPlayer) return;
 
         KillTarget = GetClosestKillablePlayer();
 

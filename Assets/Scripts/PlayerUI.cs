@@ -24,12 +24,12 @@ public class PlayerUI : MonoBehaviour
     public Text WaitingOnHostText;
 
     private GameOptions gameOptions;
-    private GameManager gameManager;
+    private NetworkGameManager networkGameManager;
 
     void Alive()
     {
         gameOptions = GameOptions.singleton;
-        gameManager = NetworkManager.singleton as GameManager;
+        networkGameManager = NetworkManager.singleton as NetworkGameManager;
     }
 
     // Start is called before the first frame update
@@ -42,13 +42,13 @@ public class PlayerUI : MonoBehaviour
         WaitingOnHostText.enabled = false;
 
         gameOptions = GameOptions.singleton;
-        gameManager = NetworkManager.singleton as GameManager;
+        networkGameManager = NetworkManager.singleton as NetworkGameManager;
     }
 
     public void OnReturnToLobbyPressed()
     {
         // Go back to the room.
-        gameManager.ServerChangeScene(gameManager.RoomScene);
+        networkGameManager.ServerChangeScene(networkGameManager.RoomScene);
     }
 
     // Update is called once per frame
