@@ -12,7 +12,8 @@ public class RoundManager : NetworkBehaviour
         get
         {
             if (room != null) { return room; }
-            return room = NetworkManager.singleton as NetworkGameManager;
+            room = NetworkManager.singleton as NetworkGameManager;
+            return room;
         }
     }
 
@@ -44,9 +45,15 @@ public class RoundManager : NetworkBehaviour
     [Server]
     private void CheckToStartRound()
     {
-        Debug.Log("Room.GetAllPlayersAsList().Count(x => x.connectionToClient.isReady) = " + Room.GetAllPlayersAsList().Count(x => x.connectionToClient.isReady));
-        Debug.Log("Number of registered players: " + Room.GetAllPlayersAsList().Count);
-        if (Room.roomSlots.Count != Room.GetAllPlayersAsList().Count) { return; }
+        if (isClientOnly)
+        {
+            Debug.Log("I am a client. Returning from CheckToStartRound() immediately.");
+            return;
+        }
+
+        Debug.Log("Room.GamePlayers.Count(x => x.connectionToClient.isReady) = " + Room.GamePlayers.Count(x => x.connectionToClient.isReady));
+        Debug.Log("Number of registered players: " + Room.GamePlayers.Count);
+        if (Room.roomSlots.Count != Room.GamePlayers.Count) { return; }
 
         Room.AssignRoles();
     }

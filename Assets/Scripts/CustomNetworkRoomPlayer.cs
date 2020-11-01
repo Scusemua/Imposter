@@ -48,6 +48,8 @@ public class CustomNetworkRoomPlayer : NetworkRoomPlayer
                 if (!isClientOnly)
                     // This feels like a dirty hack...
                     button.onClick.AddListener(NetworkGameManagerInstance.OnStartButtonClicked);
+                else
+                    startButton.interactable = false;
             }
         }
     }
@@ -100,6 +102,8 @@ public class CustomNetworkRoomPlayer : NetworkRoomPlayer
 
     public void ReadyUp()
     {
+        if (!isLocalPlayer) return;
+
         Debug.Log("Ready button clicked.");
         ready = !ready;
         Debug.Log("Player ready: " + ready);

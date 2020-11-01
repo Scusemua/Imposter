@@ -74,6 +74,7 @@ public class Player : NetworkBehaviour
 
     void OnNameChanged(string _Old, string _New)
     {
+        Debug.Log("OnNameChanged called. Old = " + _Old + ", New = " + _New);
         playerNameText.text = nickname;
     }
 
@@ -89,20 +90,47 @@ public class Player : NetworkBehaviour
     {
         isDead = false;
 
+        Debug.Log("CmdSetupPlayer --> _name = nickname = " + _name);
+
         // player info sent to server, then server updates sync vars which handles it on all clients
         nickname = _name;
-
-        if (isLocalPlayer)
-        {
-            //Switch cameras
-            playerUIInstance.SetActive(true);
-        }
     }
 
-    public void AssignRole(string role)
+    public override void OnStartLocalPlayer()
+    {
+        if (!isLocalPlayer) return;
+
+        Debug.Log("OnStartLocalPlayer() called...");
+
+        // Create PlayerUI
+        playerUIInstance = Instantiate(playerUIPrefab);
+
+        // Configure PlayerUI
+        PlayerUI ui = playerUIInstance.GetComponent<PlayerUI>();
+        if (ui == null)
+            Debug.LogError("No PlayerUI component on PlayerUI prefab.");
+        playerUI = ui;
+
+        ui.SetPlayer(GetComponent<Player>());
+
+        playerUIInstance.SetActive(true);
+
+        CmdRegisterPlayer();
+    }
+    
+    [TargetRpc]
+    public void TargetAssignRole(string role)
     {
         CmdAssignedRole(role);
     }
+
+    [Command]
+    public void CmdRegisterPlayer()
+    {
+        string _netID = GetComponent<NetworkIdentity>().netId.ToString();
+        NetworkGameManager.RegisterPlayer(_netID, this);
+    }
+
 
     [Command]
     public void CmdAssignedRole(string role)
@@ -153,27 +181,13 @@ public class Player : NetworkBehaviour
 
     public override void OnStartClient()
     {
+        //DontDestroyOnLoad(gameObject);
+
         if (!isLocalPlayer) return;
-
-        Player _player = GetComponent<Player>();
-
-        // Create PlayerUI
-        playerUIInstance = Instantiate(playerUIPrefab);
-
-        // Configure PlayerUI
-        PlayerUI ui = playerUIInstance.GetComponent<PlayerUI>();
-        if (ui == null)
-            Debug.LogError("No PlayerUI component on PlayerUI prefab.");
-        playerUI = ui;
 
         nickname = PlayerPrefs.GetString("nickname", default_nicknames[RNG.Next(default_nicknames.Length)]);
 
         Debug.Log("Player nickname: " + nickname);
-
-        ui.SetPlayer(GetComponent<Player>());
-
-        string _netID = GetComponent<NetworkIdentity>().netId.ToString();
-        NetworkGameManager.RegisterPlayer(_netID, _player);
 
         CmdSetupPlayer(nickname);
     }
@@ -193,10 +207,7 @@ public class Player : NetworkBehaviour
     {
         Destroy(playerUIInstance);
 
-        //if (isLocalPlayer)
-        //    GameManager.singleton.SetSceneCameraActive(true);
-
         if (isLocalPlayer && hasAuthority)
-            NetworkGameManager.UnRegisterPlayer(transform.name);
+            NetworkGameManager.GamePlayers.Remove(this);
     }
 }

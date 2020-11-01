@@ -76,7 +76,7 @@ public class ImposterRole : Role
         foreach (Player player in allPlayers)
         {
             // Don't check distance between us and other imposters or dead players.
-            if (NetworkGameManager.IsImposterRole(player.Role.Name) || player.isDead)
+            if (player.Role == null || NetworkGameManager.IsImposterRole(player.Role.Name) || player.isDead)
                 continue;
 
             Vector3 directionToTarget = player.GetComponent<Transform>().position - currentPosition;

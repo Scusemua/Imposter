@@ -103,7 +103,7 @@ public class PlayerController : NetworkBehaviour
         if (groundPlane.Raycast(cameraRay, out rayLength))
         {
             Vector3 pointToLook = cameraRay.GetPoint(rayLength);
-            Debug.DrawLine(cameraRay.origin, pointToLook, Color.blue);
+            //Debug.DrawLine(cameraRay.origin, pointToLook, Color.blue);
 
             Vector3 lookAt = new Vector3(pointToLook.x, transform.position.y, pointToLook.z);
 

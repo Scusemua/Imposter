@@ -31,8 +31,7 @@ public class NetworkGameManager : NetworkRoomManager
     #region Player Tracking 
     private const string PLAYER_ID_PREFIX = "Player ";
 
-    private Dictionary<string, Player> players = new Dictionary<string, Player>();
-    public Dictionary<string, Player> Players { get => players; }
+    public List<Player> GamePlayers = new List<Player>();
 
     private int numCrewmatesAlive;
     private int numImpostersAlive;
@@ -42,30 +41,15 @@ public class NetworkGameManager : NetworkRoomManager
     /// </summary>
     private bool rolesAssigned = false;
 
-    public Player[] GetAllPlayers()
-    {
-        return players.Values.ToArray();
-    }
-
-    public List<Player> GetAllPlayersAsList()
-    {
-        return players.Values.ToList<Player>();
-    }
-
     public void RegisterPlayer(string _netID, Player _player)
     {
         string _playerID = PLAYER_ID_PREFIX + _netID;
         Debug.Log("Registering player with PlayerID " + _playerID);
-        players.Add(_playerID, _player);
+        GamePlayers.Add(_player);
         _player.transform.name = _playerID;
 
-        Debug.Log("Players registered: " + players.Count + ", Room Slots: " + roomSlots.Count);
+        Debug.Log("Players registered: " + GamePlayers.Count + ", Room Slots: " + roomSlots.Count);
         OnPlayerRegistered?.Invoke();
-    }
-
-    public void UnRegisterPlayer(string _playerID)
-    {
-        players.Remove(_playerID);
     }
 
     /// <summary>
@@ -106,10 +90,8 @@ public class NetworkGameManager : NetworkRoomManager
 
         if (crewmateVictory || imposterVictory)
         {
-            Player[] players = GetAllPlayers();
-
             // Kill the remaining players.
-            foreach (Player p in players)
+            foreach (Player p in GamePlayers)
             {
                 if (!p.isDead)
                     p.Kill(null, serverKilled: true);
@@ -121,36 +103,18 @@ public class NetworkGameManager : NetworkRoomManager
         }
     }
 
-    public void PlayerDied(string _playerID)
+    public void PlayerDied(Player deceasedPlayer)
     {
-        Player deceasedPlayer = GetPlayer(_playerID);
-
         if (IsImposterRole(deceasedPlayer.Role.Name))
         {
-            Debug.Log("Server has noted that player " + _playerID + ", who was an imposter, has died.");
+            Debug.Log("Server has noted that player " + deceasedPlayer.nickname + ", who was an imposter, has died.");
             numImpostersAlive--;
         }
         else
         {
-            Debug.Log("Server has noted that player " + _playerID + ", who was a crewmate, has died.");
+            Debug.Log("Server has noted that player " + deceasedPlayer.nickname + ", who was a crewmate, has died.");
             numCrewmatesAlive--;
         }
-    }
-
-    public Player GetPlayer(string _playerID)
-    {
-        Player player = null;
-        try
-        {
-            player = players[_playerID];
-        }
-        catch (Exception)
-        {
-            Debug.LogError("Error: there is no player with ID \"" + _playerID + "\".");
-            Debug.Log("Valid player IDs: " + players.Keys.ToArray());
-        }
-
-        return player;
     }
 
     #endregion
@@ -177,6 +141,7 @@ public class NetworkGameManager : NetworkRoomManager
         Saboteur
     }
 
+    [Server]
     public void AssignRoles()
     {
         Debug.Log("Assigning roles now...");
@@ -199,7 +164,7 @@ public class NetworkGameManager : NetworkRoomManager
         List<Player> imposters = new List<Player>();
         List<Player> crewmates = new List<Player>();
 
-        List<Player> allPlayers = new List<Player>(GetAllPlayers());
+        List<Player> allPlayers = new List<Player>(GamePlayers);
 
         Debug.Log("Number of Players: " + allPlayers.Count);
         Debug.Log("Number of Imposters: " + numImposters);
@@ -207,7 +172,7 @@ public class NetworkGameManager : NetworkRoomManager
         // Assign imposter roles randomly.
         for (int i = 0; i < numImposters; i++)
         {
-            int imposterIndex = RNG.Next(players.Count);
+            int imposterIndex = RNG.Next(allPlayers.Count);
             Player imposter = allPlayers[imposterIndex];
             allPlayers.RemoveAt(imposterIndex);
             imposter.Role = new ImposterRole();
@@ -221,13 +186,13 @@ public class NetworkGameManager : NetworkRoomManager
         if (imposters.Count > 0)
         {
             foreach (Player p in imposters)
-                p.AssignRole("imposter");
+                p.TargetAssignRole("imposter");
         }
 
         if (crewmates.Count > 0)
         {
             foreach (Player p in crewmates)
-                p.AssignRole("crewmate");
+                p.TargetAssignRole("crewmate");
         }
 
         numCrewmatesAlive = crewmates.Count;
@@ -324,7 +289,7 @@ public class NetworkGameManager : NetworkRoomManager
 
         OnServerStopped?.Invoke();
 
-        Players.Clear();
+        GamePlayers.Clear();
     }
 
     public static bool IsImposterRole(string roleName)
