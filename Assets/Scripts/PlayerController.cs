@@ -6,6 +6,9 @@ public class PlayerController : NetworkBehaviour
     private Player player;
     private Rigidbody rigidbody;
 
+    public AudioClip deathSound;
+    public AudioSource audioSource;
+
     public GameObject CameraPrefab;
     public Camera Camera;
 
@@ -25,10 +28,14 @@ public class PlayerController : NetworkBehaviour
     private GameOptions gameOptions;
 
     public Vector3 CameraOffset;
+    
+    public override void OnStartLocalPlayer()
+    {
+        enabled = true;
+    }
 
     public override void OnStartAuthority()
     {
-        enabled = true;
         rigidbody = GetComponent<Rigidbody>();
     }
 
@@ -42,6 +49,8 @@ public class PlayerController : NetworkBehaviour
         else
         {
             GameObject cameraObject = Instantiate(CameraPrefab);
+            audioSource = GetComponent<AudioSource>();
+            audioSource.enabled = true;
             Camera = cameraObject.GetComponent<Camera>();
 
             if (hasAuthority)
@@ -66,16 +75,27 @@ public class PlayerController : NetworkBehaviour
         movementSpeed = gameOptions.playerSpeed;
         runBoost = gameOptions.sprintBoost;
         sprintEnabled = gameOptions.sprintEnabled;
+
+        // Configure ragdoll.
+        setRigidbodyState(true);
+        setColliderState(false);
     }
 
     // Update is called once per frame
     [ClientCallback]
     void FixedUpdate()
     {
-        if (!hasAuthority) return;
+        if (!isLocalPlayer) return;
+
+        if (player.isDead) return;
 
         float h = Input.GetAxisRaw("Horizontal");
         float v = Input.GetAxisRaw("Vertical");
+
+        if (Input.GetKey(KeyCode.B) && !player.isDead)
+        {
+            player.CmdSuicide();
+        }
 
         Vector3 movement = new Vector3(h, 0, v);
 
@@ -118,11 +138,50 @@ public class PlayerController : NetworkBehaviour
 
     void LateUpdate()
     {
-        if (!hasAuthority) return;
+        if (!isLocalPlayer) return;
 
         if (Camera != null && Camera.enabled)
         {
             Camera.transform.position = transform.position + CameraOffset;
         }
+    }
+
+    [Client]
+    public void Die()
+    {
+        animator.enabled = false;
+
+        setRigidbodyState(false);
+        setColliderState(true);
+
+        if (isLocalPlayer)
+            audioSource.PlayOneShot(deathSound);
+            
+    }
+
+    void setRigidbodyState(bool state)
+    {
+        Rigidbody[] rigidbodies = GetComponentsInChildren<Rigidbody>();
+
+        foreach (Rigidbody rigidbody in rigidbodies)
+        {
+            rigidbody.isKinematic = state;
+            rigidbody.detectCollisions = !state;
+        }
+
+        GetComponent<Rigidbody>().isKinematic = !state;
+        GetComponent<Rigidbody>().detectCollisions = state;
+    }
+
+    void setColliderState(bool state)
+    {
+        Collider[] colliders = GetComponentsInChildren<Collider>();
+
+        foreach (Collider collider in colliders)
+        {
+            collider.enabled = state;
+        }
+
+        GetComponent<Collider>().enabled = !state;
     }
 }

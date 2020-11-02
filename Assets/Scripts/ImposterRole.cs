@@ -30,7 +30,7 @@ public class ImposterRole : Role
     {
         gameOptions = GameOptions.singleton;
 
-        if (hasAuthority) enabled = true;
+        if (isLocalPlayer) enabled = true;
     }
 
     public override void PerformPrimaryAction()
@@ -48,12 +48,19 @@ public class ImposterRole : Role
             Debug.Log("Closest player is " + KillTarget.nickname + ".");
 
             this.transform.SetPositionAndRotation(KillTarget.transform.position, this.transform.rotation);
-            KillTarget.Kill(this.player);
+
+            KillTarget.CmdKill(this.player.nickname, false);
+
+            //if (isClientOnly)
+            //    KillTarget.Kill(this.player.nickname, false);
+            //else
+            //    KillTarget.RpcKill(this.player.nickname, false);
 
             PrimaryActionLastUse = PrimaryActionCooldown;
             GameObject primaryActionButtonGameObject = playerUI.PrimaryActionButtonGameObject;
             primaryActionButtonGameObject.GetComponent<Image>().fillAmount = 0;
             primaryActionButtonGameObject.GetComponent<Button>().interactable = false;
+            PrimaryActionReady = false;
         }
         else
         {
@@ -104,7 +111,7 @@ public class ImposterRole : Role
 
     void Update()
     {
-        if (!hasAuthority || !isLocalPlayer) return;
+        if (!isLocalPlayer) return;
 
         KillTarget = GetClosestKillablePlayer();
 

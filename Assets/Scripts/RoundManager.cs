@@ -45,14 +45,6 @@ public class RoundManager : NetworkBehaviour
     [Server]
     private void CheckToStartRound()
     {
-        if (isClientOnly)
-        {
-            Debug.Log("I am a client. Returning from CheckToStartRound() immediately.");
-            return;
-        }
-
-        Debug.Log("Room.GamePlayers.Count(x => x.connectionToClient.isReady) = " + Room.GamePlayers.Count(x => x.connectionToClient.isReady));
-        Debug.Log("Number of registered players: " + Room.GamePlayers.Count);
         if (Room.roomSlots.Count != Room.GamePlayers.Count) { return; }
 
         Room.AssignRoles();

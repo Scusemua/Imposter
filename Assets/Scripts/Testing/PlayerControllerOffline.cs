@@ -24,6 +24,8 @@ public class PlayerControllerOffline : MonoBehaviour
 
     public Animator animator;
 
+    private bool isDead = false;
+
     // Start is called before the first frame update
     void Start()
     {
@@ -34,12 +36,24 @@ public class PlayerControllerOffline : MonoBehaviour
         AudioListener audioListener = gameObject.GetComponent<AudioListener>();
         audioListener.enabled = true;
         Camera.enabled = true;
+
+        setRigidbodyState(true);
+        setColliderState(false);
     }
 
     // Update is called once per frame
     void Update()
     {
+        if (Input.GetKey(KeyCode.Space) && !isDead)
+            Die();
+    }
 
+    void Die()
+    {
+        animator.enabled = false;
+
+        setRigidbodyState(false);
+        setColliderState(true);
     }
 
     void FixedUpdate()
@@ -66,8 +80,6 @@ public class PlayerControllerOffline : MonoBehaviour
         
         rigidbody.MovePosition(transform.position + movement);
 
-        Camera.transform.position += movement;
-
         Ray cameraRay = Camera.ScreenPointToRay(Input.mousePosition);
         Plane groundPlane = new Plane(Vector3.up, Vector3.zero);
         float rayLength;
@@ -86,5 +98,37 @@ public class PlayerControllerOffline : MonoBehaviour
             else
                 animator.SetBool("backwards", false);
         }
+    }
+
+    void LateUpdate()
+    {
+        if (Camera != null)
+        {
+            Camera.transform.position = this.transform.position + new Vector3(0, 8, -4);
+        }
+    }
+
+    void setRigidbodyState(bool state)
+    {
+        Rigidbody[] rigidbodies = GetComponentsInChildren<Rigidbody>();
+
+        foreach (Rigidbody rigidbody in rigidbodies)
+        {
+            rigidbody.isKinematic = state;
+        }
+
+        GetComponent<Rigidbody>().isKinematic = !state;
+    }
+
+    void setColliderState(bool state)
+    {
+        Collider[] colliders = GetComponentsInChildren<Collider>();
+
+        foreach (Collider collider in colliders)
+        {
+            collider.enabled = state;
+        }
+
+        GetComponent<Collider>().enabled = !state;
     }
 }

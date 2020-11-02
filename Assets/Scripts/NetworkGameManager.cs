@@ -94,7 +94,7 @@ public class NetworkGameManager : NetworkRoomManager
             foreach (Player p in GamePlayers)
             {
                 if (!p.isDead)
-                    p.Kill(null, serverKilled: true);
+                    p.Kill("Server", serverKilled: true);
 
                 p.DisplayEndOfGameUI(crewmateVictory);
             }
@@ -186,13 +186,15 @@ public class NetworkGameManager : NetworkRoomManager
         if (imposters.Count > 0)
         {
             foreach (Player p in imposters)
-                p.TargetAssignRole("imposter");
+                //p.RpcAssignRole(p.gameObject.GetComponent<NetworkIdentity>().connectionToClient, "imposter");
+                p.RpcAssignRole("imposter");
         }
 
         if (crewmates.Count > 0)
         {
             foreach (Player p in crewmates)
-                p.TargetAssignRole("crewmate");
+                //p.RpcAssignRole(p.gameObject.GetComponent<NetworkIdentity>().connectionToClient, "crewmate");
+                p.RpcAssignRole("crewmate");
         }
 
         numCrewmatesAlive = crewmates.Count;

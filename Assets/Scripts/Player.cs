@@ -7,36 +7,11 @@ using System;
 [RequireComponent(typeof(PlayerController))]
 public class Player : NetworkBehaviour 
 {
-    [SyncVar]
+    [SyncVar(hook = nameof(OnAliveStatusChanged))]
     private bool _isDead = false;
 
     [SyncVar(hook = nameof(OnNameChanged))]
     public string nickname = "Loading...";
-
-    [SerializeField]
-    private Behaviour[] disableOnDeath;
-    private bool[] wasEnabled;
-
-    [SerializeField]
-    private GameObject[] disableGameObjectsOnDeath;
-
-    [SerializeField]
-    private GameObject deathEffect;
-
-    [SerializeField]
-    private GameObject spawnEffect;
-
-    [SerializeField]
-    Behaviour[] componentsToDisable;
-
-    [SerializeField]
-    string remoteLayerName = "RemotePlayer";
-
-    [SerializeField]
-    string dontDrawLayerName = "DontDraw";
-
-    [SerializeField]
-    GameObject playerGraphics;
 
     [SerializeField]
     GameObject playerUIPrefab;
@@ -46,6 +21,8 @@ public class Player : NetworkBehaviour
 
     [HideInInspector]
     public PlayerUI playerUI;
+
+    public TextMesh playerNameText;
 
     private bool firstSetup = true;
 
@@ -64,12 +41,22 @@ public class Player : NetworkBehaviour
         }
     }
 
-    public TextMesh playerNameText;
-
     public bool isDead
     {
         get { return _isDead; }
         protected set { _isDead = value; }
+    }
+
+    void OnAliveStatusChanged(bool _Old, bool _New)
+    {
+        if (isDead)
+        {
+            CmdKill("Someone", false);
+            Debug.Log("Player " + nickname + " is now dead.");
+            GetComponent<PlayerController>().Die();
+        }
+        else
+            Debug.Log("Player " + nickname + " is now alive.");
     }
 
     void OnNameChanged(string _Old, string _New)
@@ -98,8 +85,6 @@ public class Player : NetworkBehaviour
 
     public override void OnStartLocalPlayer()
     {
-        if (!isLocalPlayer) return;
-
         Debug.Log("OnStartLocalPlayer() called...");
 
         // Create PlayerUI
@@ -111,17 +96,17 @@ public class Player : NetworkBehaviour
             Debug.LogError("No PlayerUI component on PlayerUI prefab.");
         playerUI = ui;
 
+        nickname = PlayerPrefs.GetString("nickname", default_nicknames[RNG.Next(default_nicknames.Length)]);
+        playerNameText.text = nickname;
+
         ui.SetPlayer(GetComponent<Player>());
 
         playerUIInstance.SetActive(true);
 
+        Debug.Log("Player nickname: " + nickname);
+
+        CmdSetupPlayer(nickname);   // This is required for nicknames to be properly synchronized.
         CmdRegisterPlayer();
-    }
-    
-    [TargetRpc]
-    public void TargetAssignRole(string role)
-    {
-        CmdAssignedRole(role);
     }
 
     [Command]
@@ -131,9 +116,8 @@ public class Player : NetworkBehaviour
         NetworkGameManager.RegisterPlayer(_netID, this);
     }
 
-
-    [Command]
-    public void CmdAssignedRole(string role)
+    [ClientRpc]
+    public void RpcAssignRole(string role)
     {
         switch (role)
         {
@@ -165,31 +149,58 @@ public class Player : NetworkBehaviour
             playerUI.SetRole(role);
     }
 
-    public void Kill(Player killer, bool serverKilled = false)
+    [Command(ignoreAuthority = true)]
+    public void CmdKill(string killerNickname, bool serverKilled)
     {
-        if (killer == null && serverKilled)
-        {
+        Debug.Log("The server has been informed that player " + nickname + " has been killed by " + killerNickname);
+        RpcKill(killerNickname, serverKilled);
+    }
+
+    public void Kill(string killerNickname, bool serverKilled)
+    {
+        if (serverKilled)
             Debug.Log("The server has killed player " + this.nickname);
-        }
-        else if (killer != null)
-            Debug.Log("Player " + nickname + " has been killed by player " + killer.nickname + ", who is a/an " + killer.Role.Name);
         else
-            Debug.LogError("Player " + nickname + "(" + this.netId + ") was killed by NULL, and the server didn't kill the player...");
+            Debug.Log("Player " + nickname + " has been killed by player " + killerNickname + ".");
 
         _isDead = true;
+        GetComponent<PlayerController>().Die();
+    }
+
+
+    //[ClientRpc]
+    //public void RpcKill(string killerNickname, bool serverKilled)
+    //{
+    //    if (serverKilled)
+    //        Debug.Log("The server has killed player " + this.nickname);
+    //    else
+    //        Debug.Log("Player " + nickname + " has been killed by player " + killerNickname + ".");
+
+    //    _isDead = true;
+    //    GetComponent<PlayerController>().Die();
+    //}
+
+    [Command]
+    public void CmdSuicide()
+    {
+        RpcKill("SUICIDE", false);
+    }
+
+    [ClientRpc]
+    public void RpcKill(string killerNickname, bool serverKilled)
+    {
+        if (serverKilled)
+            Debug.Log("The server has killed player " + this.nickname);
+        else
+            Debug.Log("Player " + nickname + " has been killed by player " + killerNickname + ".");
+
+        _isDead = true;
+        GetComponent<PlayerController>().Die();
     }
 
     public override void OnStartClient()
     {
-        //DontDestroyOnLoad(gameObject);
 
-        if (!isLocalPlayer) return;
-
-        nickname = PlayerPrefs.GetString("nickname", default_nicknames[RNG.Next(default_nicknames.Length)]);
-
-        Debug.Log("Player nickname: " + nickname);
-
-        CmdSetupPlayer(nickname);
     }
 
     void SetLayerRecursively(GameObject obj, int newLayer)
@@ -204,6 +215,14 @@ public class Player : NetworkBehaviour
 
     // When we are destroyed
     void OnDisable()
+    {
+        Destroy(playerUIInstance);
+
+        if (isLocalPlayer && hasAuthority)
+            NetworkGameManager.GamePlayers.Remove(this);
+    }
+
+    public override void OnStopClient()
     {
         Destroy(playerUIInstance);
 
