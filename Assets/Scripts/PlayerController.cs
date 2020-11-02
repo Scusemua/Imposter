@@ -32,6 +32,8 @@ public class PlayerController : NetworkBehaviour
     public override void OnStartLocalPlayer()
     {
         enabled = true;
+
+        GetComponent<Rigidbody>().isKinematic = false;
     }
 
     public override void OnStartAuthority()
