@@ -44,7 +44,8 @@ public class LobbyPlayerList : MonoBehaviour
     private void AddPlaceholder()
     {
         GameObject lobbyPlayerListEntry = Instantiate(LobbyPlayerListEntryGameObject, transform.position, transform.rotation, transform);
-
+        lobbyPlayerListEntry.transform.localScale = new Vector3(1, 1, 1);
+        
         TextMeshProUGUI[] TMPs = lobbyPlayerListEntry.GetComponentsInChildren<TextMeshProUGUI>();
         TMPs[0].color = WaitingNameColor;
 
@@ -58,6 +59,7 @@ public class LobbyPlayerList : MonoBehaviour
             Debug.LogError("ERROR: Cannot add another entry to lobby player list. Already at maximum capacity (" + maxEntries + ").");
 
         GameObject lobbyPlayerListEntry = Instantiate(LobbyPlayerListEntryGameObject, transform.position, transform.rotation, transform);
+        lobbyPlayerListEntry.transform.localScale = new Vector3(1, 1, 1);
         TextMeshProUGUI[] TMPs = lobbyPlayerListEntry.GetComponentsInChildren<TextMeshProUGUI>();
 
         TMPs[0].text = playerName;

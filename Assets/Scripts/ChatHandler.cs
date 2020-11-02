@@ -44,7 +44,8 @@ public class ChatHandler : NetworkBehaviour
         textMeshProUGUI.text = message;
 
         // Move this to the chat content.
-        TextMeshProUGUIGameObject.transform.parent = chatContent.transform;
+        TextMeshProUGUIGameObject.transform.SetParent(chatContent.transform);
+        TextMeshProUGUIGameObject.transform.localScale = new Vector3(1, 1, 1);
     }
 
     [Client]
