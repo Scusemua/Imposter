@@ -6,6 +6,7 @@ using System.Text.RegularExpressions;
 using UnityEngine;
 using UnityEngine.UI;
 using Mirror;
+using Lean.Gui;
 
 public class MainMenu : MonoBehaviour
 {
@@ -33,6 +34,11 @@ public class MainMenu : MonoBehaviour
     [SerializeField]
     private Text errorMessageText;
 
+    [SerializeField]
+    private LeanPulse errorNotification;
+
+    private static int MAX_NAME_LENGTH = 15;
+
     private NetworkGameManager Manager
     {
         get
@@ -43,9 +49,9 @@ public class MainMenu : MonoBehaviour
 
     private bool hostingGame;
 
-    private const string ERROR_INVALID_NICKNAME_LENGTH = "ERROR: Nickname length should be between 1 and 10.";
-    private const string ERROR_INVALID_NICKNAME_CONTENT = "ERROR: Invalid nickname (letters only, please).";
-    private const string ERROR_INVALID_IP = "ERROR: Invalid IPv4 address.";
+    private string ERROR_INVALID_NICKNAME_LENGTH { get => "ERROR: Nickname should be between 1 and " + MAX_NAME_LENGTH + " characters in length."; }
+    private const string ERROR_INVALID_NICKNAME_CONTENT = "ERROR: Invalid nickname (letters & spaces only, please).";
+    private const string ERROR_INVALID_IP = "ERROR: Incorrectly formatted IPv4 address.";
 
     // Start is called before the first frame update
     void Start()
@@ -108,11 +114,12 @@ public class MainMenu : MonoBehaviour
 
         Debug.Log("Nickname: \"" + enteredNickname + "\", IP Address: " + enteredIPAddress + ".");
 
-        if (!Regex.IsMatch(enteredNickname, @"^[a-zA-Z]+$"))
+        if (!Regex.IsMatch(enteredNickname, @"^[a-zA-Z ]+$"))
         {
             Debug.LogWarning("User entered invalid nickname: \"" + enteredNickname + "\".");
             errorMessageText.text = ERROR_INVALID_NICKNAME_CONTENT;
-            warningPopup.SetActive(true);
+            //warningPopup.SetActive(true);
+            errorNotification.Pulse();
             return;
         }
 
@@ -120,7 +127,8 @@ public class MainMenu : MonoBehaviour
         {
             Debug.LogWarning("User entered invalid nickname: \"" + enteredNickname + "\".");
             errorMessageText.text = ERROR_INVALID_NICKNAME_LENGTH;
-            warningPopup.SetActive(true);
+            //warningPopup.SetActive(true);
+            errorNotification.Pulse();
             return;
         }
 
@@ -133,7 +141,8 @@ public class MainMenu : MonoBehaviour
             {
                 Debug.LogWarning("User did not enter a valid IP address: " + enteredIPAddress + ".");
                 errorMessageText.text = ERROR_INVALID_IP;
-                warningPopup.SetActive(true);
+                //warningPopup.SetActive(true);
+                errorNotification.Pulse();
                 return;
             }
 

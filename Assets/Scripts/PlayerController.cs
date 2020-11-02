@@ -21,7 +21,8 @@ public class PlayerController : NetworkBehaviour
 
     public Animator animator;
 
-    public GameObject DeathEffect;
+    public GameObject DeathEffectPrefab;
+    public GameObject BloodPoolPrefab;
 
     private float movementSpeed;
     private float runBoost;
@@ -31,10 +32,14 @@ public class PlayerController : NetworkBehaviour
 
     public Vector3 CameraOffset;
     
+    //public Vector3 jump;
+    //public float jumpForce = 2.0f;
+    //public bool isGrounded = true;
+
     public override void OnStartLocalPlayer()
     {
         enabled = true;
-
+        //jump = new Vector3(0.0f, 2.0f, 0.0f);
         GetComponent<Rigidbody>().isKinematic = false;
     }
 
@@ -85,13 +90,21 @@ public class PlayerController : NetworkBehaviour
         setColliderState(false);
     }
 
+    //void OnCollisionStay()
+    //{
+    //    isGrounded = true;
+    //}
+
+    //void OnCollisionExit()
+    //{
+    //    isGrounded = false;
+    //}
+
     // Update is called once per frame
     [ClientCallback]
     void FixedUpdate()
     {
-        if (!isLocalPlayer) return;
-
-        if (player.isDead) return;
+        if (!isLocalPlayer || player.isDead) return;
 
         float h = Input.GetAxisRaw("Horizontal");
         float v = Input.GetAxisRaw("Vertical");
@@ -138,6 +151,12 @@ public class PlayerController : NetworkBehaviour
             else
                 animator.SetBool("backwards", false);
         }
+
+        //if (Input.GetKeyDown(KeyCode.Space) && isGrounded)
+        //{
+        //    rigidbody.AddForce(jump * jumpForce, ForceMode.Impulse);
+        //    isGrounded = false;
+        //}
     }
 
     void LateUpdate()
@@ -157,13 +176,29 @@ public class PlayerController : NetworkBehaviour
 
         setRigidbodyState(false);
         setColliderState(true);
-
-        if (isLocalPlayer)
+        
+        if (hasAuthority && isLocalPlayer)
             audioSource.PlayOneShot(deathSound);
 
-        GameObject deathEffect = Instantiate(DeathEffect);
+        float _raycastDistance = 10f;
+        Vector3 dir = new Vector3(0, -1, 0);
+        Debug.DrawRay(player.transform.position, dir * _raycastDistance, Color.green);
+
+        int mask = 1 << 13;    // Ground on layer 10 in the inspector
+
+        Vector3 start = new Vector3(player.transform.position.x, player.transform.position.y + 1, player.transform.position.z);
+        if (Physics.Raycast(start, Vector3.down, out RaycastHit hit, _raycastDistance, mask))
+        {
+            GameObject bloodPool = Instantiate(BloodPoolPrefab);
+            bloodPool.transform.position = new Vector3(hit.point.x, hit.point.y + 0.05f, hit.point.z);
+        }
+
+        GameObject deathEffect = Instantiate(DeathEffectPrefab);
         deathEffect.transform.position = player.transform.position;
-        GameObject.Destroy(deathEffect, 1.0f);
+        Destroy(deathEffect, 1.25f);
+        
+        //GameObject bloodPool = Instantiate(BloodPoolPrefab);
+        //deathEffect.transform.position = player.transform.position;
     }
 
     void setRigidbodyState(bool state)

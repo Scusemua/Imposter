@@ -5,6 +5,8 @@ using UnityEngine;
 // Used to configure all of the various game options.
 public class GameOptions : MonoBehaviour
 {
+    public int numPlayers;
+
     /* Movement related. */
     public float playerSpeed = 5;
     public bool sprintEnabled = true;               // Is the sprint mechanic enabled?
@@ -51,7 +53,7 @@ public class GameOptions : MonoBehaviour
     public int maxSaboteurs;                    // What is the maximum number of Saboteur imposters allowed?
     public int maxAssassins;                    // What is the maximum number of Assassin imposters allowed?
     public int maxSheriffs;                     // What is the maximum number of sheriffs allowed?
-    public int numberOfImposters = 1;           // How many imposters are there?
+    public int numberOfImposters;               // How many imposters are there?
     public float sheriffScannerCooldown;        // How long must the sheriff wait inbetween uses of his/her scanner?
 
     /* Vision related. */
@@ -144,7 +146,13 @@ public class GameOptions : MonoBehaviour
     }
 
     void Start() {
+        numPlayers = 10;
+        numberOfImposters = 1;
+        killDistanceStandard = 0.5f;
+        sprintEnabled = true;
+        sprintBoost = 2.0f;
 
+        killIntervalStandard = 5.0f;
     }
 
     void Update() {
