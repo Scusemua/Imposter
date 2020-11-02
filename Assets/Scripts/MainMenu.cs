@@ -33,11 +33,11 @@ public class MainMenu : MonoBehaviour
     [SerializeField]
     private Text errorMessageText;
 
-    private NetworkManager Manager
+    private NetworkGameManager Manager
     {
         get
         {
-            return NetworkManager.singleton;
+            return NetworkManager.singleton as NetworkGameManager;
         }
     }
 

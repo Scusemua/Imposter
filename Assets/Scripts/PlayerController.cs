@@ -21,6 +21,8 @@ public class PlayerController : NetworkBehaviour
 
     public Animator animator;
 
+    public GameObject DeathEffect;
+
     private float movementSpeed;
     private float runBoost;
     private bool sprintEnabled;
@@ -158,7 +160,10 @@ public class PlayerController : NetworkBehaviour
 
         if (isLocalPlayer)
             audioSource.PlayOneShot(deathSound);
-            
+
+        GameObject deathEffect = Instantiate(DeathEffect);
+        deathEffect.transform.position = player.transform.position;
+        GameObject.Destroy(deathEffect, 1.0f);
     }
 
     void setRigidbodyState(bool state)
