@@ -26,7 +26,26 @@ public class ChatHandler : NetworkBehaviour
 
         chatSendButton.OnClick.AddListener(Send);
 
+        // When edit is ended, check if we're also pressing enter. This prevents chat from being sent just on deselection.
+        inputField.onEndEdit.AddListener(message =>
+        {
+            if (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter))
+            {
+                SendParameterized(message);
+                SelectInputField(); // Retain focus so users can continue to type.
+            }
+        });
+
         OnMessage += HandleNewMessage;
+    }
+
+    /// <summary>
+    /// Focuses on the chat input field at the end of the current frame.
+    /// </summary>
+    IEnumerator SelectInputField()
+    {
+        yield return new WaitForEndOfFrame();
+        inputField.Select();
     }
 
     [ClientCallback]
@@ -50,6 +69,16 @@ public class ChatHandler : NetworkBehaviour
 
     [Client]
     public void Send()
+    {
+        if (string.IsNullOrWhiteSpace(inputField.text)) { return; }
+
+        CmdSendMessage(inputField.text);
+
+        inputField.text = string.Empty;
+    }
+
+    [Client]
+    public void SendParameterized(string message)
     {
         if (string.IsNullOrWhiteSpace(inputField.text)) { return; }
 

@@ -135,7 +135,7 @@ public class CustomNetworkRoomPlayer : NetworkRoomPlayer
         Debug.Log("Player " + DisplayName + " joined the lobby.");
 
         if (LobbyPlayerList == null)
-            LobbyPlayerList = GameObject.FindWithTag("LobbyPlayerListContent").GetComponent<LobbyPlayerList>();
+            return;
 
         LobbyPlayerList.RemoveEntry(DisplayName, false);
     }

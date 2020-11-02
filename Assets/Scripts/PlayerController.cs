@@ -186,17 +186,19 @@ public class PlayerController : NetworkBehaviour
 
         int mask = 1 << 13;    // Ground on layer 10 in the inspector
 
-        Vector3 start = new Vector3(player.transform.position.x, player.transform.position.y + 1, player.transform.position.z);
-        if (Physics.Raycast(start, Vector3.down, out RaycastHit hit, _raycastDistance, mask))
+        if (isLocalPlayer)
         {
-            GameObject bloodPool = Instantiate(BloodPoolPrefab);
-            bloodPool.transform.position = new Vector3(hit.point.x, hit.point.y + 0.05f, hit.point.z);
-        }
+            Vector3 start = new Vector3(player.transform.position.x, player.transform.position.y + 1, player.transform.position.z);
+            if (Physics.Raycast(start, Vector3.down, out RaycastHit hit, _raycastDistance, mask))
+            {
+                GameObject bloodPool = Instantiate(BloodPoolPrefab);
+                bloodPool.transform.position = new Vector3(hit.point.x, hit.point.y + 0.05f, hit.point.z);
+            }
 
-        GameObject deathEffect = Instantiate(DeathEffectPrefab);
-        deathEffect.transform.position = player.transform.position;
-        Destroy(deathEffect, 1.25f);
-        
+            GameObject deathEffect = Instantiate(DeathEffectPrefab);
+            deathEffect.transform.position = player.transform.position;
+            Destroy(deathEffect, 1.25f);
+        }
         //GameObject bloodPool = Instantiate(BloodPoolPrefab);
         //deathEffect.transform.position = player.transform.position;
     }
