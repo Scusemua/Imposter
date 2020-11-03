@@ -144,18 +144,4 @@ public class GameOptions : MonoBehaviour
         // Don't allow collision-destroyed second instance to continue.
         if (!InitializeSingleton()) return;
     }
-
-    void Start() {
-        numPlayers = 10;
-        numberOfImposters = 1;
-        killDistanceStandard = 0.5f;
-        sprintEnabled = true;
-        sprintBoost = 2.0f;
-
-        killIntervalStandard = 5.0f;
-    }
-
-    void Update() {
-
-    }
 }

@@ -75,9 +75,6 @@ public class CustomNetworkRoomPlayer : NetworkRoomPlayer
     public override void OnStartAuthority()
     {
         Debug.Log("OnStartAuthority() called for RoomPlayer " + netId + ". isLocalPlayer = " + isLocalPlayer + ".");
-
-        DisplayName = PlayerPrefs.GetString("nickname");
-        Debug.Log("Player " + DisplayName + " joined the lobby.");
     }
 
 
@@ -86,19 +83,6 @@ public class CustomNetworkRoomPlayer : NetworkRoomPlayer
     {
         Debug.Log("CmdSetDisplayName called for RoomPlayer " + netId + ". isLocalPlayer = " + isLocalPlayer + ", hasAuthority = " + hasAuthority + ".");
         DisplayName = displayName;
-
-        //if (LobbyPlayerList == null)
-        //{
-        //    GameObject gameObject = GameObject.FindWithTag("LobbyPlayerListContent");
-        //    if (gameObject == null)
-        //    {
-        //        Debug.LogWarning("Could not find GameObject with tag \"LobbyPlayerListContent\" in OnClientEnterRoom...");
-        //        return;
-        //    }
-        //    LobbyPlayerList = gameObject.GetComponent<LobbyPlayerList>();
-        //}
-
-        LobbyPlayerList.AddEntry(netId, DisplayName, false);
     }
 
     public override void OnClientEnterRoom()
@@ -106,13 +90,20 @@ public class CustomNetworkRoomPlayer : NetworkRoomPlayer
         Debug.Log("OnClientEnterRoom() called for RoomPlayer " + netId + ". isLocalPlayer = " + isLocalPlayer + ", hasAuthority = " + hasAuthority + ".");
         if (isLocalPlayer)
         {
+            //DisplayName = PlayerPrefs.GetString("nickname");
+            Debug.Log("Player " + DisplayName + " joined the lobby.");
+
             Debug.Log("RoomPlayer " + netId + " is a local player, so creating UI hooks now.");
             CreateUIHooks();
 
             if (hasAuthority)
             {
                 Debug.Log("RoomPlayer " + netId + " has authority, so calling CmdSetDisplayName now...");
-                CmdSetDisplayName(DisplayName);
+                CmdSetDisplayName(PlayerPrefs.GetString("nickname"));
+            }
+            else
+            {
+                UpdateDisplay();
             }
         }
     }
