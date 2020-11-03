@@ -11,7 +11,22 @@ public class CustomNetworkRoomPlayer : NetworkRoomPlayer
 
     private GameObject LobbyUI;
 
+    //private LobbyPlayerList lobbyPlayerList
     private LobbyPlayerList LobbyPlayerList;
+    //{
+    //    get
+    //    {
+    //        if (lobbyPlayerList == null)
+    //        {
+    //            GameObject gameObject = GameObject.FindWithTag("LobbyPlayerListContent");
+    //            if (gameObject == null)
+    //                return null;
+    //            lobbyPlayerList = gameObject.GetComponent<LobbyPlayerList>();
+    //        }
+
+    //        return lobbyPlayerList;
+    //    }
+    //}
 
     private LeanButton startButton;
 
@@ -40,60 +55,51 @@ public class CustomNetworkRoomPlayer : NetworkRoomPlayer
     private void UpdateDisplay()
     {
         Debug.Log("Updating display...");
-
-        if (!hasAuthority)
-        {
-
-        }
-    }
-
-    // Start is called before the first frame update
-    void Start()
-    {
-        base.Start();
-
-        //GameObject LobbyUI = GameObject.FindWithTag("LobbyUI");
-
-        //DisplayName = PlayerPrefs.GetString("nickname");
-
-        //Button[] buttons = LobbyUI.GetComponentsInChildren<Button>();
-
-        //foreach (Button button in buttons)
-        //{
-        //    Debug.Log(button.name);
-
-        //    if (button.name.Equals("ReadyButton"))
-        //        button.onClick.AddListener(ReadyUp);
-        //    else if (button.name.Equals("LeaveButton"))
-        //        button.onClick.AddListener(LeaveLobby);
-        //    else if (button.name.Equals("StartButton"))
-        //    {
-        //        startButton = button;
-
-        //        if (!isClientOnly)
-        //            // This feels like a dirty hack...
-        //            button.onClick.AddListener(NetworkGameManagerInstance.OnStartButtonClicked);
-        //        else
-        //            startButton.interactable = false;
-        //    }
-        //}
     }
 
     public override void OnStartAuthority()
     {
+
+    }
+
+
+    [Command]
+    private void CmdSetDisplayName(string displayName)
+    {
+        DisplayName = displayName;
+    }
+
+    public override void OnClientEnterRoom()
+    {
+        DisplayName = PlayerPrefs.GetString("nickname");
+
+        Debug.Log("Player " + DisplayName + " joined the lobby.");
+
+        if (LobbyPlayerList == null) {
+            GameObject gameObject = GameObject.FindWithTag("LobbyPlayerListContent");
+            if (gameObject == null)
+            {
+                Debug.LogWarning("Could not find GameObject with tag \"LobbyPlayerListContent\" in OnClientEnterRoom...");
+                return;
+            }
+            LobbyPlayerList = gameObject.GetComponent<LobbyPlayerList>();
+        }
+
+        LobbyPlayerList.AddEntry(DisplayName, false);
+
+        CmdSetDisplayName(DisplayName);
+
+        if (!hasAuthority) return;
+
         GameObject LobbyUI = GameObject.FindWithTag("LobbyUI");
 
         if (LobbyPlayerList == null)
             LobbyPlayerList = GameObject.FindWithTag("LobbyPlayerListContent").GetComponent<LobbyPlayerList>();
 
-        DisplayName = PlayerPrefs.GetString("nickname");
-
         LeanButton[] buttons = LobbyUI.GetComponentsInChildren<LeanButton>();
 
         foreach (LeanButton button in buttons)
         {
-            Debug.Log(button.name);
-
             if (button.name.Equals("ReadyButton"))
                 button.OnClick.AddListener(ReadyUp);
             else if (button.name.Equals("LeaveButton"))
@@ -109,25 +115,6 @@ public class CustomNetworkRoomPlayer : NetworkRoomPlayer
                     startButton.interactable = false;
             }
         }
-
-        CmdSetDisplayName(DisplayName);
-    }
-
-
-    [Command]
-    private void CmdSetDisplayName(string displayName)
-    {
-        DisplayName = displayName;
-    }
-
-    public override void OnClientEnterRoom()
-    {
-        Debug.Log("Player " + DisplayName + " joined the lobby.");
-
-        if (LobbyPlayerList == null)
-            LobbyPlayerList = GameObject.FindWithTag("LobbyPlayerListContent").GetComponent<LobbyPlayerList>();
-
-        LobbyPlayerList.AddEntry(DisplayName, false);
     }
 
     public override void OnClientExitRoom()
@@ -143,8 +130,17 @@ public class CustomNetworkRoomPlayer : NetworkRoomPlayer
     public override void ReadyStateChanged(bool _, bool newReadyState)
     {
         if (LobbyPlayerList == null)
-            LobbyPlayerList = GameObject.FindWithTag("LobbyPlayerListContent").GetComponent<LobbyPlayerList>();
-        
+        {
+            GameObject gameObject = GameObject.FindWithTag("LobbyPlayerListContent");
+            if (gameObject == null)
+            {
+                Debug.LogWarning("Could not find GameObject with tag \"LobbyPlayerListContent\" in ReadyStateChanged...");
+                return;
+            }
+                
+            LobbyPlayerList = gameObject.GetComponent<LobbyPlayerList>();
+        }
+
         LobbyPlayerList.ModifyReadyStatus(DisplayName, ready);
     }
 
@@ -159,11 +155,17 @@ public class CustomNetworkRoomPlayer : NetworkRoomPlayer
             NetworkGameManagerInstance.StopServer();
     }
 
+    [ClientRpc]
+    public void ReadyUpClicked()
+    {
+
+    }
+
+
     public void ReadyUp()
     {
-        if (!isLocalPlayer) return;
-
         Debug.Log("Ready button clicked.");
+
         ready = !ready;
         Debug.Log("Player ready: " + ready);
         CmdChangeReadyState(ready);

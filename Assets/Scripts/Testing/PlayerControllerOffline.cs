@@ -24,6 +24,10 @@ public class PlayerControllerOffline : MonoBehaviour
 
     public Animator animator;
 
+    public bool CreateOwnCamera;
+    public bool RotateToFaceMouse;
+    public bool ManipulateCameraPosition;
+
     private bool isDead = false;
 
     public GameObject DeathEffectPrefab;
@@ -40,11 +44,14 @@ public class PlayerControllerOffline : MonoBehaviour
     {
         rigidbody = GetComponent<Rigidbody>();
 
-        GameObject gameObject = Instantiate(CameraPrefab);
-        Camera = gameObject.GetComponent<Camera>();
-        AudioListener audioListener = gameObject.GetComponent<AudioListener>();
-        audioListener.enabled = true;
-        Camera.enabled = true;
+        if (CreateOwnCamera)
+        {
+            GameObject gameObject = Instantiate(CameraPrefab);
+            Camera = gameObject.GetComponent<Camera>();
+            AudioListener audioListener = gameObject.GetComponent<AudioListener>();
+            audioListener.enabled = true;
+            Camera.enabled = true;
+        }
 
         jump = new Vector3(0.0f, 2.0f, 0.0f);
 
@@ -136,6 +143,8 @@ public class PlayerControllerOffline : MonoBehaviour
         
         rigidbody.MovePosition(transform.position + movement);
 
+        if (!RotateToFaceMouse) return;
+
         Ray cameraRay = Camera.ScreenPointToRay(Input.mousePosition);
         Plane groundPlane = new Plane(Vector3.up, Vector3.zero);
         float rayLength;
@@ -158,7 +167,7 @@ public class PlayerControllerOffline : MonoBehaviour
 
     void LateUpdate()
     {
-        if (Camera != null)
+        if (Camera != null && ManipulateCameraPosition)
         {
             Camera.transform.position = this.transform.position + new Vector3(0, 8, -4);
         }
