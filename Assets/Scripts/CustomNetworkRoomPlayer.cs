@@ -71,6 +71,8 @@ public class CustomNetworkRoomPlayer : NetworkRoomPlayer
 
     public override void OnClientEnterRoom()
     {
+        if (!hasAuthority) return;
+
         DisplayName = PlayerPrefs.GetString("nickname");
 
         Debug.Log("Player " + DisplayName + " joined the lobby.");
@@ -88,8 +90,6 @@ public class CustomNetworkRoomPlayer : NetworkRoomPlayer
         LobbyPlayerList.AddEntry(DisplayName, false);
 
         CmdSetDisplayName(DisplayName);
-
-        if (!hasAuthority) return;
 
         GameObject LobbyUI = GameObject.FindWithTag("LobbyUI");
 
