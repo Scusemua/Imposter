@@ -167,19 +167,6 @@ public class Player : NetworkBehaviour
         GetComponent<PlayerController>().Die();
     }
 
-
-    //[ClientRpc]
-    //public void RpcKill(string killerNickname, bool serverKilled)
-    //{
-    //    if (serverKilled)
-    //        Debug.Log("The server has killed player " + this.nickname);
-    //    else
-    //        Debug.Log("Player " + nickname + " has been killed by player " + killerNickname + ".");
-
-    //    _isDead = true;
-    //    GetComponent<PlayerController>().Die();
-    //}
-
     [Command]
     public void CmdSuicide()
     {

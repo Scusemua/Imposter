@@ -30,8 +30,8 @@ public class CustomNetworkRoomPlayer : NetworkRoomPlayer
 
     private LeanButton startButton;
 
-    [SyncVar(hook = nameof(UpdateReadyDisplay))]
-    public bool ready = false;
+    //[SyncVar(hook = nameof(UpdateReadyDisplay))]
+    //public bool ready = false;
 
     [SyncVar(hook = nameof(HandleDisplayNameChanged))]
     public string DisplayName = "Loading...";
@@ -44,22 +44,44 @@ public class CustomNetworkRoomPlayer : NetworkRoomPlayer
         }
     }
 
-    private void UpdateReadyDisplay(bool _Old, bool _New)
-    {
-        Debug.Log("_Old = " + _Old + ", _New = " + _New);
-    }
-
-    public void HandleReadyStatusChanged(bool oldValue, bool newValue) => UpdateDisplay();
+    // public void HandleReadyStatusChanged(bool oldValue, bool newValue) => UpdateDisplay();
     public void HandleDisplayNameChanged(string oldValue, string newValue) => UpdateDisplay();
 
     private void UpdateDisplay()
     {
-        Debug.Log("Updating display...");
+        Debug.Log("UpdateDisplay() called for RoomPlayer " + netId);
+
+        if (!hasAuthority)
+        {
+            foreach (NetworkRoomPlayer player in NetworkGameManagerInstance.roomSlots)
+            {
+                CustomNetworkRoomPlayer customPlayer = player as CustomNetworkRoomPlayer;
+
+                if (customPlayer.hasAuthority) {
+                    customPlayer.UpdateDisplay();
+                    break;
+                }
+            }
+
+            return;
+        }
+
+        foreach (NetworkRoomPlayer player in NetworkGameManagerInstance.roomSlots)
+        {
+            CustomNetworkRoomPlayer customPlayer = player as CustomNetworkRoomPlayer;
+
+            LobbyPlayerList.AddOrUpdateEntry(customPlayer.netId, customPlayer.DisplayName, customPlayer.readyToBegin);
+        }
     }
 
     public override void OnStartAuthority()
     {
+        Debug.Log("OnStartAuthority() called for RoomPlayer " + netId);
 
+        DisplayName = PlayerPrefs.GetString("nickname");
+        Debug.Log("Player " + DisplayName + " joined the lobby.");
+
+        CmdSetDisplayName(DisplayName);
     }
 
 
@@ -67,17 +89,9 @@ public class CustomNetworkRoomPlayer : NetworkRoomPlayer
     private void CmdSetDisplayName(string displayName)
     {
         DisplayName = displayName;
-    }
 
-    public override void OnClientEnterRoom()
-    {
-        if (!hasAuthority) return;
-
-        DisplayName = PlayerPrefs.GetString("nickname");
-
-        Debug.Log("Player " + DisplayName + " joined the lobby.");
-
-        if (LobbyPlayerList == null) {
+        if (LobbyPlayerList == null)
+        {
             GameObject gameObject = GameObject.FindWithTag("LobbyPlayerListContent");
             if (gameObject == null)
             {
@@ -87,9 +101,36 @@ public class CustomNetworkRoomPlayer : NetworkRoomPlayer
             LobbyPlayerList = gameObject.GetComponent<LobbyPlayerList>();
         }
 
-        LobbyPlayerList.AddEntry(DisplayName, false);
+        LobbyPlayerList.AddEntry(netId, DisplayName, false);
+    }
 
-        CmdSetDisplayName(DisplayName);
+    public override void OnClientEnterRoom()
+    {
+        Debug.Log("OnClientEnterRoom() called for RoomPlayer " + netId);
+        if (isLocalPlayer)
+        {
+            Debug.Log("RoomPlayer " + netId + " is a local player, so creating UI hooks now.");
+            CreateUIHooks();
+        }
+    }
+
+    /// <summary>
+    /// Create references to buttons, onClick listeners, and the lobby player list.
+    /// </summary>
+    public void CreateUIHooks()
+    {
+        if (LobbyPlayerList == null)
+        {
+            GameObject gameObject = GameObject.FindWithTag("LobbyPlayerListContent");
+            if (gameObject == null)
+            {
+                Debug.LogWarning("Could not find GameObject with tag \"LobbyPlayerListContent\" in OnClientEnterRoom...");
+                return;
+            }
+            LobbyPlayerList = gameObject.GetComponent<LobbyPlayerList>();
+        }
+
+        LobbyPlayerList.AddEntry(netId, DisplayName, false);
 
         GameObject LobbyUI = GameObject.FindWithTag("LobbyUI");
 
@@ -119,16 +160,23 @@ public class CustomNetworkRoomPlayer : NetworkRoomPlayer
 
     public override void OnClientExitRoom()
     {
-        Debug.Log("Player " + DisplayName + " joined the lobby.");
+        Debug.Log("OnClientExitRoom() called. Player " + DisplayName + ", netId = " + netId + ", has left the room.");
 
         if (LobbyPlayerList == null)
+        {
+            Debug.LogWarning("LobbyPlayerList is null; cannot remove entry from list...");
             return;
+        }
 
-        LobbyPlayerList.RemoveEntry(DisplayName, false);
+        Debug.Log("Removing entry for player " + DisplayName + ", netId = " + netId + ", from lobby player list now.");
+
+        LobbyPlayerList.RemoveEntry(netId, DisplayName, false);
     }
 
     public override void ReadyStateChanged(bool _, bool newReadyState)
     {
+        Debug.Log("ReadyStateChanged() called for RoomPlayer " + netId);
+        UpdateDisplay();
         if (LobbyPlayerList == null)
         {
             GameObject gameObject = GameObject.FindWithTag("LobbyPlayerListContent");
@@ -141,12 +189,13 @@ public class CustomNetworkRoomPlayer : NetworkRoomPlayer
             LobbyPlayerList = gameObject.GetComponent<LobbyPlayerList>();
         }
 
-        LobbyPlayerList.ModifyReadyStatus(DisplayName, ready);
+        LobbyPlayerList.ModifyReadyStatus(netId, DisplayName, readyToBegin);
     }
 
     public void LeaveLobby()
     {
-        Debug.Log("Leave button clicked.");
+        Debug.Log("Player " + netId + " clicked Leave button. isLocalPlayer = " + isLocalPlayer + ", hasAuthority = " + hasAuthority);
+
         if (NetworkServer.active && NetworkClient.isConnected) // Stop host if host mode.
             NetworkGameManagerInstance.StopHost();
         else if (NetworkClient.isConnected)     // Stop client only.
@@ -155,19 +204,10 @@ public class CustomNetworkRoomPlayer : NetworkRoomPlayer
             NetworkGameManagerInstance.StopServer();
     }
 
-    [ClientRpc]
-    public void ReadyUpClicked()
-    {
-
-    }
-
-
     public void ReadyUp()
     {
-        Debug.Log("Ready button clicked.");
+        Debug.Log("Player " + netId + " clicked Ready button. isLocalPlayer = " + isLocalPlayer + ", hasAuthority = " + hasAuthority);
 
-        ready = !ready;
-        Debug.Log("Player ready: " + ready);
-        CmdChangeReadyState(ready);
+        if (hasAuthority) CmdChangeReadyState(!readyToBegin);
     }
 }

@@ -51,11 +51,6 @@ public class ImposterRole : Role
 
             KillTarget.CmdKill(this.player.nickname, false);
 
-            //if (isClientOnly)
-            //    KillTarget.Kill(this.player.nickname, false);
-            //else
-            //    KillTarget.RpcKill(this.player.nickname, false);
-
             PrimaryActionLastUse = PrimaryActionCooldown;
             GameObject primaryActionButtonGameObject = playerUI.PrimaryActionButtonGameObject;
             primaryActionButtonGameObject.GetComponent<Image>().fillAmount = 0;
@@ -89,7 +84,7 @@ public class ImposterRole : Role
             Vector3 directionToTarget = player.GetComponent<Transform>().position - currentPosition;
             float dSqrToTarget = directionToTarget.sqrMagnitude;
 
-            if (dSqrToTarget < closestDistanceSqr)
+            if (dSqrToTarget < closestDistanceSqr && dSqrToTarget < Mathf.Pow(KillDistance, 2))
             {
                 closestDistanceSqr = dSqrToTarget;
                 closestPlayer = player;
