@@ -37,7 +37,8 @@ public class MainMenu : MonoBehaviour
     [SerializeField]
     private LeanPulse errorNotification;
 
-    private static int MAX_NAME_LENGTH = 15;
+    // 17 is the number of A's that can appear (i.e., "AAAAAAAAAAAAAAAAA") before it wraps around.
+    private static int MAX_NAME_LENGTH = 17;
 
     private NetworkGameManager Manager
     {
@@ -71,7 +72,7 @@ public class MainMenu : MonoBehaviour
 
     public void HostGameClicked()
     {
-        Debug.Log("User clicked 'Host Game' button.");
+        //Debug.Log("User clicked 'Host Game' button.");
         menuButtons.SetActive(false);
         backButton.SetActive(true);
         goButton.SetActive(true);
@@ -83,7 +84,7 @@ public class MainMenu : MonoBehaviour
 
     public void JoinGameClicked()
     {
-        Debug.Log("User clicked 'Join Game' button.");
+        //Debug.Log("User clicked 'Join Game' button.");
         menuButtons.SetActive(false);
         backButton.SetActive(true);
         goButton.SetActive(true);
@@ -95,7 +96,7 @@ public class MainMenu : MonoBehaviour
 
     public void BackButtonClicked()
     {
-        Debug.Log("User clicked 'Back' button.");
+        //Debug.Log("User clicked 'Back' button.");
         menuButtons.SetActive(true);
         backButton.SetActive(false);
         goButton.SetActive(false);
@@ -107,25 +108,25 @@ public class MainMenu : MonoBehaviour
 
     public void GoButtonClicked()
     {
-        Debug.Log("User clicked 'Go' button.");
+        //Debug.Log("User clicked 'Go' button.");
 
         string enteredNickname = nicknameInputBox.GetComponent<InputField>().text;
         string enteredIPAddress = roomCodeInputBox.GetComponent<InputField>().text;
 
-        Debug.Log("Nickname: \"" + enteredNickname + "\", IP Address: " + enteredIPAddress + ".");
+        //Debug.Log("Nickname: \"" + enteredNickname + "\", IP Address: " + enteredIPAddress + ".");
 
         if (!Regex.IsMatch(enteredNickname, @"^[a-zA-Z ]+$"))
         {
-            Debug.LogWarning("User entered invalid nickname: \"" + enteredNickname + "\".");
+            //Debug.LogWarning("User entered invalid nickname: \"" + enteredNickname + "\".");
             errorMessageText.text = ERROR_INVALID_NICKNAME_CONTENT;
             //warningPopup.SetActive(true);
             errorNotification.Pulse();
             return;
         }
 
-        if (enteredNickname.Length == 0 || enteredNickname.Length > 10)
+        if (enteredNickname.Length == 0 || enteredNickname.Length > MAX_NAME_LENGTH)
         {
-            Debug.LogWarning("User entered invalid nickname: \"" + enteredNickname + "\".");
+            //Debug.LogWarning("User entered invalid nickname: \"" + enteredNickname + "\".");
             errorMessageText.text = ERROR_INVALID_NICKNAME_LENGTH;
             //warningPopup.SetActive(true);
             errorNotification.Pulse();
@@ -161,7 +162,7 @@ public class MainMenu : MonoBehaviour
 
     public void ErrorDismissClicked()
     {
-        Debug.Log("User clicked error message dismiss button.");
+        //Debug.Log("User clicked error message dismiss button.");
         warningPopup.SetActive(false);
     }
 

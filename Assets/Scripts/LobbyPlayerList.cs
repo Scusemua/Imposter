@@ -25,11 +25,13 @@ public class LobbyPlayerList : MonoBehaviour
 
     void Start()
     {
+        Debug.Log("Start() called for LobbyPlayerList.");
         gameOptions = GameOptions.singleton;
 
         maxEntries = gameOptions.numPlayers;
         numRealEntries = 0;
         nextValidIndex = 0;
+        numPlaceholderEntries = 0; // For now, this will get changed in PopulateInitialList().
 
         PopulateInitialList();
     }
@@ -38,13 +40,36 @@ public class LobbyPlayerList : MonoBehaviour
     {
         for (int i = 0; i < maxEntries; i++)
         {
+            // Note that we increment numPlaceholderEntries in here.
             AddPlaceholder();
         }
     }
 
+    public void Clear(bool addPlaceholders)
+    {
+        LobbyPlayerListEntries.Clear();
+        NetIDToIndexMap.Clear();
+        NetIDToNicknameMap.Clear();
+
+        numRealEntries = 0;
+        nextValidIndex = 0;
+
+        if (addPlaceholders)
+            // Add placeholder values back.
+            PopulateInitialList();
+    }
+
+
     public bool ContainsEntry(uint netId)
     {
         return NetIDToIndexMap.ContainsKey(netId);
+    }
+
+    private void OnDestroy()
+    {
+        Debug.Log("OnDestroy() called for LobbyPlayerList.");
+        
+        Clear(false);
     }
 
     private void AddPlaceholder()

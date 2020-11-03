@@ -7,31 +7,21 @@ using Lean.Gui;
 
 public class CustomNetworkRoomPlayer : NetworkRoomPlayer
 {
-    public GameObject LobbyUIPrefab;
-
     private GameObject LobbyUI;
 
-    //private LobbyPlayerList lobbyPlayerList
-    private LobbyPlayerList LobbyPlayerList;
-    //{
-    //    get
-    //    {
-    //        if (lobbyPlayerList == null)
-    //        {
-    //            GameObject gameObject = GameObject.FindWithTag("LobbyPlayerListContent");
-    //            if (gameObject == null)
-    //                return null;
-    //            lobbyPlayerList = gameObject.GetComponent<LobbyPlayerList>();
-    //        }
-
-    //        return lobbyPlayerList;
-    //    }
-    //}
+    private LobbyPlayerList lobbyPlayerList;
+    private LobbyPlayerList LobbyPlayerList
+    {
+        get => lobbyPlayerList;
+        set
+        {
+            Debug.Log("Modifying value of LobbyPlayerList for Player " + DisplayName + ", netId = " + netId + ".");
+            Debug.Log("Old value: " + (lobbyPlayerList == null ? "null" : "non-null") + ", New Value: " + (value == null ? "null" : "non-null"));
+            lobbyPlayerList = value;
+        }
+    }
 
     private LeanButton startButton;
-
-    //[SyncVar(hook = nameof(UpdateReadyDisplay))]
-    //public bool ready = false;
 
     [SyncVar(hook = nameof(HandleDisplayNameChanged))]
     public string DisplayName = "Loading...";
@@ -44,15 +34,16 @@ public class CustomNetworkRoomPlayer : NetworkRoomPlayer
         }
     }
 
-    // public void HandleReadyStatusChanged(bool oldValue, bool newValue) => UpdateDisplay();
     public void HandleDisplayNameChanged(string oldValue, string newValue) => UpdateDisplay();
 
     private void UpdateDisplay()
     {
-        Debug.Log("UpdateDisplay() called for RoomPlayer " + netId);
+        Debug.Log("UpdateDisplay() called for Player " + DisplayName + ", netId = " + netId + ". isLocalPlayer = " + isLocalPlayer + ", hasAuthority = " + hasAuthority + ".");
 
         if (!hasAuthority)
         {
+            Debug.Log("Size of roomSlots during UpdateDisplay(): " + NetworkGameManagerInstance.roomSlots.Count + "!");
+
             foreach (NetworkRoomPlayer player in NetworkGameManagerInstance.roomSlots)
             {
                 CustomNetworkRoomPlayer customPlayer = player as CustomNetworkRoomPlayer;
@@ -66,6 +57,8 @@ public class CustomNetworkRoomPlayer : NetworkRoomPlayer
             return;
         }
 
+        Debug.Log("Size of roomSlots during UpdateDisplay(): " + NetworkGameManagerInstance.roomSlots.Count + ".");
+
         foreach (NetworkRoomPlayer player in NetworkGameManagerInstance.roomSlots)
         {
             CustomNetworkRoomPlayer customPlayer = player as CustomNetworkRoomPlayer;
@@ -74,43 +67,53 @@ public class CustomNetworkRoomPlayer : NetworkRoomPlayer
         }
     }
 
+    public override void OnStopClient()
+    {
+        UpdateDisplay();
+    }
+
     public override void OnStartAuthority()
     {
-        Debug.Log("OnStartAuthority() called for RoomPlayer " + netId);
+        Debug.Log("OnStartAuthority() called for RoomPlayer " + netId + ". isLocalPlayer = " + isLocalPlayer + ".");
 
         DisplayName = PlayerPrefs.GetString("nickname");
         Debug.Log("Player " + DisplayName + " joined the lobby.");
-
-        CmdSetDisplayName(DisplayName);
     }
 
 
     [Command]
     private void CmdSetDisplayName(string displayName)
     {
+        Debug.Log("CmdSetDisplayName called for RoomPlayer " + netId + ". isLocalPlayer = " + isLocalPlayer + ", hasAuthority = " + hasAuthority + ".");
         DisplayName = displayName;
 
-        if (LobbyPlayerList == null)
-        {
-            GameObject gameObject = GameObject.FindWithTag("LobbyPlayerListContent");
-            if (gameObject == null)
-            {
-                Debug.LogWarning("Could not find GameObject with tag \"LobbyPlayerListContent\" in OnClientEnterRoom...");
-                return;
-            }
-            LobbyPlayerList = gameObject.GetComponent<LobbyPlayerList>();
-        }
+        //if (LobbyPlayerList == null)
+        //{
+        //    GameObject gameObject = GameObject.FindWithTag("LobbyPlayerListContent");
+        //    if (gameObject == null)
+        //    {
+        //        Debug.LogWarning("Could not find GameObject with tag \"LobbyPlayerListContent\" in OnClientEnterRoom...");
+        //        return;
+        //    }
+        //    LobbyPlayerList = gameObject.GetComponent<LobbyPlayerList>();
+        //}
 
         LobbyPlayerList.AddEntry(netId, DisplayName, false);
     }
 
     public override void OnClientEnterRoom()
     {
-        Debug.Log("OnClientEnterRoom() called for RoomPlayer " + netId);
+        Debug.Log("OnClientEnterRoom() called for RoomPlayer " + netId + ". isLocalPlayer = " + isLocalPlayer + ", hasAuthority = " + hasAuthority + ".");
         if (isLocalPlayer)
         {
             Debug.Log("RoomPlayer " + netId + " is a local player, so creating UI hooks now.");
             CreateUIHooks();
+
+            if (hasAuthority)
+            {
+                Debug.Log("RoomPlayer " + netId + " has authority, so calling CmdSetDisplayName now...");
+                CmdSetDisplayName(DisplayName);
+            }
         }
     }
 
@@ -160,11 +163,11 @@ public class CustomNetworkRoomPlayer : NetworkRoomPlayer
 
     public override void OnClientExitRoom()
     {
-        Debug.Log("OnClientExitRoom() called. Player " + DisplayName + ", netId = " + netId + ", has left the room.");
+        Debug.Log("OnClientExitRoom() called for player " + DisplayName + ", netId = " + netId + ".");
 
         if (LobbyPlayerList == null)
         {
-            Debug.LogWarning("LobbyPlayerList is null; cannot remove entry from list...");
+            Debug.LogWarning("LobbyPlayerList is null for Player " + DisplayName + ", netId = " + netId + ", cannot remove entry from list...");
             return;
         }
 
@@ -175,21 +178,10 @@ public class CustomNetworkRoomPlayer : NetworkRoomPlayer
 
     public override void ReadyStateChanged(bool _, bool newReadyState)
     {
-        Debug.Log("ReadyStateChanged() called for RoomPlayer " + netId);
-        UpdateDisplay();
-        if (LobbyPlayerList == null)
-        {
-            GameObject gameObject = GameObject.FindWithTag("LobbyPlayerListContent");
-            if (gameObject == null)
-            {
-                Debug.LogWarning("Could not find GameObject with tag \"LobbyPlayerListContent\" in ReadyStateChanged...");
-                return;
-            }
-                
-            LobbyPlayerList = gameObject.GetComponent<LobbyPlayerList>();
-        }
+        Debug.Log("ReadyStateChanged() called for RoomPlayer " + netId + ". (LobbyPlayerList == null) = " + (LobbyPlayerList == null));
 
-        LobbyPlayerList.ModifyReadyStatus(netId, DisplayName, readyToBegin);
+        if (LobbyPlayerList == null) return;
+        UpdateDisplay();
     }
 
     public void LeaveLobby()

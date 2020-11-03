@@ -232,12 +232,15 @@ public class NetworkGameManager : NetworkRoomManager
     {
         if (allPlayersReady)
         {
+            Debug.Log("Start button clicked and all players are ready. Changing scene now...");
+
             currentGameState = GameState.STARTING;
-            //AssignRoles();
 
             // All players are readyToBegin, start the game.
             base.ServerChangeScene(GameplayScene);
         }
+        else
+            Debug.Log("Start button clicked and not all players are ready. Doing nothing... ");
     }
 
     void StopGame()
