@@ -44,6 +44,21 @@ public class CustomNetworkRoomPlayer : NetworkRoomPlayer
     {
         Debug.Log("UpdateDisplay() called for Player " + DisplayName + ", netId = " + netId + ". isLocalPlayer = " + isLocalPlayer + ", hasAuthority = " + hasAuthority + ".");
 
+        //if (!uiHooksCreated)
+        //{
+        //    Debug.LogWarning("UIHooks have NOT been created yet...");
+        //    if (isLocalPlayer && hasAuthority)
+        //    {
+        //        Debug.Log("Creating UIHooks from within UpdateDisplay() now.");
+        //        CreateUIHooks();
+        //    }
+        //    else
+        //    {
+        //        Debug.LogWarning("Could not create UIHooks from within UpdateDisplay(). Returning.");
+        //        return;
+        //    }
+        //}
+
         if (!hasAuthority)
         {
             Debug.Log("Size of roomSlots during UpdateDisplay(): " + NetworkGameManagerInstance.roomSlots.Count + "!");
@@ -204,9 +219,9 @@ public class CustomNetworkRoomPlayer : NetworkRoomPlayer
 
     public override void ReadyStateChanged(bool _, bool newReadyState)
     {
-        Debug.Log("ReadyStateChanged() called for RoomPlayer " + netId + ". (LobbyPlayerList == null) = " + (LobbyPlayerList == null));
+        Debug.Log("ReadyStateChanged() called for RoomPlayer " + DisplayName + ", netId = " + netId + ", isLocalPlayer = " + isLocalPlayer + ", hasAuthority = " + hasAuthority + ", (LobbyPlayerList == null) = " + (LobbyPlayerList == null));
 
-        if (LobbyPlayerList == null) return;
+        // if (LobbyPlayerList == null) return;
         UpdateDisplay();
     }
 
@@ -229,7 +244,7 @@ public class CustomNetworkRoomPlayer : NetworkRoomPlayer
     {
         Debug.Log("Player " + netId + " clicked Ready button. isLocalPlayer = " + isLocalPlayer + ", hasAuthority = " + hasAuthority + ", readyToBegin = " + readyToBegin);
 
-        if (!isLocalPlayer) return;
+        //if (!isLocalPlayer) return;
 
         if (hasAuthority) CmdChangeReadyState(!readyToBegin);
     }

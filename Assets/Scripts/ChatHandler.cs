@@ -17,12 +17,7 @@ public class ChatHandler : NetworkBehaviour
     public GameObject TextMeshProUGUIPrefab;
 
     private static event Action<string> OnMessage;
-
-    public override void OnStartAuthority()
-    {
-
-    }
-
+    
     public void CreateUIHooks()
     {
         if (!CustomNetworkRoomPlayer.isLocalPlayer) return;
@@ -61,6 +56,8 @@ public class ChatHandler : NetworkBehaviour
         if (!hasAuthority) { return; }
 
         OnMessage -= HandleNewMessage;
+
+        chatSendButton.OnClick.RemoveListener(Send);
     }
 
     [Client]
