@@ -21,6 +21,8 @@ public class CustomNetworkRoomPlayer : NetworkRoomPlayer
         }
     }
 
+    private bool uiHooksCreated = false;
+
     private LeanButton startButton;
 
     private ChatHandler chatHandler;
@@ -90,7 +92,7 @@ public class CustomNetworkRoomPlayer : NetworkRoomPlayer
     public override void OnClientEnterRoom()
     {
         Debug.Log("OnClientEnterRoom() called for RoomPlayer " + netId + ". isLocalPlayer = " + isLocalPlayer + ", hasAuthority = " + hasAuthority + ".");
-        if (isLocalPlayer)
+        if (isLocalPlayer && hasAuthority)
         {
             //DisplayName = PlayerPrefs.GetString("nickname");
             Debug.Log("Player " + DisplayName + " joined the lobby.");
@@ -116,6 +118,13 @@ public class CustomNetworkRoomPlayer : NetworkRoomPlayer
     public void CreateUIHooks()
     {
         Debug.Log("CreateUIHooks called for Player " + DisplayName + ", netId = " + netId + ", isLocalPlayer = " + isLocalPlayer + ", hasAuthority = " + hasAuthority + ".");
+
+        if (uiHooksCreated)
+        {
+            Debug.Log("UI Hooks already created. Returning.");
+            return;
+        }
+        
         if (LobbyPlayerList == null)
         {
             GameObject gameObject = GameObject.FindWithTag("LobbyPlayerListContent");
@@ -147,6 +156,7 @@ public class CustomNetworkRoomPlayer : NetworkRoomPlayer
             }
             else if (button.name.Equals("LeaveButton"))
             {
+                
                 if (hasAuthority)
                     button.OnClick.AddListener(LeaveLobby);
                 else
@@ -171,11 +181,15 @@ public class CustomNetworkRoomPlayer : NetworkRoomPlayer
             Debug.Log("Calling CreateUIHooks() on chatHandler now.");
             chatHandler.CreateUIHooks();
         }
+
+        uiHooksCreated = true;
     }
 
     public override void OnClientExitRoom()
     {
-        Debug.Log("OnClientExitRoom() called for player " + DisplayName + ", netId = " + netId + ".");
+        Debug.Log("OnClientExitRoom() called for player " + DisplayName + ", netId = " + netId + ", isLocalPlayer = " + isLocalPlayer + ", hasAuthority = " + hasAuthority + ".");
+
+        if (isLocalPlayer) uiHooksCreated = false;
 
         if (LobbyPlayerList == null)
         {
@@ -198,6 +212,8 @@ public class CustomNetworkRoomPlayer : NetworkRoomPlayer
 
     public void LeaveLobby()
     {
+        if (!isLocalPlayer) return;
+
         Debug.Log("Player " + netId + " clicked Leave button. isLocalPlayer = " + isLocalPlayer + ", hasAuthority = " + hasAuthority);
 
         if (NetworkServer.active && NetworkClient.isConnected) // Stop host if host mode.
@@ -212,6 +228,8 @@ public class CustomNetworkRoomPlayer : NetworkRoomPlayer
     public void ReadyUp()
     {
         Debug.Log("Player " + netId + " clicked Ready button. isLocalPlayer = " + isLocalPlayer + ", hasAuthority = " + hasAuthority + ", readyToBegin = " + readyToBegin);
+
+        if (!isLocalPlayer) return;
 
         if (hasAuthority) CmdChangeReadyState(!readyToBegin);
     }

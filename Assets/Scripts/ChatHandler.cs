@@ -25,6 +25,8 @@ public class ChatHandler : NetworkBehaviour
 
     public void CreateUIHooks()
     {
+        if (!CustomNetworkRoomPlayer.isLocalPlayer) return;
+
         chatContent = GameObject.FindGameObjectWithTag("ChatContent");
         chatSendButton = GameObject.FindGameObjectWithTag("ChatSendButton").GetComponent<LeanButton>();
         inputField = GameObject.FindGameObjectWithTag("ChatInputField").GetComponent<TMP_InputField>();
@@ -61,8 +63,11 @@ public class ChatHandler : NetworkBehaviour
         OnMessage -= HandleNewMessage;
     }
 
+    [Client]
     private void HandleNewMessage(string message)
     {
+        if (!CustomNetworkRoomPlayer.isLocalPlayer) return;
+
         GameObject TextMeshProUGUIGameObject = Instantiate(TextMeshProUGUIPrefab, transform);
         TextMeshProUGUI textMeshProUGUI = TextMeshProUGUIGameObject.GetComponent<TextMeshProUGUI>();
         textMeshProUGUI.text = message;
@@ -75,6 +80,8 @@ public class ChatHandler : NetworkBehaviour
     [Client]
     public void Send()
     {
+        if (!CustomNetworkRoomPlayer.isLocalPlayer) return;
+
         if (string.IsNullOrWhiteSpace(inputField.text)) { return; }
 
         CmdSendMessage(inputField.text);
@@ -85,6 +92,8 @@ public class ChatHandler : NetworkBehaviour
     [Client]
     public void SendParameterized(string message)
     {
+        if (!CustomNetworkRoomPlayer.isLocalPlayer) return;
+
         if (string.IsNullOrWhiteSpace(inputField.text)) { return; }
 
         CmdSendMessage(inputField.text);
