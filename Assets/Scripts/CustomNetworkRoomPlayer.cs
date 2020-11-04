@@ -23,6 +23,8 @@ public class CustomNetworkRoomPlayer : NetworkRoomPlayer
 
     private LeanButton startButton;
 
+    private ChatHandler chatHandler;
+
     [SyncVar(hook = nameof(HandleDisplayNameChanged))]
     public string DisplayName = "Loading...";
 
@@ -113,6 +115,7 @@ public class CustomNetworkRoomPlayer : NetworkRoomPlayer
     /// </summary>
     public void CreateUIHooks()
     {
+        Debug.Log("CreateUIHooks called for Player " + DisplayName + ", netId = " + netId + ", isLocalPlayer = " + isLocalPlayer + ", hasAuthority = " + hasAuthority + ".");
         if (LobbyPlayerList == null)
         {
             GameObject gameObject = GameObject.FindWithTag("LobbyPlayerListContent");
@@ -136,9 +139,19 @@ public class CustomNetworkRoomPlayer : NetworkRoomPlayer
         foreach (LeanButton button in buttons)
         {
             if (button.name.Equals("ReadyButton"))
-                button.OnClick.AddListener(ReadyUp);
+            {
+                if (hasAuthority)
+                    button.OnClick.AddListener(ReadyUp);
+                else
+                    button.enabled = false;
+            }
             else if (button.name.Equals("LeaveButton"))
-                button.OnClick.AddListener(LeaveLobby);
+            {
+                if (hasAuthority)
+                    button.OnClick.AddListener(LeaveLobby);
+                else
+                    button.enabled = false;
+            }
             else if (button.name.Equals("StartButton"))
             {
                 startButton = button;
@@ -149,6 +162,14 @@ public class CustomNetworkRoomPlayer : NetworkRoomPlayer
                 else
                     startButton.interactable = false;
             }
+        }
+
+        chatHandler = GetComponent<ChatHandler>();
+
+        if (chatHandler != null)
+        {
+            Debug.Log("Calling CreateUIHooks() on chatHandler now.");
+            chatHandler.CreateUIHooks();
         }
     }
 
@@ -186,10 +207,11 @@ public class CustomNetworkRoomPlayer : NetworkRoomPlayer
         else if (NetworkServer.active)          // Stop server only.
             NetworkGameManagerInstance.StopServer();
     }
-
+    
+    [Client]
     public void ReadyUp()
     {
-        Debug.Log("Player " + netId + " clicked Ready button. isLocalPlayer = " + isLocalPlayer + ", hasAuthority = " + hasAuthority);
+        Debug.Log("Player " + netId + " clicked Ready button. isLocalPlayer = " + isLocalPlayer + ", hasAuthority = " + hasAuthority + ", readyToBegin = " + readyToBegin);
 
         if (hasAuthority) CmdChangeReadyState(!readyToBegin);
     }

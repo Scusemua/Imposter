@@ -90,6 +90,7 @@ public class LobbyPlayerList : MonoBehaviour
     /// <returns>False if we update an existing entry. True if we create a new entry.</returns>
     public bool AddOrUpdateEntry(uint netId, string playerName, bool readyStatus)
     {
+        Debug.Log("AddOrUpdateEntry() called. netId = " + netId + ", playerName = " + playerName + ", readyStatus = " + readyStatus + ".");
         if (UpdateEntry(netId, playerName, readyStatus))
             return false;
 

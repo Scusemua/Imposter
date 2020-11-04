@@ -20,6 +20,11 @@ public class ChatHandler : NetworkBehaviour
 
     public override void OnStartAuthority()
     {
+
+    }
+
+    public void CreateUIHooks()
+    {
         chatContent = GameObject.FindGameObjectWithTag("ChatContent");
         chatSendButton = GameObject.FindGameObjectWithTag("ChatSendButton").GetComponent<LeanButton>();
         inputField = GameObject.FindGameObjectWithTag("ChatInputField").GetComponent<TMP_InputField>();
