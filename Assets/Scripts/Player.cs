@@ -21,6 +21,9 @@ public class Player : NetworkBehaviour
 
     [HideInInspector]
     public PlayerUI playerUI;
+    
+    [SyncVar]
+    public Color playerColor;
 
     public TextMesh playerNameText;
 

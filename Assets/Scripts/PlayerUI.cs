@@ -3,25 +3,25 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using Mirror;
+using TMPro;
 
 public class PlayerUI : MonoBehaviour
 {
-    [SerializeField]
-    Text nicknameText;
-
-    [SerializeField]
-    Text roleText;
-
     private Player player;
     private PlayerController playerController;
 
     [Header("UI Elements")]
     public GameObject PrimaryActionButtonGameObject;
-    public Text PrimaryActionLabel;
     public Image CrewmateVictoryImage;
     public Image ImposterVictoryImage;
+    public Image PlayerImage;
     public GameObject ReturnToLobbyButton;
-    public Text WaitingOnHostText;
+    public TextMeshProUGUI WaitingOnHostText;
+    public TextMeshProUGUI nicknameText;
+    public TextMeshProUGUI roleText;
+
+    [Header("Misc.")]
+    public float PlayerImageAlpha;
 
     private GameOptions gameOptions;
     private NetworkGameManager networkGameManager;
@@ -74,23 +74,13 @@ public class PlayerUI : MonoBehaviour
     {
         this.player = player;
         this.playerController = player.GetComponent<PlayerController>();
+        this.PlayerImage.color = new Color(player.playerColor.r, player.playerColor.g, player.playerColor.b, PlayerImageAlpha);
 
         SetNickname(player.nickname);
     }
 
-    void AssignTextComponents()
-    {
-        Text[] textComponents = GetComponentsInChildren<Text>();
-        nicknameText = textComponents[0];
-        roleText = textComponents[1];
-    }
-
     public void SetNickname(string nickname)
     {
-        if (nicknameText == null)
-        {
-            AssignTextComponents();
-        }
         nicknameText.text = nickname;
     }
 
