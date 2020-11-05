@@ -11,14 +11,7 @@ public class PlayerController : NetworkBehaviour
 
     public GameObject CameraPrefab;
     public Camera Camera;
-
-    [SerializeField]
-    private float RotationSpeed;
-
-    private Vector3 moveInput;
-
-    private Vector3 moveVelocity;
-
+    
     public Animator animator;
 
     public GameObject DeathEffectPrefab;
@@ -28,9 +21,17 @@ public class PlayerController : NetworkBehaviour
     private float runBoost;
     private bool sprintEnabled;
 
-    private GameOptions gameOptions;
+    private GameOptions GameOptions { get => GameOptions.singleton; }
 
     public Vector3 CameraOffset;
+
+    /// <summary>
+    /// Displayed around a deadbody that has not yet been identified.
+    /// </summary>
+    public Outline PlayerOutline;
+
+    [SyncVar(hook = nameof(OnPlayerBodyIdentified))]
+    public bool Identified;
     
     //public Vector3 jump;
     //public float jumpForce = 2.0f;
@@ -41,6 +42,19 @@ public class PlayerController : NetworkBehaviour
         enabled = true;
         //jump = new Vector3(0.0f, 2.0f, 0.0f);
         GetComponent<Rigidbody>().isKinematic = false;
+
+        movementSpeed = GameOptions.playerSpeed;
+        runBoost = GameOptions.sprintBoost;
+        sprintEnabled = GameOptions.sprintEnabled;
+    }
+
+    /// <summary>
+    /// Called when a player's dead body gets identified.
+    /// </summary>
+    public void OnPlayerBodyIdentified(bool _Old, bool _New)
+    {
+        // If the player's body has been identified, then disable the outline.
+        if (Identified) this.PlayerOutline.enabled = false;
     }
 
     public override void OnStartAuthority()
@@ -50,6 +64,16 @@ public class PlayerController : NetworkBehaviour
 
     public override void OnStartClient()
     {
+        setRigidbodyState(true);
+        setColliderState(false);
+
+        player = GetComponent<Player>();
+
+        if (player == null)
+            Debug.LogError("Player is null for PlayerController!");
+
+        Identified = false;
+
         if (!isLocalPlayer)
         {
             // Disable player movement.
@@ -70,24 +94,6 @@ public class PlayerController : NetworkBehaviour
                 Camera.transform.position += transform.position;
             }
         }
-    }
-
-    // Start is called before the first frame update
-    void Start()
-    {
-        player = GetComponent<Player>();
-        gameOptions = GameOptions.singleton;
-
-        if (player == null)
-            Debug.LogError("Player is null for PlayerController!");
-
-        movementSpeed = gameOptions.playerSpeed;
-        runBoost = gameOptions.sprintBoost;
-        sprintEnabled = gameOptions.sprintEnabled;
-
-        // Configure ragdoll.
-        setRigidbodyState(true);
-        setColliderState(false);
     }
 
     //void OnCollisionStay()
@@ -176,6 +182,8 @@ public class PlayerController : NetworkBehaviour
 
         setRigidbodyState(false);
         setColliderState(true);
+
+        this.PlayerOutline.enabled = true;
         
         if (hasAuthority && isLocalPlayer)
             audioSource.PlayOneShot(deathSound);
