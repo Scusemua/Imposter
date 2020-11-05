@@ -166,36 +166,31 @@ public class NetworkGameManager : NetworkRoomManager
 
         List<Player> allPlayers = new List<Player>(GamePlayers);
 
+        Player[] shuffledPlayers = GamePlayers.ToArray<Player>();
+        Debug.Log("Shuffling players now.");
+        Shuffle<Player>(shuffledPlayers);
+
         Debug.Log("Number of Players: " + allPlayers.Count);
         Debug.Log("Number of Imposters: " + numImposters);
 
-        // Assign imposter roles randomly.
-        for (int i = 0; i < numImposters; i++)
-        {
-            int imposterIndex = RNG.Next(allPlayers.Count);
-            Player imposter = allPlayers[imposterIndex];
-            allPlayers.RemoveAt(imposterIndex);
-            imposter.Role = new ImposterRole();
-            imposters.Add(imposter);
-        }
+        // GameOptions validates the settings so that this will run without errors. We do not need to be careful here.
+        int currentPlayerIndex;
 
-        if (allPlayers.Count > 0)
-            // The remaining players are crewmates.
-            crewmates.AddRange(allPlayers);
+        // Assign imposter roles randomly.
+        for (currentPlayerIndex = 0; currentPlayerIndex < numImposters; currentPlayerIndex++)
+            imposters.Add(shuffledPlayers[currentPlayerIndex]);
+
+        // Add the remaining players to the crewmates list.
+        for (; currentPlayerIndex < shuffledPlayers.Length; currentPlayerIndex++)
+            crewmates.Add(shuffledPlayers[currentPlayerIndex]);
 
         if (imposters.Count > 0)
-        {
             foreach (Player p in imposters)
-                //p.RpcAssignRole(p.gameObject.GetComponent<NetworkIdentity>().connectionToClient, "imposter");
                 p.RpcAssignRole("imposter");
-        }
 
         if (crewmates.Count > 0)
-        {
             foreach (Player p in crewmates)
-                //p.RpcAssignRole(p.gameObject.GetComponent<NetworkIdentity>().connectionToClient, "crewmate");
                 p.RpcAssignRole("crewmate");
-        }
 
         numCrewmatesAlive = crewmates.Count;
         numImpostersAlive = imposters.Count;
@@ -214,7 +209,9 @@ public class NetworkGameManager : NetworkRoomManager
     public override void OnRoomServerSceneChanged(string sceneName)
     {
         if (sceneName == RoomScene)
-            currentGameState = GameState.LOBBY;
+        {
+            GameEnded();
+        }
 
         if (sceneName == GameplayScene)
         {
@@ -243,8 +240,16 @@ public class NetworkGameManager : NetworkRoomManager
             Debug.Log("Start button clicked and not all players are ready. Doing nothing... ");
     }
 
-    void StopGame()
+    /// <summary>
+    /// Perform the necessary clean-up once the game has ended and players are returning back to the lobby.
+    /// </summary>
+    void GameEnded()
     {
+        GamePlayers.Clear();    // This effectively unregisters all players.
+        numCrewmatesAlive = 0;  // The game is not active so reset these variables.
+        numImpostersAlive = 0;  // The game is not active so reset these variables.
+        rolesAssigned = false;  // Flip this back to false since roles have not been assigned for next game.
+
         currentGameState = GameState.LOBBY;
     }
 
@@ -308,5 +313,25 @@ public class NetworkGameManager : NetworkRoomManager
                 return true;
         }
         return false;
+    }
+
+    /// <summary>
+    /// Shuffle the array.
+    /// </summary>
+    /// <typeparam name="T">Array element type.</typeparam>
+    /// <param name="array">Array to shuffle.</param>
+    public void Shuffle<T>(T[] array)
+    {
+        int n = array.Length;
+        for (int i = 0; i < (n - 1); i++)
+        {
+            // Use Next on random instance with an argument.
+            // ... The argument is an exclusive bound.
+            //     So we will not go past the end of the array.
+            int r = i + RNG.Next(n - i);
+            T t = array[r];
+            array[r] = array[i];
+            array[i] = t;
+        }
     }
 }

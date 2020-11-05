@@ -44,20 +44,11 @@ public class CustomNetworkRoomPlayer : NetworkRoomPlayer
     {
         Debug.Log("UpdateDisplay() called for Player " + DisplayName + ", netId = " + netId + ". isLocalPlayer = " + isLocalPlayer + ", hasAuthority = " + hasAuthority + ".");
 
-        //if (!uiHooksCreated)
-        //{
-        //    Debug.LogWarning("UIHooks have NOT been created yet...");
-        //    if (isLocalPlayer && hasAuthority)
-        //    {
-        //        Debug.Log("Creating UIHooks from within UpdateDisplay() now.");
-        //        CreateUIHooks();
-        //    }
-        //    else
-        //    {
-        //        Debug.LogWarning("Could not create UIHooks from within UpdateDisplay(). Returning.");
-        //        return;
-        //    }
-        //}
+        if (!NetworkManager.IsSceneActive(NetworkGameManagerInstance.RoomScene))
+        {
+            Debug.Log("Current game scene is NOT the room/lobby scene. Returning from UpdateDisplay() immediately.");
+            return;
+        }
 
         if (!hasAuthority)
         {

@@ -141,7 +141,7 @@ public class Player : NetworkBehaviour
                 break;
         }
 
-        Debug.Log("Role assigned: " + role);
+        Debug.Log("Player " + nickname + ", netId = " + netId + "assigned role " + role);
 
         Role.AssignPlayer(this);
 

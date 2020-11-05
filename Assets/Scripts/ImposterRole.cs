@@ -41,6 +41,12 @@ public class ImposterRole : Role
             return;
         }
 
+        if (player.isDead)
+        {
+            Debug.Log("User tried to perform primary action, but they are dead.");
+            return;
+        }
+
         Debug.Log("Performing primary action now.");
 
         if (KillTarget != null)

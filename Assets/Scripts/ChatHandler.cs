@@ -20,6 +20,7 @@ public class ChatHandler : NetworkBehaviour
     
     public void CreateUIHooks()
     {
+        Debug.Log("ChatHandler.CreateUIHooks() called for player " + CustomNetworkRoomPlayer.netId + " CNP.isLocalPlayer = " + CustomNetworkRoomPlayer.isLocalPlayer + ", CNP.hasAuthority = " + CustomNetworkRoomPlayer.hasAuthority);
         if (!CustomNetworkRoomPlayer.isLocalPlayer) return;
 
         chatContent = GameObject.FindGameObjectWithTag("ChatContent");
@@ -31,6 +32,7 @@ public class ChatHandler : NetworkBehaviour
         // When edit is ended, check if we're also pressing enter. This prevents chat from being sent just on deselection.
         inputField.onEndEdit.AddListener(message =>
         {
+            if (!CustomNetworkRoomPlayer.isLocalPlayer) return;
             if (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter))
             {
                 SendParameterized(message);
@@ -38,7 +40,8 @@ public class ChatHandler : NetworkBehaviour
             }
         });
 
-        OnMessage += HandleNewMessage;
+        if (OnMessage == null)
+            OnMessage += HandleNewMessage;
     }
 
     /// <summary>
@@ -50,20 +53,19 @@ public class ChatHandler : NetworkBehaviour
         inputField.Select();
     }
 
-    [ClientCallback]
     private void OnDestroy()
     {
         if (!hasAuthority) { return; }
 
         OnMessage -= HandleNewMessage;
-
-        chatSendButton.OnClick.RemoveListener(Send);
     }
 
     [Client]
     private void HandleNewMessage(string message)
     {
         if (!CustomNetworkRoomPlayer.isLocalPlayer) return;
+
+        Debug.Log("Handling new message: \"" + message + "\"");
 
         GameObject TextMeshProUGUIGameObject = Instantiate(TextMeshProUGUIPrefab, transform);
         TextMeshProUGUI textMeshProUGUI = TextMeshProUGUIGameObject.GetComponent<TextMeshProUGUI>();
