@@ -7,7 +7,12 @@ using Lean.Gui;
 
 public class CustomNetworkRoomPlayer : NetworkRoomPlayer
 {
-    private GameObject LobbyUI;
+    public GameObject LobbyPlayerModel;
+
+    public float ModelRotationSpeed;
+
+    [SyncVar(hook = nameof(OnPlayerModelColorChanged))]
+    public Color PlayerModelColor;
 
     private LobbyPlayerList lobbyPlayerList;
     private LobbyPlayerList LobbyPlayerList
@@ -37,6 +42,8 @@ public class CustomNetworkRoomPlayer : NetworkRoomPlayer
             return NetworkGameManager.singleton as NetworkGameManager;
         }
     }
+
+    public static Vector3 yAxis = new Vector3(0, 1, 0);
 
     public void HandleDisplayNameChanged(string oldValue, string newValue) => UpdateDisplay();
 
@@ -74,6 +81,14 @@ public class CustomNetworkRoomPlayer : NetworkRoomPlayer
             CustomNetworkRoomPlayer customPlayer = player as CustomNetworkRoomPlayer;
 
             LobbyPlayerList.AddOrUpdateEntry(customPlayer.netId, customPlayer.DisplayName, customPlayer.readyToBegin);
+        }
+    }
+
+    public void OnPlayerModelColorChanged(Color _Old, Color _New)
+    {
+        if (LobbyPlayerModel != null)
+        {
+
         }
     }
 
@@ -129,6 +144,11 @@ public class CustomNetworkRoomPlayer : NetworkRoomPlayer
         {
             Debug.Log("UI Hooks already created. Returning.");
             return;
+        }
+
+        if (LobbyPlayerModel == null)
+        {
+            LobbyPlayerModel = GameObject.FindWithTag("LobbyPlayerModel");
         }
         
         if (LobbyPlayerList == null)
@@ -206,6 +226,15 @@ public class CustomNetworkRoomPlayer : NetworkRoomPlayer
         Debug.Log("Removing entry for player " + DisplayName + ", netId = " + netId + ", from lobby player list now.");
 
         LobbyPlayerList.RemoveEntry(netId, DisplayName, false);
+    }
+
+    void Update()
+    {
+        if (!isLocalPlayer) return;
+
+        // Rotate the player model.
+        if (LobbyPlayerModel != null)
+            LobbyPlayerModel.transform.Rotate(yAxis, ModelRotationSpeed * Time.deltaTime);
     }
 
     public override void ReadyStateChanged(bool _, bool newReadyState)

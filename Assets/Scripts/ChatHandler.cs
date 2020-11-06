@@ -67,12 +67,12 @@ public class ChatHandler : NetworkBehaviour
 
         Debug.Log("Handling new message: \"" + message + "\"");
 
-        GameObject TextMeshProUGUIGameObject = Instantiate(TextMeshProUGUIPrefab, transform);
+        GameObject TextMeshProUGUIGameObject = Instantiate(TextMeshProUGUIPrefab, chatContent.transform);
         TextMeshProUGUI textMeshProUGUI = TextMeshProUGUIGameObject.GetComponent<TextMeshProUGUI>();
         textMeshProUGUI.text = message;
 
         // Move this to the chat content.
-        TextMeshProUGUIGameObject.transform.SetParent(chatContent.transform);
+        // TextMeshProUGUIGameObject.transform.SetParent(chatContent.transform);
         TextMeshProUGUIGameObject.transform.localScale = new Vector3(1, 1, 1);
     }
 
