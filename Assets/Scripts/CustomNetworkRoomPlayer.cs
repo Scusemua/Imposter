@@ -82,13 +82,17 @@ public class CustomNetworkRoomPlayer : NetworkRoomPlayer
 
             LobbyPlayerList.AddOrUpdateEntry(customPlayer.netId, customPlayer.DisplayName, customPlayer.readyToBegin);
         }
+
+        GameObject.FindGameObjectWithTag("ColorSelector").GetComponent<ColorSelector>().RoomPlayer = this;
     }
 
     public void OnPlayerModelColorChanged(Color _Old, Color _New)
     {
+        Debug.Log("OnPlayerModelColorChanged() called for player " + netId);
         if (LobbyPlayerModel != null)
         {
-
+            Debug.Log("Modifying renderer component now.");
+            LobbyPlayerModel.GetComponentInChildren<Renderer>().material.color = _New;
         }
     }
 

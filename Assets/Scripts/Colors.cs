@@ -7,25 +7,25 @@ using UnityEngine;
 /// </summary>
 public static class GameColors
 {
-    public static Color RED = new Color(255, 0, 127);
-    public static Color ORANGE = new Color(255, 128, 0);
-    public static Color YELLOW = new Color(255, 255, 0);
-    public static Color GREEN = new Color(0, 204, 0);
-    public static Color BLUE = new Color(0, 128, 255);
-    public static Color CYAN = new Color(51, 255, 255);
-    public static Color PURPLE = new Color(102, 0, 204);
-    public static Color PINK = new Color(255, 0, 255);
-    public static Color BROWN = new Color(102, 51, 0);
-    public static Color BLACK = new Color(0, 0, 0);
-    public static Color WHITE = new Color(255, 255, 255);
-    public static Color BEIGE = new Color(255, 229, 204);
-    public static Color GRAY = new Color(160, 160, 160);
+    public static Color32  RED = new Color32 (255, 0, 127, 255);
+    public static Color32  ORANGE = new Color32 (255, 128, 0, 255);
+    public static Color32  YELLOW = new Color32 (255, 255, 0, 255);
+    public static Color32  GREEN = new Color32 (0, 204, 0, 255);
+    public static Color32  BLUE = new Color32 (0, 128, 255, 255);
+    public static Color32  CYAN = new Color32 (51, 255, 255, 255);
+    public static Color32  PURPLE = new Color32 (102, 0, 204, 255);
+    public static Color32  PINK = new Color32 (255, 0, 255, 255);
+    public static Color32  BROWN = new Color32 (102, 51, 0, 255);
+    //public static Color32  BLACK = new Color32 (0, 0, 0, 255);
+    public static Color32  WHITE = new Color32 (255, 255, 255, 255);
+    //public static Color32  BEIGE = new Color32 (255, 229, 204, 255);
+    public static Color32  GRAY = new Color32 (87, 87, 87, 255);
 
     /// <summary>
     /// An array of all of the available colors.
     /// </summary>
-    public static Color[] ALL_COLORS = new Color[]
+    public static Color32 [] ALL_COLORS = new Color32 []
     {
-        RED, ORANGE, YELLOW, GREEN, BLUE, CYAN, PURPLE, PINK, BROWN, BLACK, WHITE, BEIGE, GRAY
+        RED, ORANGE, YELLOW, GREEN, BLUE, CYAN, PURPLE, PINK, BROWN, WHITE, GRAY, //BLACK, BEIGE
     };
 }

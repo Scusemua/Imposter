@@ -22,7 +22,7 @@ public class Player : NetworkBehaviour
     [HideInInspector]
     public PlayerUI playerUI;
     
-    [SyncVar]
+    [SyncVar(hook = nameof(OnPlayerColorChanged))]
     public Color playerColor;
 
     public TextMesh playerNameText;
@@ -75,6 +75,12 @@ public class Player : NetworkBehaviour
         playerUI.DisplayEndOfGameUI(crewmateVictory);
     }
 
+    public void OnPlayerColorChanged(Color _, Color _New)
+    {
+        Debug.Log("OnPlayerModelColorChanged() called for player " + netId);
+        GetComponentInChildren<Renderer>().material.color = _New;
+    }
+
     [Command]
     public void CmdSetupPlayer(string _name)
     {
@@ -89,7 +95,7 @@ public class Player : NetworkBehaviour
     public override void OnStartLocalPlayer()
     {
         Debug.Log("OnStartLocalPlayer() called...");
-
+        
         // Create PlayerUI
         playerUIInstance = Instantiate(playerUIPrefab);
 

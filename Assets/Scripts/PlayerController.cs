@@ -157,12 +157,6 @@ public class PlayerController : NetworkBehaviour
             else
                 animator.SetBool("backwards", false);
         }
-
-        //if (Input.GetKeyDown(KeyCode.Space) && isGrounded)
-        //{
-        //    rigidbody.AddForce(jump * jumpForce, ForceMode.Impulse);
-        //    isGrounded = false;
-        //}
     }
 
     void LateUpdate()

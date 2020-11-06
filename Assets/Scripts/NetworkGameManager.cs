@@ -201,6 +201,53 @@ public class NetworkGameManager : NetworkRoomManager
         currentGameState = GameState.IN_PROGRESS;
     }
 
+    /// <summary>
+    /// This allows customization of the creation of the GamePlayer object on the server.
+    /// <para>This is only called for subsequent GamePlay scenes after the first one.</para>
+    /// <para>See <see cref="OnRoomServerCreateGamePlayer(NetworkConnection, GameObject)">OnRoomServerCreateGamePlayer(NetworkConnection, GameObject)</see> to customize the player object for the initial GamePlay scene.</para>
+    /// </summary>
+    /// <param name="conn">The connection the player object is for.</param>
+    public override void OnServerAddPlayer(NetworkConnection conn)
+    {
+        if (IsSceneActive(RoomScene))
+        {
+            if (roomSlots.Count == maxConnections)
+                return;
+
+            allPlayersReady = false;
+
+            Debug.Log("NetworkRoomManager.OnServerAddPlayer playerPrefab:{0}" + roomPlayerPrefab.name);
+
+            GameObject newRoomGameObject = OnRoomServerCreateRoomPlayer(conn);
+            if (newRoomGameObject == null)
+                newRoomGameObject = Instantiate(roomPlayerPrefab.gameObject, Vector3.zero, Quaternion.identity);
+
+            NetworkServer.AddPlayerForConnection(conn, newRoomGameObject);
+        }
+        else
+        {
+            Transform startPos = GetStartPosition();
+            GameObject player = startPos != null
+                ? Instantiate(playerPrefab, startPos.position, startPos.rotation)
+                : Instantiate(playerPrefab);
+
+            NetworkServer.AddPlayerForConnection(conn, player);
+
+            uint networkID = conn.identity.GetComponent<NetworkIdentity>().netId;
+
+            foreach (NetworkRoomPlayer netPlayer in roomSlots)
+            {
+                if (netPlayer.netId == networkID)
+                {
+                    Debug.Log("Found match. Assigning color " + (netPlayer as CustomNetworkRoomPlayer).PlayerModelColor);
+                    player.GetComponent<Player>().playerColor = (netPlayer as CustomNetworkRoomPlayer).PlayerModelColor;
+                    break;
+                }
+            }
+            Debug.LogError("Failed to find matching player for networkID " + networkID);
+        }
+    }
+
     public override void OnRoomServerPlayersReady()
     {
         // base.OnRoomServerPlayersReady();

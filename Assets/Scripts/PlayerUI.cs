@@ -17,8 +17,11 @@ public class PlayerUI : MonoBehaviour
     public Image PlayerImage;
     public GameObject ReturnToLobbyButton;
     public TextMeshProUGUI WaitingOnHostText;
-    public TextMeshProUGUI nicknameText;
-    public TextMeshProUGUI roleText;
+    public TextMeshProUGUI NicknameText;
+    public TextMeshProUGUI RoleText;
+
+    public GameObject RoleAnimator;
+    public Text RoleAnimationText;
 
     [Header("Misc.")]
     public float PlayerImageAlpha;
@@ -70,6 +73,12 @@ public class PlayerUI : MonoBehaviour
             ReturnToLobbyButton.SetActive(true);
     }
 
+    public void AnimateRole()
+    {
+        RoleAnimator.SetActive(true);
+        RoleAnimator.GetComponent<Animator>().Play("Expand");
+    }
+
     public void SetPlayer(Player player)
     {
         this.player = player;
@@ -81,11 +90,14 @@ public class PlayerUI : MonoBehaviour
 
     public void SetNickname(string nickname)
     {
-        nicknameText.text = nickname;
+        NicknameText.text = nickname;
     }
 
     public void SetRole(string roleName)
     {
-        roleText.text = roleName.ToUpper();
+        RoleText.text = roleName.ToUpper();
+        RoleAnimationText.text = roleName.ToUpper();
+
+        AnimateRole();
     }
 }
