@@ -12,7 +12,7 @@ public class CustomNetworkRoomPlayer : NetworkRoomPlayer
     public float ModelRotationSpeed;
 
     [SyncVar(hook = nameof(OnPlayerModelColorChanged))]
-    public Color PlayerModelColor;
+    public Color PlayerModelColor = GameColors.START_COLOR;
 
     private LobbyPlayerList lobbyPlayerList;
     private LobbyPlayerList LobbyPlayerList
@@ -34,6 +34,8 @@ public class CustomNetworkRoomPlayer : NetworkRoomPlayer
 
     [SyncVar(hook = nameof(HandleDisplayNameChanged))]
     public string DisplayName = "Loading...";
+
+    private ColorSelector colorSelector;
 
     private NetworkGameManager NetworkGameManagerInstance
     {
@@ -82,23 +84,21 @@ public class CustomNetworkRoomPlayer : NetworkRoomPlayer
 
             LobbyPlayerList.AddOrUpdateEntry(customPlayer.netId, customPlayer.DisplayName, customPlayer.readyToBegin);
         }
-
-        GameObject.FindGameObjectWithTag("ColorSelector").GetComponent<ColorSelector>().RoomPlayer = this;
     }
 
     public void OnPlayerModelColorChanged(Color _Old, Color _New)
     {
-        Debug.Log("OnPlayerModelColorChanged() called for player " + netId);
-        if (LobbyPlayerModel != null)
+        Debug.Log("OnPlayerModelColorChanged() called for player " + netId + ". _Old = " + _Old + ", _New = " + _New + ".");
+        if (LobbyPlayerModel != null && isLocalPlayer)
         {
-            Debug.Log("Modifying renderer component now.");
+            Debug.Log("Modifying lobby player renderer component now. New color = " + _New + " (" + GameColors.COLOR_NAMES[_New] + ").");
             LobbyPlayerModel.GetComponentInChildren<Renderer>().material.color = _New;
         }
     }
 
     public override void OnStopClient()
-    {
-        UpdateDisplay();
+    { 
+
     }
 
     public override void OnStartAuthority()
@@ -117,7 +117,7 @@ public class CustomNetworkRoomPlayer : NetworkRoomPlayer
     public override void OnClientEnterRoom()
     {
         Debug.Log("OnClientEnterRoom() called for RoomPlayer " + netId + ". isLocalPlayer = " + isLocalPlayer + ", hasAuthority = " + hasAuthority + ".");
-        if (isLocalPlayer && hasAuthority)
+        if (isLocalPlayer)
         {
             //DisplayName = PlayerPrefs.GetString("nickname");
             Debug.Log("Player " + DisplayName + " joined the lobby.");
@@ -129,10 +129,6 @@ public class CustomNetworkRoomPlayer : NetworkRoomPlayer
             {
                 Debug.Log("RoomPlayer " + netId + " has authority, so calling CmdSetDisplayName now...");
                 CmdSetDisplayName(PlayerPrefs.GetString("nickname"));
-            }
-            else
-            {
-                UpdateDisplay();
             }
         }
     }
@@ -211,6 +207,12 @@ public class CustomNetworkRoomPlayer : NetworkRoomPlayer
             Debug.Log("Calling CreateUIHooks() on chatHandler now.");
             chatHandler.CreateUIHooks();
         }
+
+        colorSelector = GameObject.FindGameObjectWithTag("ColorSelector").GetComponent<ColorSelector>();
+        colorSelector.RoomPlayer = this;
+
+        //Debug.Log("Player " + netId + " about to get assigned initial color. colorSelector is null? " + (colorSelector == null) + ", colorSelector.roomPlayer is null? " + (colorSelector.RoomPlayer == null));
+        colorSelector.CmdAssignInitialColor();
 
         uiHooksCreated = true;
     }

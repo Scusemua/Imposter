@@ -85,6 +85,7 @@ namespace Mirror
         [Command]
         public void CmdChangeReadyState(bool readyState)
         {
+            Debug.Log("CmdChangeReadyState called for Player " + netId + ". readyState (parameter) = " + readyState + ".");
             readyToBegin = readyState;
             NetworkRoomManager room = NetworkManager.singleton as NetworkRoomManager;
             if (room != null)
