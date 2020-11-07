@@ -62,6 +62,8 @@ public class ImposterRole : Role
             primaryActionButtonGameObject.GetComponent<Image>().fillAmount = 0;
             primaryActionButtonGameObject.GetComponent<Button>().interactable = false;
             PrimaryActionReady = false;
+
+            GetComponent<PlayerController>().PlayImpactSound();
         }
         else
         {

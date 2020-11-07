@@ -11,7 +11,7 @@ public static class GameColors
     public static Color  ORANGE = new Color (255 / 255.0f, 128 / 255.0f, 0, 255 / 255.0f);
     public static Color  YELLOW = new Color (255 / 255.0f, 255 / 255.0f, 0, 255 / 255.0f);
     public static Color  GREEN = new Color (0, 167 / 255.0f, 0, 255 / 255.0f);
-    public static Color  BLUE = new Color (0, 172 / 255.0f, 255 / 255.0f, 255 / 255.0f);
+    public static Color  BLUE = new Color (0, 100 / 255.0f, 255 / 255.0f, 255 / 255.0f);
     public static Color  CYAN = new Color (51 / 255.0f, 255 / 255.0f, 255 / 255.0f, 255 / 255.0f);
     public static Color  PURPLE = new Color (102 / 255.0f, 0, 204 / 255.0f, 255 / 255.0f);
     public static Color  PINK = new Color (255 / 255.0f, 0, 255 / 255.0f, 255 / 255.0f);

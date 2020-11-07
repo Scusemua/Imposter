@@ -253,7 +253,7 @@ public class NetworkGameManager : NetworkRoomManager
         gamePlayer.GetComponent<Player>().PlayerColor = roomPlayer.GetComponent<CustomNetworkRoomPlayer>().PlayerModelColor;
 
         //return base.OnRoomServerSceneLoadedForPlayer(conn, roomPlayer, gamePlayer);
-        return false;
+        return true;
     }
 
     public override void OnRoomServerPlayersReady()

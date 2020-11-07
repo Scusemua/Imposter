@@ -35,8 +35,6 @@ public class Player : NetworkBehaviour
         protected set { _isDead = value; }
     }
 
-    private bool firstSetup = true;
-
     private static string[] default_nicknames = { "Sally", "Betty", "Charlie", "Anne", "Bob" };
 
     private System.Random RNG = new System.Random();
@@ -70,6 +68,10 @@ public class Player : NetworkBehaviour
         PlayerNameText.text = nickname;
     }
     
+    /// <summary>
+    /// Display the end-of-game screen for whichever outcome (i.e., Imposter victory or Crewmate victory).
+    /// </summary>
+    /// <param name="crewmateVictory"></param>
     public void DisplayEndOfGameUI(bool crewmateVictory)
     {
         playerUI.DisplayEndOfGameUI(crewmateVictory);
@@ -156,7 +158,14 @@ public class Player : NetworkBehaviour
         Role.AssignPlayer(this);
 
         if (isLocalPlayer)
+        {
             playerUI.SetRole(role);
+
+            if (NetworkGameManager.IsImposterRole(role))
+                GetComponent<PlayerController>().PlayImposterStart();
+            else
+                GetComponent<PlayerController>().PlayCrewmateStart();
+        }
     }
 
     [Command(ignoreAuthority = true)]

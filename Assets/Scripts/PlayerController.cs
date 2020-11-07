@@ -6,16 +6,21 @@ public class PlayerController : NetworkBehaviour
     private Player player;
     private Rigidbody rigidbody;
 
-    public AudioClip deathSound;
-    public AudioSource audioSource;
+    [Header("Audio")]
+    public AudioClip DeathSound;
+    public AudioClip ImposterStart;
+    public AudioClip CrewmateStart;
+    public AudioClip ImpactSound;
+    public AudioSource AudioSource;
 
-    public GameObject CameraPrefab;
-    public Camera Camera;
-    
-    public Animator animator;
-
+    [Header("Visual")]
     public GameObject DeathEffectPrefab;
     public GameObject BloodPoolPrefab;
+    public GameObject CameraPrefab;
+    public Camera Camera;
+    public Animator Animator;
+
+    //[Header("Miscellaneous")]
 
     private float movementSpeed;
     private float runBoost;
@@ -39,13 +44,23 @@ public class PlayerController : NetworkBehaviour
 
     public override void OnStartLocalPlayer()
     {
+        Debug.Log("OnStartLocalPlayer() called for Player " + netId);
         enabled = true;
-        //jump = new Vector3(0.0f, 2.0f, 0.0f);
         GetComponent<Rigidbody>().isKinematic = false;
 
         movementSpeed = GameOptions.playerSpeed;
         runBoost = GameOptions.sprintBoost;
         sprintEnabled = GameOptions.sprintEnabled;
+
+        GameObject cameraObject = Instantiate(CameraPrefab);
+        AudioSource = GetComponent<AudioSource>();
+        AudioSource.enabled = true;
+        Camera = cameraObject.GetComponent<Camera>();
+
+        cameraObject.GetComponent<AudioListener>().enabled = true;
+        Camera.enabled = true;
+
+        Camera.transform.position += transform.position;
     }
 
     /// <summary>
@@ -61,6 +76,34 @@ public class PlayerController : NetworkBehaviour
     {
         rigidbody = GetComponent<Rigidbody>();
     }
+
+    /// <summary>
+    /// Play the Imposter start-of-game sound.
+    /// </summary>
+    public void PlayImposterStart()
+    {
+        Debug.Log("Playing Imposter start sound.");
+        AudioSource.PlayOneShot(ImposterStart);
+    }
+
+    /// <summary>
+    /// Play the Crewmate start-of-game sound.
+    /// </summary>
+    public void PlayCrewmateStart()
+    {
+        Debug.Log("Playing Crewmate start sound.");
+        AudioSource.PlayOneShot(CrewmateStart);
+    }
+
+    /// <summary>
+    /// Play the impact sound (generally played on-death and for the Imposter who killed the player).
+    /// </summary>
+    public void PlayImpactSound()
+    {
+        Debug.Log("Playing impact sound.");
+        AudioSource.PlayOneShot(ImpactSound, 1);
+    }
+
 
     public override void OnStartClient()
     {
@@ -79,32 +122,7 @@ public class PlayerController : NetworkBehaviour
             // Disable player movement.
             enabled = false;
         }
-        else
-        {
-            GameObject cameraObject = Instantiate(CameraPrefab);
-            audioSource = GetComponent<AudioSource>();
-            audioSource.enabled = true;
-            Camera = cameraObject.GetComponent<Camera>();
-
-            if (hasAuthority)
-            {
-                cameraObject.GetComponent<AudioListener>().enabled = true;
-                Camera.enabled = true;
-
-                Camera.transform.position += transform.position;
-            }
-        }
     }
-
-    //void OnCollisionStay()
-    //{
-    //    isGrounded = true;
-    //}
-
-    //void OnCollisionExit()
-    //{
-    //    isGrounded = false;
-    //}
 
     // Update is called once per frame
     [ClientCallback]
@@ -126,16 +144,21 @@ public class PlayerController : NetworkBehaviour
         {
             movement = movement.normalized * movementSpeed * runBoost * Time.deltaTime;
 
-            animator.SetBool("running", true);
+            Animator.SetBool("running", true);
         }
         else
         {
             movement = movement.normalized * movementSpeed * Time.deltaTime;
 
-            animator.SetBool("running", false);
+            Animator.SetBool("running", false);
         }
 
-        animator.SetFloat("moving", movement.magnitude);
+        if (Input.GetKey(KeyCode.P))
+        {
+            PlayImpactSound();
+        }
+
+        Animator.SetFloat("moving", movement.magnitude);
 
         rigidbody.MovePosition(transform.position + movement);
 
@@ -153,9 +176,9 @@ public class PlayerController : NetworkBehaviour
             transform.LookAt(lookAt);
 
             if (Vector3.Dot(lookAt, movement) < 0)
-                animator.SetBool("backwards", true);
+                Animator.SetBool("backwards", true);
             else
-                animator.SetBool("backwards", false);
+                Animator.SetBool("backwards", false);
         }
     }
 
@@ -172,15 +195,15 @@ public class PlayerController : NetworkBehaviour
     [Client]
     public void Die()
     {
-        animator.enabled = false;
+        Animator.enabled = false;
 
         setRigidbodyState(false);
         setColliderState(true);
 
         this.PlayerOutline.enabled = true;
         
-        if (hasAuthority && isLocalPlayer)
-            audioSource.PlayOneShot(deathSound);
+        if (isLocalPlayer)
+            AudioSource.PlayOneShot(ImpactSound);
 
         float _raycastDistance = 10f;
         Vector3 dir = new Vector3(0, -1, 0);
