@@ -7,25 +7,24 @@ using System;
 [RequireComponent(typeof(PlayerController))]
 public class Player : NetworkBehaviour 
 {
-    [SyncVar(hook = nameof(OnAliveStatusChanged))]
-    private bool _isDead = false;
-
-    [SyncVar(hook = nameof(OnNameChanged))]
-    public string nickname = "Loading...";
-
-    [SerializeField]
-    GameObject playerUIPrefab;
+    [Header("UI Related")]
+    public GameObject playerUIPrefab;
 
     [HideInInspector]
     public GameObject playerUIInstance;
 
     [HideInInspector]
     public PlayerUI playerUI;
-    
-    [SyncVar(hook = nameof(OnPlayerColorChanged))]
-    public Color PlayerColor;
 
     public TextMesh PlayerNameText;
+
+    [SyncVar(hook = nameof(OnNameChanged))]
+    public string nickname = "Loading...";
+
+    [Header("In-Game Related")]
+
+    [SyncVar(hook = nameof(OnPlayerColorChanged))]
+    public Color PlayerColor;
 
     public IRole Role { get; set; }
 
@@ -34,6 +33,9 @@ public class Player : NetworkBehaviour
         get { return _isDead; }
         protected set { _isDead = value; }
     }
+
+    [SyncVar(hook = nameof(OnAliveStatusChanged))]
+    private bool _isDead = false;
 
     private static string[] default_nicknames = { "Sally", "Betty", "Charlie", "Anne", "Bob" };
 
@@ -50,6 +52,7 @@ public class Player : NetworkBehaviour
         }
     }
 
+    #region SyncVar Hooks
     void OnAliveStatusChanged(bool _Old, bool _New)
     {
         if (isDead)
@@ -67,22 +70,9 @@ public class Player : NetworkBehaviour
         Debug.Log("OnNameChanged called. Old = " + _Old + ", New = " + _New);
         PlayerNameText.text = nickname;
     }
-    
-    /// <summary>
-    /// Display the end-of-game screen for whichever outcome (i.e., Imposter victory or Crewmate victory).
-    /// </summary>
-    /// <param name="crewmateVictory"></param>
-    public void DisplayEndOfGameUI(bool crewmateVictory)
-    {
-        playerUI.DisplayEndOfGameUI(crewmateVictory);
-    }
+    #endregion
 
-    [Client]
-    public void OnPlayerColorChanged(Color _, Color _New)
-    {
-        Debug.Log("OnPlayerModelColorChanged() called for player " + netId);
-        GetComponentInChildren<Renderer>().material.color = _New;
-    }
+    #region Commands 
 
     [Command]
     public void CmdSetupPlayer(string _name)
@@ -95,38 +85,29 @@ public class Player : NetworkBehaviour
         nickname = _name;
     }
 
-    public override void OnStartLocalPlayer()
-    {
-        Debug.Log("OnStartLocalPlayer() called...");
-        
-        // Create PlayerUI
-        playerUIInstance = Instantiate(playerUIPrefab);
-
-        // Configure PlayerUI
-        PlayerUI ui = playerUIInstance.GetComponent<PlayerUI>();
-        if (ui == null)
-            Debug.LogError("No PlayerUI component on PlayerUI prefab.");
-        playerUI = ui;
-
-        nickname = PlayerPrefs.GetString("nickname", default_nicknames[RNG.Next(default_nicknames.Length)]);
-        PlayerNameText.text = nickname;
-
-        ui.SetPlayer(GetComponent<Player>());
-
-        playerUIInstance.SetActive(true);
-
-        Debug.Log("Player nickname: " + nickname);
-
-        CmdSetupPlayer(nickname);   // This is required for nicknames to be properly synchronized.
-        CmdRegisterPlayer();
-    }
-
     [Command]
     public void CmdRegisterPlayer()
     {
         string _netID = GetComponent<NetworkIdentity>().netId.ToString();
         NetworkGameManager.RegisterPlayer(_netID, this);
     }
+
+    [Command(ignoreAuthority = true)]
+    public void CmdKill(string killerNickname, bool serverKilled)
+    {
+        Debug.Log("The server has been informed that player " + nickname + " has been killed by " + killerNickname);
+        RpcKill(killerNickname, serverKilled);
+    }
+
+    [Command]
+    public void CmdSuicide()
+    {
+        RpcKill("SUICIDE", false);
+    }
+
+    #endregion
+
+    #region ClientRPC
 
     [ClientRpc]
     public void RpcAssignRole(string role)
@@ -168,30 +149,6 @@ public class Player : NetworkBehaviour
         }
     }
 
-    [Command(ignoreAuthority = true)]
-    public void CmdKill(string killerNickname, bool serverKilled)
-    {
-        Debug.Log("The server has been informed that player " + nickname + " has been killed by " + killerNickname);
-        RpcKill(killerNickname, serverKilled);
-    }
-
-    public void Kill(string killerNickname, bool serverKilled)
-    {
-        if (serverKilled)
-            Debug.Log("The server has killed player " + this.nickname);
-        else
-            Debug.Log("Player " + nickname + " has been killed by player " + killerNickname + ".");
-
-        _isDead = true;
-        GetComponent<PlayerController>().Die();
-    }
-
-    [Command]
-    public void CmdSuicide()
-    {
-        RpcKill("SUICIDE", false);
-    }
-
     [ClientRpc]
     public void RpcKill(string killerNickname, bool serverKilled)
     {
@@ -204,20 +161,70 @@ public class Player : NetworkBehaviour
         GetComponent<PlayerController>().Die();
     }
 
-    public override void OnStartClient()
-    {
+    #endregion
 
+    #region Client Commands
+
+    public override void OnStartLocalPlayer()
+    {
+        Debug.Log("OnStartLocalPlayer() called...");
+
+        // Create PlayerUI
+        playerUIInstance = Instantiate(playerUIPrefab);
+
+        // Configure PlayerUI
+        PlayerUI ui = playerUIInstance.GetComponent<PlayerUI>();
+        if (ui == null)
+            Debug.LogError("No PlayerUI component on PlayerUI prefab.");
+        playerUI = ui;
+
+        nickname = PlayerPrefs.GetString("nickname", default_nicknames[RNG.Next(default_nicknames.Length)]);
+        PlayerNameText.text = nickname;
+
+        ui.SetPlayer(GetComponent<Player>());
+
+        playerUIInstance.SetActive(true);
+
+        Debug.Log("Player nickname: " + nickname);
+
+        CmdSetupPlayer(nickname);   // This is required for nicknames to be properly synchronized.
+        CmdRegisterPlayer();
     }
 
-    void SetLayerRecursively(GameObject obj, int newLayer)
+    [Client]
+    public void OnPlayerColorChanged(Color _, Color _New)
     {
-        obj.layer = newLayer;
-
-        foreach (Transform child in obj.transform)
-        {
-            SetLayerRecursively(child.gameObject, newLayer);
-        }
+        Debug.Log("OnPlayerModelColorChanged() called for player " + netId);
+        GetComponentInChildren<Renderer>().material.color = _New;
     }
+
+    [Client]
+    /// <summary>
+    /// Display the end-of-game screen for whichever outcome (i.e., Imposter victory or Crewmate victory).
+    /// </summary>
+    /// <param name="crewmateVictory"></param>
+    public void DisplayEndOfGameUI(bool crewmateVictory)
+    {
+        playerUI.DisplayEndOfGameUI(crewmateVictory);
+    }
+
+    #endregion
+
+    #region Server Commands 
+
+    [Server]
+    public void Kill(string killerNickname, bool serverKilled)
+    {
+        if (serverKilled)
+            Debug.Log("The server has killed player " + this.nickname);
+        else
+            Debug.Log("Player " + nickname + " has been killed by player " + killerNickname + ".");
+
+        _isDead = true;
+        GetComponent<PlayerController>().Die();
+    }
+
+    #endregion
 
     // When we are destroyed
     void OnDisable()

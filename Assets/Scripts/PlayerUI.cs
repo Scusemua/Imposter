@@ -4,6 +4,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using Mirror;
 using TMPro;
+using Lean.Gui;
 
 public class PlayerUI : MonoBehaviour
 {
@@ -12,6 +13,7 @@ public class PlayerUI : MonoBehaviour
 
     [Header("UI Elements")]
     public GameObject PrimaryActionButtonGameObject;
+    public LeanButton InteractableButton;
     public Image CrewmateVictoryImage;
     public Image ImposterVictoryImage;
     public Image PlayerImage;
@@ -19,6 +21,8 @@ public class PlayerUI : MonoBehaviour
     public TextMeshProUGUI WaitingOnHostText;
     public TextMeshProUGUI NicknameText;
     public TextMeshProUGUI RoleText;
+    public GameObject VotingUIPrefab;
+    public GameObject PlayerUICanvas;
 
     public GameObject RoleAnimator;
     public Text RoleAnimationText;
@@ -28,6 +32,7 @@ public class PlayerUI : MonoBehaviour
 
     private GameOptions gameOptions;
     private NetworkGameManager networkGameManager;
+    private bool canInteractWithEmergencyButton;
 
     void Alive()
     {
@@ -35,7 +40,7 @@ public class PlayerUI : MonoBehaviour
         networkGameManager = NetworkManager.singleton as NetworkGameManager;
     }
 
-    // Start is called before the first frame update
+    // Start is called before the first frame update.
     void Start()
     {
         // Hide end-of-game UI.
@@ -54,10 +59,50 @@ public class PlayerUI : MonoBehaviour
         networkGameManager.ServerChangeScene(networkGameManager.RoomScene);
     }
 
-    // Update is called once per frame
+    // Update is called once per frame.
     void Update()
     {
-        
+        if (!player.isLocalPlayer) return;
+
+        float distToEmergencyButton = playerController.GetSquaredDistanceToEmergencyButton();
+
+        bool interactableWithinRange = false;
+
+        if (distToEmergencyButton <= 13350)
+        {
+            interactableWithinRange = true;
+            canInteractWithEmergencyButton = true;
+        }
+        else
+            canInteractWithEmergencyButton = false;
+
+        if (interactableWithinRange)
+            InteractableButton.enabled = true;
+        else
+            InteractableButton.enabled = false;
+
+        if (Input.GetKey(KeyCode.E) && interactableWithinRange && canInteractWithEmergencyButton)
+            OnInteractWithEmergencyButton();
+    }
+
+    public void OnInteractButtonClicked()
+    {
+        if (canInteractWithEmergencyButton)
+            OnInteractWithEmergencyButton();
+    }
+
+    public void OnInteractWithBody()
+    {
+        Debug.Log("Player interacted with body.");
+    }
+
+    public void OnInteractWithEmergencyButton()
+    {
+        Debug.Log("Player interacted with emergency button.");
+
+        PlayerUICanvas.SetActive(false);
+
+        GameObject votingUI = Instantiate(VotingUIPrefab, transform);
     }
 
     public void DisplayEndOfGameUI(bool crewmateVictory)
@@ -82,8 +127,8 @@ public class PlayerUI : MonoBehaviour
     public void SetPlayer(Player player)
     {
         this.player = player;
-        this.playerController = player.GetComponent<PlayerController>();
-        this.PlayerImage.color = new Color(player.PlayerColor.r, player.PlayerColor.g, player.PlayerColor.b, PlayerImageAlpha);
+        playerController = player.GetComponent<PlayerController>();
+        PlayerImage.color = new Color(player.PlayerColor.r, player.PlayerColor.g, player.PlayerColor.b, PlayerImageAlpha);
 
         SetNickname(player.nickname);
     }

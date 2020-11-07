@@ -20,7 +20,8 @@ public class PlayerController : NetworkBehaviour
     public Camera Camera;
     public Animator Animator;
 
-    //[Header("Miscellaneous")]
+    [Header("Game-Related")]
+    public GameObject EmergencyButton;
 
     private float movementSpeed;
     private float runBoost;
@@ -38,9 +39,17 @@ public class PlayerController : NetworkBehaviour
     [SyncVar(hook = nameof(OnPlayerBodyIdentified))]
     public bool Identified;
     
-    //public Vector3 jump;
-    //public float jumpForce = 2.0f;
-    //public bool isGrounded = true;
+    void LateUpdate()
+    {
+        if (!isLocalPlayer) return;
+
+        if (Camera != null && Camera.enabled)
+        {
+            Camera.transform.position = transform.position + CameraOffset;
+        }
+    }
+
+    #region Client 
 
     public override void OnStartLocalPlayer()
     {
@@ -61,6 +70,8 @@ public class PlayerController : NetworkBehaviour
         Camera.enabled = true;
 
         Camera.transform.position += transform.position;
+
+        EmergencyButton = GameObject.FindGameObjectWithTag("EmergencyButton");
     }
 
     /// <summary>
@@ -77,6 +88,7 @@ public class PlayerController : NetworkBehaviour
         rigidbody = GetComponent<Rigidbody>();
     }
 
+    [Client]
     /// <summary>
     /// Play the Imposter start-of-game sound.
     /// </summary>
@@ -86,6 +98,7 @@ public class PlayerController : NetworkBehaviour
         AudioSource.PlayOneShot(ImposterStart);
     }
 
+    [Client]
     /// <summary>
     /// Play the Crewmate start-of-game sound.
     /// </summary>
@@ -95,6 +108,7 @@ public class PlayerController : NetworkBehaviour
         AudioSource.PlayOneShot(CrewmateStart);
     }
 
+    [Client]
     /// <summary>
     /// Play the impact sound (generally played on-death and for the Imposter who killed the player).
     /// </summary>
@@ -103,7 +117,6 @@ public class PlayerController : NetworkBehaviour
         Debug.Log("Playing impact sound.");
         AudioSource.PlayOneShot(ImpactSound, 1);
     }
-
 
     public override void OnStartClient()
     {
@@ -182,16 +195,6 @@ public class PlayerController : NetworkBehaviour
         }
     }
 
-    void LateUpdate()
-    {
-        if (!isLocalPlayer) return;
-
-        if (Camera != null && Camera.enabled)
-        {
-            Camera.transform.position = transform.position + CameraOffset;
-        }
-    }
-
     [Client]
     public void Die()
     {
@@ -201,7 +204,7 @@ public class PlayerController : NetworkBehaviour
         setColliderState(true);
 
         this.PlayerOutline.enabled = true;
-        
+
         if (isLocalPlayer)
             AudioSource.PlayOneShot(ImpactSound);
 
@@ -224,10 +227,9 @@ public class PlayerController : NetworkBehaviour
             deathEffect.transform.position = player.transform.position;
             Destroy(deathEffect, 1.25f);
         }
-        //GameObject bloodPool = Instantiate(BloodPoolPrefab);
-        //deathEffect.transform.position = player.transform.position;
     }
 
+    [Client]
     void setRigidbodyState(bool state)
     {
         Rigidbody[] rigidbodies = GetComponentsInChildren<Rigidbody>();
@@ -242,6 +244,7 @@ public class PlayerController : NetworkBehaviour
         GetComponent<Rigidbody>().detectCollisions = state;
     }
 
+    [Client]
     void setColliderState(bool state)
     {
         Collider[] colliders = GetComponentsInChildren<Collider>();
@@ -253,4 +256,16 @@ public class PlayerController : NetworkBehaviour
 
         GetComponent<Collider>().enabled = !state;
     }
+
+    public float GetSquaredDistanceToEmergencyButton()
+    {
+        Vector3 directionToTarget = EmergencyButton.GetComponent<Transform>().position - transform.position;
+        return directionToTarget.sqrMagnitude;
+    }
+
+    #endregion
+
+    #region Server
+    
+    #endregion 
 }
