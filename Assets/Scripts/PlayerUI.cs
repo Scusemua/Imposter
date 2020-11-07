@@ -68,9 +68,7 @@ public class PlayerUI : MonoBehaviour
 
         bool interactableWithinRange = false;
 
-        Debug.Log("distToEmergencyButton = " + distToEmergencyButton);
-
-        if (distToEmergencyButton <= 13350)
+        if (distToEmergencyButton <= 25)
         {
             interactableWithinRange = true;
             canInteractWithEmergencyButton = true;
