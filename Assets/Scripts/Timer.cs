@@ -22,6 +22,12 @@ public class Timer : MonoBehaviour
     public TextMeshProUGUI TimerText;
     public TextMeshProUGUI PhaseLabel;
 
+    public int CurrentPhase;
+    public bool TimerCompleted;
+
+    public event Action<int> OnTimerCompleted;
+    public event Action<int> OnPhaseChange;
+
     /// <summary>
     /// Length of transition phase, which occurs briefly between DISCUSSION and VOTING.
     /// </summary>
@@ -56,6 +62,8 @@ public class Timer : MonoBehaviour
         redThresholdDiscussion = GameOptions.discussionPeriod * redThresholdPercent;
 
         PhaseLabel.text = "Discuss";
+
+        CurrentPhase = 0;
     }
 
     private Color getColorFromTimeRemaining(float timeRemaining)
@@ -111,6 +119,8 @@ public class Timer : MonoBehaviour
                 PhaseLabel.text = "Vote";
                 TimeRemaining = 1.0f;
                 TimerText.text = "";
+                CurrentPhase++;
+                OnPhaseChange?.Invoke(CurrentPhase);
             }
             // Current phase is TRANSITION. Need to transition to VOTING.
             else if (currentPhase == Phase.TRANSITION)
@@ -119,11 +129,17 @@ public class Timer : MonoBehaviour
                 currentPhase = Phase.VOTING;
                 PhaseLabel.text = "Vote";
                 TimeRemaining = GameOptions.votingPeriod;
+                CurrentPhase++;
+                OnPhaseChange?.Invoke(CurrentPhase);
             }
             // Current phase is VOTING. We're done.
             else
             {
                 Debug.Log("Timer has finished period " + currentPhase);
+                CurrentPhase++;
+                OnPhaseChange?.Invoke(CurrentPhase);
+                TimerCompleted = true;
+                OnTimerCompleted?.Invoke(0);
             }
         }
     }

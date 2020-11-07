@@ -92,6 +92,12 @@ public class Player : NetworkBehaviour
         NetworkGameManager.RegisterPlayer(_netID, this);
     }
 
+    [Command]
+    public void CmdBeginVoting()
+    {
+
+    }
+
     [Command(ignoreAuthority = true)]
     public void CmdKill(string killerNickname, bool serverKilled)
     {
@@ -108,6 +114,19 @@ public class Player : NetworkBehaviour
     #endregion
 
     #region ClientRPC
+
+    [ClientRpc]
+    public void RpcBeginVoting()
+    {
+        Debug.Log("Voting has started.");
+        GetComponent<PlayerController>().MovementEnabled = false;
+    }
+
+    [ClientRpc]
+    public void RpcEndVoting()
+    {
+        Debug.Log("Voting has ended.");
+    }
 
     [ClientRpc]
     public void RpcAssignRole(string role)

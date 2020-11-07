@@ -68,6 +68,8 @@ public class PlayerUI : MonoBehaviour
 
         bool interactableWithinRange = false;
 
+        Debug.Log("distToEmergencyButton = " + distToEmergencyButton);
+
         if (distToEmergencyButton <= 13350)
         {
             interactableWithinRange = true;
@@ -103,6 +105,8 @@ public class PlayerUI : MonoBehaviour
         PlayerUICanvas.SetActive(false);
 
         GameObject votingUI = Instantiate(VotingUIPrefab, transform);
+        votingUI.GetComponent<VotingUI>().PlayerUI = PlayerUICanvas;
+        votingUI.GetComponent<VotingUI>().PlayerController = playerController;
     }
 
     public void DisplayEndOfGameUI(bool crewmateVictory)

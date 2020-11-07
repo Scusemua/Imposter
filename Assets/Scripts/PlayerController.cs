@@ -22,6 +22,7 @@ public class PlayerController : NetworkBehaviour
 
     [Header("Game-Related")]
     public GameObject EmergencyButton;
+    public bool MovementEnabled;
 
     private float movementSpeed;
     private float runBoost;
@@ -55,6 +56,7 @@ public class PlayerController : NetworkBehaviour
     {
         Debug.Log("OnStartLocalPlayer() called for Player " + netId);
         enabled = true;
+        MovementEnabled = true;
         GetComponent<Rigidbody>().isKinematic = false;
 
         movementSpeed = GameOptions.playerSpeed;
@@ -141,7 +143,7 @@ public class PlayerController : NetworkBehaviour
     [ClientCallback]
     void FixedUpdate()
     {
-        if (!isLocalPlayer || player.isDead) return;
+        if (!isLocalPlayer || player.isDead || !MovementEnabled) return;
 
         float h = Input.GetAxisRaw("Horizontal");
         float v = Input.GetAxisRaw("Vertical");
