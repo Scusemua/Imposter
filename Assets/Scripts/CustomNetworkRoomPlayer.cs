@@ -101,9 +101,36 @@ public class CustomNetworkRoomPlayer : NetworkRoomPlayer
 
     }
 
+    public override void OnStartLocalPlayer()
+    {
+        // We actually only care about the ColorSelector on the MainMenu...
+        GameObject.FindGameObjectWithTag("ColorSelector").GetComponent<ColorSelector>().PopulateButtons(this);
+    }
+
     public override void OnStartAuthority()
     {
         Debug.Log("OnStartAuthority() called for RoomPlayer " + netId + ". isLocalPlayer = " + isLocalPlayer + ".");
+    }
+
+    [Command]
+    public void CmdAssignInitialColor()
+    {
+        PlayerModelColor = GameObject.FindGameObjectWithTag("ColorSelector").GetComponent<ColorSelector>().ClaimRandomAvailableColor();
+    }
+
+    [Command]
+    public void CmdAttemptClaimColor(Color desiredColor)
+    {
+        if (GameObject.FindGameObjectWithTag("ColorSelector").GetComponent<ColorSelector>().AttemptClaimColor(PlayerModelColor, desiredColor))
+            PlayerModelColor = desiredColor;
+    }
+
+    [Client]
+    public void OnClickColorButton(Color clickedColor)
+    {
+        if (!isLocalPlayer) return;
+
+        CmdAttemptClaimColor(clickedColor);
     }
 
 
@@ -136,6 +163,7 @@ public class CustomNetworkRoomPlayer : NetworkRoomPlayer
     /// <summary>
     /// Create references to buttons, onClick listeners, and the lobby player list.
     /// </summary>
+    [Client]
     public void CreateUIHooks()
     {
         Debug.Log("CreateUIHooks called for Player " + DisplayName + ", netId = " + netId + ", isLocalPlayer = " + isLocalPlayer + ", hasAuthority = " + hasAuthority + ".");
@@ -208,11 +236,8 @@ public class CustomNetworkRoomPlayer : NetworkRoomPlayer
             chatHandler.CreateUIHooks();
         }
 
-        colorSelector = GameObject.FindGameObjectWithTag("ColorSelector").GetComponent<ColorSelector>();
-        colorSelector.RoomPlayer = this;
-
         //Debug.Log("Player " + netId + " about to get assigned initial color. colorSelector is null? " + (colorSelector == null) + ", colorSelector.roomPlayer is null? " + (colorSelector.RoomPlayer == null));
-        colorSelector.CmdAssignInitialColor();
+        CmdAssignInitialColor();
 
         uiHooksCreated = true;
     }

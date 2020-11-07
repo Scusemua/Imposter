@@ -23,9 +23,17 @@ public class Player : NetworkBehaviour
     public PlayerUI playerUI;
     
     [SyncVar(hook = nameof(OnPlayerColorChanged))]
-    public Color playerColor;
+    public Color PlayerColor;
 
-    public TextMesh playerNameText;
+    public TextMesh PlayerNameText;
+
+    public IRole Role { get; set; }
+
+    public bool isDead
+    {
+        get { return _isDead; }
+        protected set { _isDead = value; }
+    }
 
     private bool firstSetup = true;
 
@@ -44,12 +52,6 @@ public class Player : NetworkBehaviour
         }
     }
 
-    public bool isDead
-    {
-        get { return _isDead; }
-        protected set { _isDead = value; }
-    }
-
     void OnAliveStatusChanged(bool _Old, bool _New)
     {
         if (isDead)
@@ -65,16 +67,15 @@ public class Player : NetworkBehaviour
     void OnNameChanged(string _Old, string _New)
     {
         Debug.Log("OnNameChanged called. Old = " + _Old + ", New = " + _New);
-        playerNameText.text = nickname;
+        PlayerNameText.text = nickname;
     }
-
-    public IRole Role { get; set; }
-
+    
     public void DisplayEndOfGameUI(bool crewmateVictory)
     {
         playerUI.DisplayEndOfGameUI(crewmateVictory);
     }
 
+    [Client]
     public void OnPlayerColorChanged(Color _, Color _New)
     {
         Debug.Log("OnPlayerModelColorChanged() called for player " + netId);
@@ -106,7 +107,7 @@ public class Player : NetworkBehaviour
         playerUI = ui;
 
         nickname = PlayerPrefs.GetString("nickname", default_nicknames[RNG.Next(default_nicknames.Length)]);
-        playerNameText.text = nickname;
+        PlayerNameText.text = nickname;
 
         ui.SetPlayer(GetComponent<Player>());
 

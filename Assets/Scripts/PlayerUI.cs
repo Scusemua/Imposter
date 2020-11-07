@@ -83,7 +83,7 @@ public class PlayerUI : MonoBehaviour
     {
         this.player = player;
         this.playerController = player.GetComponent<PlayerController>();
-        this.PlayerImage.color = new Color(player.playerColor.r, player.playerColor.g, player.playerColor.b, PlayerImageAlpha);
+        this.PlayerImage.color = new Color(player.PlayerColor.r, player.PlayerColor.g, player.PlayerColor.b, PlayerImageAlpha);
 
         SetNickname(player.nickname);
     }

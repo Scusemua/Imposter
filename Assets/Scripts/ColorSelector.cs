@@ -10,6 +10,8 @@ public class ColorSelector : NetworkBehaviour
 {
     public GameObject ColorSelectionButton;
 
+    public CustomNetworkRoomPlayer RoomPlayer;
+
     /// <summary>
     /// Maintain a list of available colors on the server.
     /// </summary>
@@ -21,9 +23,7 @@ public class ColorSelector : NetworkBehaviour
     private List<Color> unavailableColors = new List<Color>();
 
     public Dictionary<Color, LeanButton> ColorToButtonMap = new Dictionary<Color, LeanButton>();
-
-    public CustomNetworkRoomPlayer RoomPlayer;
-
+    
     /// <summary>
     /// Print (via Debug.Log()) the available and unavailable colors lists.
     /// </summary>
@@ -37,9 +37,12 @@ public class ColorSelector : NetworkBehaviour
         Debug.Log("Unavailable Colors: " + s2);
     }
 
-
-    [Command(ignoreAuthority = true)]
-    public void CmdSelectColor(Color oldColor, Color newColor)
+    /// <summary>
+    /// Attempts to claim the given newColor, returning the given oldColor (if oldColor is a valid color).
+    /// </summary>
+    /// <returns>Returns True if the new color has been claimed, otherwise returns False.</returns>
+    [Server]
+    public bool AttemptClaimColor(Color oldColor, Color newColor)
     {
         Debug.Log("CmdSelectColor(" + oldColor + ", " + newColor + ")");
         Debug.Log("User is requesting color " + newColor + " (" + GameColors.COLOR_NAMES[newColor] + "). Old color = " + oldColor + " (" + GameColors.COLOR_NAMES[oldColor] + ")");
@@ -80,41 +83,66 @@ public class ColorSelector : NetworkBehaviour
                 }
             }
 
-            RoomPlayer.PlayerModelColor = newColor;
+            return true;
         }
+
+        return false;
     }
 
-    [Command(ignoreAuthority = true)]
-    public void CmdAssignInitialColor()
-    {
-        if (!RoomPlayer.hasAuthority)
-        {
-            Debug.LogWarning("RoomPlayer " + RoomPlayer.DisplayName + " (netId = " + netId + ") is not local player. Returning from CmdAssignInitialColor() immediately.");
-            return;
-        }
-        Debug.Log("Assigning initial color for player " + RoomPlayer.DisplayName + ", netId = " + netId);
+    //[Command(ignoreAuthority = true)]
+    //public void CmdAssignInitialColor()
+    //{
+    //    if (!RoomPlayer.hasAuthority)
+    //    {
+    //        Debug.LogWarning("RoomPlayer " + RoomPlayer.DisplayName + " (netId = " + netId + ") is not local player. Returning from CmdAssignInitialColor() immediately.");
+    //        return;
+    //    }
+    //    Debug.Log("Assigning initial color for player " + RoomPlayer.DisplayName + ", netId = " + netId);
 
+    //    logAvailableAndUnavailableColors();
+
+    //    // Randomly assign a color to the player.
+    //    int index = (int)Mathf.Floor(Random.value * availableColors.Count);
+
+    //    Color assignedColor = availableColors[index];
+    //    availableColors.RemoveAt(index);
+
+    //    if (!unavailableColors.Contains(assignedColor))
+    //        unavailableColors.Add(assignedColor);
+    //    else
+    //        Debug.LogError("Color " + assignedColor + " (" + GameColors.COLOR_NAMES[assignedColor] + ") was contained within availableColors and unavailableColors simultaneously...");
+
+    //    ColorToButtonMap[assignedColor].enabled = false;
+
+    //    Debug.Log("Assigning color " + assignedColor + " (" + GameColors.COLOR_NAMES[assignedColor] + ") to player " + netId + ".");
+    //    RoomPlayer.PlayerModelColor = assignedColor;
+    //}
+
+    [Server]
+    public Color ClaimRandomAvailableColor()
+    {
         logAvailableAndUnavailableColors();
 
         // Randomly assign a color to the player.
         int index = (int)Mathf.Floor(Random.value * availableColors.Count);
 
-        Color assignedColor = availableColors[index];
+        Color randomColor = availableColors[index];
         availableColors.RemoveAt(index);
 
-        if (!unavailableColors.Contains(assignedColor))
-            unavailableColors.Add(assignedColor);
+        if (!unavailableColors.Contains(randomColor))
+            unavailableColors.Add(randomColor);
         else
-            Debug.LogError("Color " + assignedColor + " (" + GameColors.COLOR_NAMES[assignedColor] + ") was contained within availableColors and unavailableColors simultaneously...");
+            Debug.LogError("Color " + randomColor + " (" + GameColors.COLOR_NAMES[randomColor] + ") was contained within availableColors and unavailableColors simultaneously...");
 
-        ColorToButtonMap[assignedColor].enabled = false;
+        ColorToButtonMap[randomColor].enabled = false;
 
-        Debug.Log("Assigning color " + assignedColor + " (" + GameColors.COLOR_NAMES[assignedColor] + ") to player " + netId + ".");
-        RoomPlayer.PlayerModelColor = assignedColor;
+        Debug.Log("Assigning color " + randomColor + " (" + GameColors.COLOR_NAMES[randomColor] + ") to player " + netId + ".");
+
+        return randomColor;
     }
 
-    // Start is called before the first frame update
-    void Start()
+    [Client]
+    public void PopulateButtons(CustomNetworkRoomPlayer roomPlayer)
     {
         // Create a button for each color.
         foreach (Color color in GameColors.ALL_COLORS)
@@ -128,13 +156,11 @@ public class ColorSelector : NetworkBehaviour
                 Color clickedColor = colorButton.GetComponentsInChildren<Image>()[1].color;
                 Debug.Log("Clicked button with color " + clickedColor + " (" + GameColors.COLOR_NAMES[clickedColor] + ")");
 
-                if (RoomPlayer.isLocalPlayer) CmdSelectColor(RoomPlayer.PlayerModelColor, clickedColor);
+                //if (RoomPlayer.isLocalPlayer) CmdSelectColor(RoomPlayer.PlayerModelColor, clickedColor);
+                roomPlayer.OnClickColorButton(clickedColor);
             });
 
             ColorToButtonMap.Add(color, colorButton.GetComponent<LeanButton>());
         }
-
-        // Print the keys for debugging purposes.
-        // Debug.Log(ColorToButtonMap.Select(kvp => kvp.Key + ", "));
     }
 }

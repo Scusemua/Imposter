@@ -240,12 +240,20 @@ public class NetworkGameManager : NetworkRoomManager
                 if (netPlayer.netId == networkID)
                 {
                     Debug.Log("Found match. Assigning color " + (netPlayer as CustomNetworkRoomPlayer).PlayerModelColor);
-                    player.GetComponent<Player>().playerColor = (netPlayer as CustomNetworkRoomPlayer).PlayerModelColor;
+                    player.GetComponent<Player>().PlayerColor = (netPlayer as CustomNetworkRoomPlayer).PlayerModelColor;
                     break;
                 }
             }
             Debug.LogError("Failed to find matching player for networkID " + networkID);
         }
+    }
+
+    public override bool OnRoomServerSceneLoadedForPlayer(NetworkConnection conn, GameObject roomPlayer, GameObject gamePlayer)
+    {
+        gamePlayer.GetComponent<Player>().PlayerColor = roomPlayer.GetComponent<CustomNetworkRoomPlayer>().PlayerModelColor;
+
+        //return base.OnRoomServerSceneLoadedForPlayer(conn, roomPlayer, gamePlayer);
+        return false;
     }
 
     public override void OnRoomServerPlayersReady()
