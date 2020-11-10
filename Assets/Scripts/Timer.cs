@@ -52,14 +52,14 @@ public class Timer : MonoBehaviour
         currentPhase = Phase.DISCUSSION;
         GameOptions = GameOptions.singleton;
 
-        TimeRemaining = GameOptions.discussionPeriod;
+        TimeRemaining = GameOptions.DiscussionPeriodLength;
 
         // Calculate these once at the beginning so we don't have to recalculate them everytime.
-        orangeThresholdVoting = GameOptions.votingPeriod * orangeThresholdPercent;
-        redThresholdVoting = GameOptions.votingPeriod * redThresholdPercent;
+        orangeThresholdVoting = GameOptions.VotingPeriodLength * orangeThresholdPercent;
+        redThresholdVoting = GameOptions.VotingPeriodLength * redThresholdPercent;
 
-        orangeThresholdDiscussion = GameOptions.discussionPeriod * orangeThresholdPercent;
-        redThresholdDiscussion = GameOptions.discussionPeriod * redThresholdPercent;
+        orangeThresholdDiscussion = GameOptions.DiscussionPeriodLength * orangeThresholdPercent;
+        redThresholdDiscussion = GameOptions.DiscussionPeriodLength * redThresholdPercent;
 
         PhaseLabel.text = "Discuss";
 
@@ -128,7 +128,7 @@ public class Timer : MonoBehaviour
                 Debug.Log("Timer has finished period " + currentPhase + ". Transitioning to phase " + Phase.VOTING);
                 currentPhase = Phase.VOTING;
                 PhaseLabel.text = "Vote";
-                TimeRemaining = GameOptions.votingPeriod;
+                TimeRemaining = GameOptions.VotingPeriodLength;
                 CurrentPhase++;
                 OnPhaseChange?.Invoke(CurrentPhase);
             }

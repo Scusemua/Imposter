@@ -19,8 +19,8 @@ public abstract class Role : NetworkBehaviour, IRole
     public abstract void PerformSecondaryAction();
     public abstract void PerformTertiaryAction();
 
-    public float MovementSpeed { get => gameOptions.playerSpeed; }
-    public float SprintBoost { get => gameOptions.sprintBoost; }
+    public float MovementSpeed { get => gameOptions.PlayerSpeed; }
+    public float SprintBoost { get => gameOptions.SprintBoost; }
 
     public float PrimaryActionLastUse { get { return primaryActionLastUse; } set { primaryActionLastUse = value; } }
     public float SecondaryActionLastUse { get { return secondaryActionLastUse; } set { secondaryActionLastUse = value; } }

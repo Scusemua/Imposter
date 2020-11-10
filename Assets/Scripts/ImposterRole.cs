@@ -10,7 +10,7 @@ public class ImposterRole : Role
 
     public override float SprintDuration => throw new System.NotImplementedException();
 
-    public override float PrimaryActionCooldown { get => gameOptions.killIntervalStandard; }
+    public override float PrimaryActionCooldown { get => gameOptions.KillIntervalStandard; }
 
     public override float SecondaryActionCooldown => throw new System.NotImplementedException();
 
@@ -21,7 +21,7 @@ public class ImposterRole : Role
 
     private GameOptions gameOptions;
 
-    protected virtual float KillDistance { get => gameOptions.killDistanceStandard; }
+    protected virtual float KillDistance { get => gameOptions.KillDistanceStandard; }
 
     private Player killTarget;
     protected virtual Player KillTarget { get => killTarget; set => killTarget = value; }

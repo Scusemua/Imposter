@@ -23,6 +23,8 @@ public class PlayerUI : MonoBehaviour
     public TextMeshProUGUI RoleText;
     public GameObject VotingUIPrefab;
     public GameObject PlayerUICanvas;
+    public Healthbar HpBar;
+    public Healthbar StaminaBar;
 
     public GameObject RoleAnimator;
     public Text RoleAnimationText;

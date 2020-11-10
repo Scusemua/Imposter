@@ -59,9 +59,9 @@ public class PlayerController : NetworkBehaviour
         MovementEnabled = true;
         GetComponent<Rigidbody>().isKinematic = false;
 
-        movementSpeed = GameOptions.playerSpeed;
-        runBoost = GameOptions.sprintBoost;
-        sprintEnabled = GameOptions.sprintEnabled;
+        movementSpeed = GameOptions.PlayerSpeed;
+        runBoost = GameOptions.SprintBoost;
+        sprintEnabled = GameOptions.SprintEnabled;
 
         GameObject cameraObject = Instantiate(CameraPrefab);
         AudioSource = GetComponent<AudioSource>();

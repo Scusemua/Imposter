@@ -7,7 +7,7 @@ using UnityEngine.UI;
 public class CrewmateRole : Role
 {
     public override string Name { get => "Crewmate"; }
-    public override float SprintDuration { get => gameOptions.crewmateSprintDuration;  }
+    public override float SprintDuration { get => gameOptions.CrewmateSprintDuration;  }
 
     public override float PrimaryActionCooldown => throw new System.NotImplementedException();
 

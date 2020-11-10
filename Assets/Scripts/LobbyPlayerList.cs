@@ -28,7 +28,7 @@ public class LobbyPlayerList : MonoBehaviour
         Debug.Log("Start() called for LobbyPlayerList.");
         gameOptions = GameOptions.singleton;
 
-        maxEntries = gameOptions.numPlayers;
+        maxEntries = gameOptions.NumPlayers;
         numRealEntries = 0;
         nextValidIndex = 0;
         numPlaceholderEntries = 0; // For now, this will get changed in PopulateInitialList().

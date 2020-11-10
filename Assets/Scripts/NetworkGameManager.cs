@@ -63,14 +63,14 @@ public class NetworkGameManager : NetworkRoomManager
         bool crewmateVictory = false;
 
         // Win condition for imposters is simply equal number of crewmates and imposters alive.
-        if (numImpostersAlive == numCrewmatesAlive && !gameOptions.impostersMustKillAllCrewmates)
+        if (numImpostersAlive == numCrewmatesAlive && !gameOptions.ImpostersMustKillAllCrewmates)
         {
             // Imposters win.
             Debug.Log("Imposters have won!");
             imposterVictory = true;
         }
         // Imposters must kill all crewmates, all crewmates are dead, and at least one imposter is alive.
-        else if (gameOptions.impostersMustKillAllCrewmates && numCrewmatesAlive == 0 && numImpostersAlive > 0)
+        else if (gameOptions.ImpostersMustKillAllCrewmates && numCrewmatesAlive == 0 && numImpostersAlive > 0)
         {
             // Imposters win.
             Debug.Log("Imposters have won!");
@@ -150,14 +150,14 @@ public class NetworkGameManager : NetworkRoomManager
         GameOptions gameOptions = FindObjectOfType<GameOptions>();
 
         // First, get the constraints on roles.
-        int numImposters = gameOptions.numberOfImposters;
-        int maxAssassins = gameOptions.maxAssassins;
-        int maxSheriffs = gameOptions.maxSheriffs;
-        int maxSaboteurs = gameOptions.maxSaboteurs;
+        int numImposters = gameOptions.NumberOfImposters;
+        int maxAssassins = gameOptions.MaxAssassins;
+        int maxSheriffs = gameOptions.MaxSheriffs;
+        int maxSaboteurs = gameOptions.MaxSaboteurs;
 
-        bool sheriffsEnabled = gameOptions.sheriffEnabled;
-        bool saboteurEnabled = gameOptions.saboteurEnabled;
-        bool assassinEnabled = gameOptions.assassinEnabled;
+        bool sheriffsEnabled = gameOptions.SheriffEnabled;
+        bool saboteurEnabled = gameOptions.SaboteurEnabled;
+        bool assassinEnabled = gameOptions.AssassinEnabled;
 
         // First, determine who is a crewmate and who is an imposter. 
         // Then, assign however many specialized roles as specified by the game options.

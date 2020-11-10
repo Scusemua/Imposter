@@ -140,7 +140,12 @@ public class PlayerControllerOffline : MonoBehaviour
         }
         
         animator.SetFloat("moving", movement.magnitude);
-        
+
+        if (movement.magnitude == 0)
+            animator.SetInteger("AnimationPar", 0);
+        else
+            animator.SetInteger("AnimationPar", 1);
+
         rigidbody.MovePosition(transform.position + movement);
 
         if (!RotateToFaceMouse) return;
