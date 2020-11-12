@@ -259,11 +259,18 @@ public class NetworkGameManager : NetworkRoomManager
 
         if (numVotesReceived == numVotesExpected)
         {
+            // We skip displaying the "I VOTED" icon in this case. Just tally votes.
             Debug.Log("Successfully received all " + numVotesExpected + " votes. Tallying results now...");
             TallyVotes();
         }
         else if (numVotesReceived > numVotesExpected)
             Debug.LogError("Received " + numVotesReceived + " even though we're only expecting " + numVotesExpected + " votes...");
+        else
+        {
+            // Inform all of the players that somebody voted so that the "I VOTED" icon can be displayed.
+            foreach (Player gamePlayer in GamePlayers)
+                gamePlayer.RpcPlayerVoted(voter.netId);
+        }
     }
 
     [Server]
