@@ -3,7 +3,7 @@ using Mirror;
 
 public class PlayerController : NetworkBehaviour
 {
-    private Player player;
+    public Player Player;
     private Rigidbody rigidbody;
 
     [Header("Audio")]
@@ -125,9 +125,9 @@ public class PlayerController : NetworkBehaviour
         setRigidbodyState(true);
         setColliderState(false);
 
-        player = GetComponent<Player>();
+        Player = GetComponent<Player>();
 
-        if (player == null)
+        if (Player == null)
             Debug.LogError("Player is null for PlayerController!");
 
         Identified = false;
@@ -143,14 +143,14 @@ public class PlayerController : NetworkBehaviour
     [ClientCallback]
     void FixedUpdate()
     {
-        if (!isLocalPlayer || player.isDead || !MovementEnabled) return;
+        if (!isLocalPlayer || Player.IsDead || !MovementEnabled) return;
 
         float h = Input.GetAxisRaw("Horizontal");
         float v = Input.GetAxisRaw("Vertical");
 
-        if (Input.GetKey(KeyCode.B) && !player.isDead)
+        if (Input.GetKey(KeyCode.B) && !Player.IsDead)
         {
-            player.CmdSuicide();
+            Player.CmdSuicide();
         }
 
         Vector3 movement = new Vector3(h, 0, v);
@@ -212,13 +212,13 @@ public class PlayerController : NetworkBehaviour
 
         float _raycastDistance = 10f;
         Vector3 dir = new Vector3(0, -1, 0);
-        Debug.DrawRay(player.transform.position, dir * _raycastDistance, Color.green);
+        Debug.DrawRay(Player.transform.position, dir * _raycastDistance, Color.green);
 
         int mask = 1 << 13;    // Ground on layer 10 in the inspector
 
         if (isLocalPlayer)
         {
-            Vector3 start = new Vector3(player.transform.position.x, player.transform.position.y + 1, player.transform.position.z);
+            Vector3 start = new Vector3(Player.transform.position.x, Player.transform.position.y + 1, Player.transform.position.z);
             if (Physics.Raycast(start, Vector3.down, out RaycastHit hit, _raycastDistance, mask))
             {
                 GameObject bloodPool = Instantiate(BloodPoolPrefab);
@@ -226,7 +226,7 @@ public class PlayerController : NetworkBehaviour
             }
 
             GameObject deathEffect = Instantiate(DeathEffectPrefab);
-            deathEffect.transform.position = player.transform.position;
+            deathEffect.transform.position = Player.transform.position;
             Destroy(deathEffect, 1.25f);
         }
     }

@@ -55,12 +55,6 @@ public class PlayerUI : MonoBehaviour
         networkGameManager = NetworkManager.singleton as NetworkGameManager;
     }
 
-    public void OnReturnToLobbyPressed()
-    {
-        // Go back to the room.
-        networkGameManager.ServerChangeScene(networkGameManager.RoomScene);
-    }
-
     // Update is called once per frame.
     void Update()
     {
@@ -87,28 +81,49 @@ public class PlayerUI : MonoBehaviour
             OnInteractWithEmergencyButton();
     }
 
+    #region UI Handlers 
+
+    [Client]
+    /// <summary>
+    /// This function corresponds to the generic Inspect/Interact/Use button on the player's UI overlay.
+    /// </summary>
     public void OnInteractButtonClicked()
     {
         if (canInteractWithEmergencyButton)
             OnInteractWithEmergencyButton();
     }
 
+    /// <summary>
+    /// Corresponds to the "Return to Lobby" button that gets displayed on the host's UI at the end of the game.
+    /// </summary>
+    public void OnReturnToLobbyPressed()
+    {
+        if (player.isClientOnly)
+            Debug.LogError("Client-only player clicked the 'Return to Lobby' button.");
+
+        // Go back to the room.
+        networkGameManager.ServerChangeScene(networkGameManager.RoomScene);
+    }
+
+    [Client]
     public void OnInteractWithBody()
     {
         Debug.Log("Player interacted with body.");
     }
 
+    [Client]
     public void OnInteractWithEmergencyButton()
     {
         Debug.Log("Player interacted with emergency button.");
 
-        PlayerUICanvas.SetActive(false);
-
-        GameObject votingUI = Instantiate(VotingUIPrefab, transform);
-        votingUI.GetComponent<VotingUI>().PlayerUI = PlayerUICanvas;
-        votingUI.GetComponent<VotingUI>().PlayerController = playerController;
+        networkGameManager.CmdStartVote();
     }
 
+    #endregion
+
+    #region Display UI
+
+    [Client]
     public void DisplayEndOfGameUI(bool crewmateVictory)
     {
         if (crewmateVictory)
@@ -122,6 +137,19 @@ public class PlayerUI : MonoBehaviour
             ReturnToLobbyButton.SetActive(true);
     }
 
+    [Client]
+    public void CreateAndDisplayVotingUI()
+    {
+        PlayerUICanvas.SetActive(false);
+
+        GameObject votingUI = Instantiate(VotingUIPrefab, transform);
+        votingUI.GetComponent<VotingUI>().PlayerUI = PlayerUICanvas;
+        votingUI.GetComponent<VotingUI>().PlayerController = playerController;
+    }
+
+    #endregion
+
+    #region Player Management 
     public void AnimateRole()
     {
         RoleAnimator.SetActive(true);
@@ -134,7 +162,7 @@ public class PlayerUI : MonoBehaviour
         playerController = player.GetComponent<PlayerController>();
         PlayerImage.color = new Color(player.PlayerColor.r, player.PlayerColor.g, player.PlayerColor.b, PlayerImageAlpha);
 
-        SetNickname(player.nickname);
+        SetNickname(player.Nickname);
     }
 
     public void SetNickname(string nickname)
@@ -149,4 +177,5 @@ public class PlayerUI : MonoBehaviour
 
         AnimateRole();
     }
+    #endregion
 }

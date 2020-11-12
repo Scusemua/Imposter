@@ -42,6 +42,7 @@ public class GameOptions : MonoBehaviour
     /* Emergency related. */
     public float EmergencyCooldownStandard; // How long must regular imposters wait inbetween causing emergencies?
     public float EmergencyCooldownSaboteur; // How long must Saboteurs wait inbetween causing emergencies?
+    public float EmergencyMeetingCooldown;  // How much time must pass before the next emergency meeting can be called?
 
     /* Win Conditions */
     public bool ImpostersMustKillAllCrewmates;

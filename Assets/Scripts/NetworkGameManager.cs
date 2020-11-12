@@ -7,6 +7,11 @@ using Mirror;
 
 public class NetworkGameManager : NetworkRoomManager
 {
+    /// <summary>
+    /// This is the netId submitted by players when they're skipping their vote.
+    /// </summary>
+    public static uint SKIPPED_VOTE_NET_ID = 9999;
+
     public enum GameState
     {
         LOBBY,
@@ -28,96 +33,85 @@ public class NetworkGameManager : NetworkRoomManager
 
     private static System.Random RNG = new System.Random();
 
-    #region Player Tracking 
+    /// <summary>
+    /// As long as this is greater than zero, the emergency meeting button is still cooling down.
+    /// </summary>
+    private float emergencyMeetingCooldown;
+
+    /// <summary>
+    /// This is set to false immediately after an emergency meeting occurs.
+    /// 
+    /// It automatically gets set back to true after enough time has passed.
+    /// </summary>
+    public bool CanHoldEmergencyMeeting;
+    
     private const string PLAYER_ID_PREFIX = "Player ";
 
+    /// <summary>
+    /// Keep track of players in the game.
+    /// </summary>
     public List<Player> GamePlayers = new List<Player>();
+
+    /// <summary>
+    /// Mapping between netId's and the players associated with the given netId.
+    /// </summary>
+    public Dictionary<uint, Player> NetIdMap = new Dictionary<uint, Player>();
 
     private int numCrewmatesAlive;
     private int numImpostersAlive;
+
+    /// <summary>
+    /// The number of votes we need to receive during a voting period. 
+    /// Dead players don't get any votes, so they aren't counted.
+    /// </summary>
+    private int numVotesExpected;
+
+    /// <summary>
+    /// The number of votes we've received so far.
+    /// </summary>
+    private int numVotesReceived;
+
+    /// <summary>
+    /// Map from Player netId to the votes cast for that player.
+    /// </summary>
+    private Dictionary<uint, List<Vote>> votes = new Dictionary<uint, List<Vote>>();
+
+    #region Player State Tracking 
 
     /// <summary>
     /// Have the roles been assigned yet? Used to prevent win-condition checking before the game has really started.
     /// </summary>
     private bool rolesAssigned = false;
 
-    public void RegisterPlayer(string _netID, Player _player)
+    public void RegisterPlayer(uint _netID, Player _player)
     {
-        string _playerID = PLAYER_ID_PREFIX + _netID;
+        string _playerID = PLAYER_ID_PREFIX + _netID.ToString();
         Debug.Log("Registering player with PlayerID " + _playerID);
         GamePlayers.Add(_player);
+        NetIdMap.Add(_netID, _player);
         _player.transform.name = _playerID;
 
         Debug.Log("Players registered: " + GamePlayers.Count + ", Room Slots: " + roomSlots.Count);
         OnPlayerRegistered?.Invoke();
     }
 
-    /// <summary>
-    /// Check various win conditions for crewmates and imposters.
-    /// </summary>
-    public void VictoryCheck()
-    {
-        if (gameOptions.disableWinChecking) return;
-
-        bool imposterVictory = false;
-        bool crewmateVictory = false;
-
-        // Win condition for imposters is simply equal number of crewmates and imposters alive.
-        if (numImpostersAlive == numCrewmatesAlive && !gameOptions.ImpostersMustKillAllCrewmates)
-        {
-            // Imposters win.
-            Debug.Log("Imposters have won!");
-            imposterVictory = true;
-        }
-        // Imposters must kill all crewmates, all crewmates are dead, and at least one imposter is alive.
-        else if (gameOptions.ImpostersMustKillAllCrewmates && numCrewmatesAlive == 0 && numImpostersAlive > 0)
-        {
-            // Imposters win.
-            Debug.Log("Imposters have won!");
-            imposterVictory = true;
-        }
-        // There are no imposters remaining and at least one crewmate lives.
-        else if (numImpostersAlive == 0 && numCrewmatesAlive > 0)
-        {
-            Debug.Log("Crewmates have won!");
-            crewmateVictory = true;
-        }
-        else if (numImpostersAlive == 0 && numCrewmatesAlive == 0)
-        {
-            Debug.Log("It's a draw... for now, draw goes to the crewmates.");
-            crewmateVictory = true;
-        }
-
-        if (crewmateVictory || imposterVictory)
-        {
-            // Kill the remaining players.
-            foreach (Player p in GamePlayers)
-            {
-                if (!p.isDead)
-                    p.Kill("Server", serverKilled: true);
-
-                p.DisplayEndOfGameUI(crewmateVictory);
-            }
-
-            currentGameState = GameState.ENDING;
-        }
-    }
-
     public void PlayerDied(Player deceasedPlayer)
     {
         if (IsImposterRole(deceasedPlayer.Role.Name))
         {
-            Debug.Log("Server has noted that player " + deceasedPlayer.nickname + ", who was an imposter, has died.");
+            Debug.Log("Server has noted that player " + deceasedPlayer.Nickname + ", who was an imposter, has died.");
             numImpostersAlive--;
         }
         else
         {
-            Debug.Log("Server has noted that player " + deceasedPlayer.nickname + ", who was a crewmate, has died.");
+            Debug.Log("Server has noted that player " + deceasedPlayer.Nickname + ", who was a crewmate, has died.");
             numCrewmatesAlive--;
         }
     }
 
     #endregion
+
+    #region Role Related
 
     // Players can either be an imposter or a crewmate.
     public enum PlayerRole
@@ -201,6 +195,176 @@ public class NetworkGameManager : NetworkRoomManager
         currentGameState = GameState.IN_PROGRESS;
     }
 
+    #endregion
+
+    #region Voting 
+
+    /// <summary>
+    /// This is called whenever a player either:
+    /// (a) interacts with the emergency button, or
+    /// (b) finds a previously unidentified body.
+    /// 
+    /// This method causes the voting UI to be displayed on all of the players' screens.
+    /// </summary>
+    [Command]
+    public void CmdStartVote()
+    {
+        if (!CanHoldEmergencyMeeting)
+            return;
+
+        foreach (Player player in GamePlayers)
+        {
+            player.RpcBeginVoting();
+
+            // If the player is still alive, then take note that we need to receive their vote.
+            if (!player.IsDead)
+                numVotesExpected += 1;
+        }
+
+        CanHoldEmergencyMeeting = false;
+
+        // The next meeting will be available after the voting period, discussion 
+        // period, transition period, and cooldown have elapsed. 
+        emergencyMeetingCooldown = gameOptions.DiscussionPeriodLength 
+                                   + gameOptions.VotingPeriodLength 
+                                   + gameOptions.EmergencyMeetingCooldown
+                                   + 1.0f; // Transition period between discussion and voting phase.
+    }
+
+    /// <summary>
+    /// Handle a vote from a player.
+    /// </summary>
+    /// <param name="voter">The player whose vote is being casted.</param>
+    /// <param name="candidateId">The player for which the voter casted their vote.</param>
+    [Server]
+    public void CastVote(Player voter, uint candidateId)
+    {
+        numVotesReceived += 1;
+        Debug.Log("Received vote " + numVotesReceived + "/" + numVotesExpected + " from player " + voter.Nickname + ", netId = " + voter.netId);
+
+        Player voteRecipient = NetIdMap[candidateId];
+
+        if (voteRecipient.IsDead)
+        {
+            Debug.LogError("Player " + voter.Nickname + ", netId = " + voter.netId + " has cast a vote for a dead player...");
+            throw new InvalidOperationException("Player " + voter.netId + " cast vote for dead player " + voteRecipient.netId);
+        }
+
+        // Get the current number of votes for the candidate. This returns 0 if there are no votes yet.
+        votes.TryGetValue(candidateId, out List<Vote> currentVotes);
+
+        Vote vote = new Vote(candidateId, voter.netId);
+
+        currentVotes.Add(vote);
+
+        if (numVotesReceived == numVotesExpected)
+        {
+            Debug.Log("Successfully received all " + numVotesExpected + " votes. Tallying results now...");
+            TallyVotes();
+        }
+        else if (numVotesReceived > numVotesExpected)
+            Debug.LogError("Received " + numVotesReceived + " even though we're only expecting " + numVotesExpected + " votes...");
+    }
+
+    [Server]
+    private void TallyVotes()
+    {
+        // Iterate through votes map. For each key value pair, count the number of votes
+        // and check who casted each vote. We will definitely inform players of the number of
+        // votes each player received.
+        //
+        // Depending on how the game is configured, we will also tell players who cast which vote.
+        throw new NotImplementedException("Have not written logic for TallyVotes() yet.");
+    }
+
+    /// <summary>
+    /// Clear all state related to voting so that voting can seamlessly occur again.
+    /// </summary>
+    [Server]
+    public void VotingEnded()
+    {
+        votes.Clear();
+        numVotesReceived = 0;
+        numVotesExpected = 0;
+    }
+
+    #endregion
+
+    #region Game Management
+
+    /// <summary>
+    /// Perform the necessary clean-up once the game has ended and players are returning back to the lobby.
+    /// </summary>
+    void GameEnded()
+    {
+        GamePlayers.Clear();    // This effectively unregisters all players.
+        NetIdMap.Clear();       // Clear this mapping as well, since we've unregistered all the players.
+        numCrewmatesAlive = 0;  // The game is not active so reset these variables.
+        numImpostersAlive = 0;  // The game is not active so reset these variables.
+        rolesAssigned = false;  // Flip this back to false since roles have not been assigned for next game.
+
+        currentGameState = GameState.LOBBY;
+    }
+
+
+    /// <summary>
+    /// Check various win conditions for crewmates and imposters.
+    /// </summary>
+    public void VictoryCheck()
+    {
+        if (gameOptions.disableWinChecking) return;
+
+        bool imposterVictory = false;
+        bool crewmateVictory = false;
+
+        // Win condition for imposters is simply equal number of crewmates and imposters alive.
+        if (numImpostersAlive == numCrewmatesAlive && !gameOptions.ImpostersMustKillAllCrewmates)
+        {
+            // Imposters win.
+            Debug.Log("Imposters have won!");
+            imposterVictory = true;
+        }
+        // Imposters must kill all crewmates, all crewmates are dead, and at least one imposter is alive.
+        else if (gameOptions.ImpostersMustKillAllCrewmates && numCrewmatesAlive == 0 && numImpostersAlive > 0)
+        {
+            // Imposters win.
+            Debug.Log("Imposters have won!");
+            imposterVictory = true;
+        }
+        // There are no imposters remaining and at least one crewmate lives.
+        else if (numImpostersAlive == 0 && numCrewmatesAlive > 0)
+        {
+            Debug.Log("Crewmates have won!");
+            crewmateVictory = true;
+        }
+        else if (numImpostersAlive == 0 && numCrewmatesAlive == 0)
+        {
+            Debug.Log("It's a draw... for now, draw goes to the crewmates.");
+            crewmateVictory = true;
+        }
+
+        if (crewmateVictory || imposterVictory)
+        {
+            // Kill the remaining players.
+            foreach (Player p in GamePlayers)
+            {
+                if (!p.IsDead)
+                    p.Kill("Server", serverKilled: true);
+
+                p.DisplayEndOfGameUI(crewmateVictory);
+            }
+
+            currentGameState = GameState.ENDING;
+        }
+    }
+
+    public bool AreAllPlayersReady()
+    {
+        return allPlayersReady;
+    }
+
+    #endregion 
+
     /// <summary>
     /// This allows customization of the creation of the GamePlayer object on the server.
     /// <para>This is only called for subsequent GamePlay scenes after the first one.</para>
@@ -275,11 +439,6 @@ public class NetworkGameManager : NetworkRoomManager
         }
     }
 
-    public bool AreAllPlayersReady()
-    {
-        return allPlayersReady;
-    }
-
     public void OnStartButtonClicked()
     {
         if (allPlayersReady)
@@ -293,19 +452,6 @@ public class NetworkGameManager : NetworkRoomManager
         }
         else
             Debug.Log("Start button clicked and not all players are ready. Doing nothing... ");
-    }
-
-    /// <summary>
-    /// Perform the necessary clean-up once the game has ended and players are returning back to the lobby.
-    /// </summary>
-    void GameEnded()
-    {
-        GamePlayers.Clear();    // This effectively unregisters all players.
-        numCrewmatesAlive = 0;  // The game is not active so reset these variables.
-        numImpostersAlive = 0;  // The game is not active so reset these variables.
-        rolesAssigned = false;  // Flip this back to false since roles have not been assigned for next game.
-
-        currentGameState = GameState.LOBBY;
     }
 
     // Start is called before the first frame update
@@ -325,6 +471,15 @@ public class NetworkGameManager : NetworkRoomManager
 
         if (gameOptions == null)
             gameOptions = GameOptions.singleton;
+        
+        if (!CanHoldEmergencyMeeting)
+        {
+            emergencyMeetingCooldown -= Time.deltaTime;
+
+            // Check if cooldown has ended.
+            if (emergencyMeetingCooldown <= 0)
+                CanHoldEmergencyMeeting = true;
+        }
     }
 
     public override void OnServerReady(NetworkConnection conn)
@@ -356,6 +511,8 @@ public class NetworkGameManager : NetworkRoomManager
 
         GamePlayers.Clear();
     }
+
+    #region Utility 
 
     public static bool IsImposterRole(string roleName)
     {
@@ -389,4 +546,25 @@ public class NetworkGameManager : NetworkRoomManager
             array[i] = t;
         }
     }
+
+    private class Vote
+    {
+        /// <summary>
+        /// The netId of the player for which the vote was casted.
+        /// </summary>
+        private uint recipientNetId;
+
+        /// <summary>
+        /// The netId of the player who cast the vote.
+        /// </summary>
+        private uint voterNetId;
+
+        public Vote(uint recipientNetId, uint voterNetId)
+        {
+            this.recipientNetId = recipientNetId;
+            this.voterNetId = voterNetId;
+        }
+    }
+
+    #endregion 
 }

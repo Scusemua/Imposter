@@ -41,7 +41,7 @@ public class ImposterRole : Role
             return;
         }
 
-        if (player.isDead)
+        if (player.IsDead)
         {
             Debug.Log("User tried to perform primary action, but they are dead.");
             return;
@@ -51,11 +51,11 @@ public class ImposterRole : Role
 
         if (KillTarget != null)
         {
-            Debug.Log("Closest player is " + KillTarget.nickname + ".");
+            Debug.Log("Closest player is " + KillTarget.Nickname + ".");
 
             this.transform.SetPositionAndRotation(KillTarget.transform.position, this.transform.rotation);
 
-            KillTarget.CmdKill(this.player.nickname, false);
+            KillTarget.CmdKill(this.player.Nickname, false);
 
             PrimaryActionLastUse = PrimaryActionCooldown;
             GameObject primaryActionButtonGameObject = playerUI.PrimaryActionButtonGameObject;
@@ -86,7 +86,7 @@ public class ImposterRole : Role
         foreach (Player player in allPlayers)
         {
             // Don't check distance between us and other imposters or dead players.
-            if (player.Role == null || NetworkGameManager.IsImposterRole(player.Role.Name) || player.isDead)
+            if (player.Role == null || NetworkGameManager.IsImposterRole(player.Role.Name) || player.IsDead)
                 continue;
 
             Vector3 directionToTarget = player.GetComponent<Transform>().position - currentPosition;

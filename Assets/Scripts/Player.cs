@@ -8,18 +8,18 @@ using System;
 public class Player : NetworkBehaviour 
 {
     [Header("UI Related")]
-    public GameObject playerUIPrefab;
+    public GameObject PlayerUIPrefab;
 
     [HideInInspector]
-    public GameObject playerUIInstance;
+    public GameObject PlayerUIInstance;
 
     [HideInInspector]
-    public PlayerUI playerUI;
+    public PlayerUI PlayerUI;
 
     public TextMesh PlayerNameText;
 
     [SyncVar(hook = nameof(OnNameChanged))]
-    public string nickname = "Loading...";
+    public string Nickname = "Loading...";
 
     [Header("In-Game Related")]
 
@@ -28,7 +28,7 @@ public class Player : NetworkBehaviour
 
     public IRole Role { get; set; }
 
-    public bool isDead
+    public bool IsDead
     {
         get { return _isDead; }
         protected set { _isDead = value; }
@@ -55,40 +55,46 @@ public class Player : NetworkBehaviour
     #region SyncVar Hooks
     void OnAliveStatusChanged(bool _Old, bool _New)
     {
-        if (isDead)
+        if (IsDead)
         {
             CmdKill("Someone", false);
-            Debug.Log("Player " + nickname + " is now dead.");
+            Debug.Log("Player " + Nickname + " is now dead.");
             GetComponent<PlayerController>().Die();
         }
         else
-            Debug.Log("Player " + nickname + " is now alive.");
+            Debug.Log("Player " + Nickname + " is now alive.");
     }
 
     void OnNameChanged(string _Old, string _New)
     {
         Debug.Log("OnNameChanged called. Old = " + _Old + ", New = " + _New);
-        PlayerNameText.text = nickname;
+        PlayerNameText.text = Nickname;
     }
     #endregion
 
     #region Commands 
 
     [Command]
+    public void CmdCastVote(uint netId)
+    {
+        Debug.Log("Player " + Nickname + ", netId = " + netId + " has voted for player <TBD>");
+    }
+
+    [Command]
     public void CmdSetupPlayer(string _name)
     {
-        isDead = false;
+        IsDead = false;
 
         Debug.Log("CmdSetupPlayer --> _name = nickname = " + _name);
 
         // player info sent to server, then server updates sync vars which handles it on all clients
-        nickname = _name;
+        Nickname = _name;
     }
 
     [Command]
     public void CmdRegisterPlayer()
     {
-        string _netID = GetComponent<NetworkIdentity>().netId.ToString();
+        uint _netID = GetComponent<NetworkIdentity>().netId;
         NetworkGameManager.RegisterPlayer(_netID, this);
     }
 
@@ -101,7 +107,7 @@ public class Player : NetworkBehaviour
     [Command(ignoreAuthority = true)]
     public void CmdKill(string killerNickname, bool serverKilled)
     {
-        Debug.Log("The server has been informed that player " + nickname + " has been killed by " + killerNickname);
+        Debug.Log("The server has been informed that player " + Nickname + " has been killed by " + killerNickname);
         RpcKill(killerNickname, serverKilled);
     }
 
@@ -115,11 +121,16 @@ public class Player : NetworkBehaviour
 
     #region ClientRPC
 
+    /// <summary>
+    /// Called by Server (NetworkGameManager, specifically) on each player object (including dead players).
+    /// </summary>
     [ClientRpc]
     public void RpcBeginVoting()
     {
         Debug.Log("Voting has started.");
         GetComponent<PlayerController>().MovementEnabled = false;
+
+        PlayerUI.CreateAndDisplayVotingUI();
     }
 
     [ClientRpc]
@@ -149,17 +160,17 @@ public class Player : NetworkBehaviour
                 Role = gameObject.AddComponent<SheriffRole>() as SheriffRole;
                 break;
             default:
-                Debug.LogError("Unknown role assigned to player " + nickname + ": " + role);
+                Debug.LogError("Unknown role assigned to player " + Nickname + ": " + role);
                 break;
         }
 
-        Debug.Log("Player " + nickname + ", netId = " + netId + "assigned role " + role);
+        Debug.Log("Player " + Nickname + ", netId = " + netId + "assigned role " + role);
 
         Role.AssignPlayer(this);
 
         if (isLocalPlayer)
         {
-            playerUI.SetRole(role);
+            PlayerUI.SetRole(role);
 
             if (NetworkGameManager.IsImposterRole(role))
                 GetComponent<PlayerController>().PlayImposterStart();
@@ -172,9 +183,9 @@ public class Player : NetworkBehaviour
     public void RpcKill(string killerNickname, bool serverKilled)
     {
         if (serverKilled)
-            Debug.Log("The server has killed player " + this.nickname);
+            Debug.Log("The server has killed player " + this.Nickname);
         else
-            Debug.Log("Player " + nickname + " has been killed by player " + killerNickname + ".");
+            Debug.Log("Player " + Nickname + " has been killed by player " + killerNickname + ".");
 
         _isDead = true;
         GetComponent<PlayerController>().Die();
@@ -182,31 +193,31 @@ public class Player : NetworkBehaviour
 
     #endregion
 
-    #region Client Commands
+    #region Client Functions
 
     public override void OnStartLocalPlayer()
     {
         Debug.Log("OnStartLocalPlayer() called...");
 
         // Create PlayerUI
-        playerUIInstance = Instantiate(playerUIPrefab);
+        PlayerUIInstance = Instantiate(PlayerUIPrefab);
 
         // Configure PlayerUI
-        PlayerUI ui = playerUIInstance.GetComponent<PlayerUI>();
+        PlayerUI ui = PlayerUIInstance.GetComponent<PlayerUI>();
         if (ui == null)
             Debug.LogError("No PlayerUI component on PlayerUI prefab.");
-        playerUI = ui;
+        PlayerUI = ui;
 
-        nickname = PlayerPrefs.GetString("nickname", default_nicknames[RNG.Next(default_nicknames.Length)]);
-        PlayerNameText.text = nickname;
+        Nickname = PlayerPrefs.GetString("nickname", default_nicknames[RNG.Next(default_nicknames.Length)]);
+        PlayerNameText.text = Nickname;
 
         ui.SetPlayer(GetComponent<Player>());
 
-        playerUIInstance.SetActive(true);
+        PlayerUIInstance.SetActive(true);
 
-        Debug.Log("Player nickname: " + nickname);
+        Debug.Log("Player nickname: " + Nickname);
 
-        CmdSetupPlayer(nickname);   // This is required for nicknames to be properly synchronized.
+        CmdSetupPlayer(Nickname);   // This is required for nicknames to be properly synchronized.
         CmdRegisterPlayer();
     }
 
@@ -224,20 +235,20 @@ public class Player : NetworkBehaviour
     /// <param name="crewmateVictory"></param>
     public void DisplayEndOfGameUI(bool crewmateVictory)
     {
-        playerUI.DisplayEndOfGameUI(crewmateVictory);
+        PlayerUI.DisplayEndOfGameUI(crewmateVictory);
     }
 
     #endregion
 
-    #region Server Commands 
+    #region Server Functions 
 
     [Server]
     public void Kill(string killerNickname, bool serverKilled)
     {
         if (serverKilled)
-            Debug.Log("The server has killed player " + this.nickname);
+            Debug.Log("The server has killed player " + this.Nickname);
         else
-            Debug.Log("Player " + nickname + " has been killed by player " + killerNickname + ".");
+            Debug.Log("Player " + Nickname + " has been killed by player " + killerNickname + ".");
 
         _isDead = true;
         GetComponent<PlayerController>().Die();
@@ -248,7 +259,7 @@ public class Player : NetworkBehaviour
     // When we are destroyed
     void OnDisable()
     {
-        Destroy(playerUIInstance);
+        Destroy(PlayerUIInstance);
 
         if (isLocalPlayer && hasAuthority)
             NetworkGameManager.GamePlayers.Remove(this);
@@ -256,7 +267,7 @@ public class Player : NetworkBehaviour
 
     public override void OnStopClient()
     {
-        Destroy(playerUIInstance);
+        Destroy(PlayerUIInstance);
 
         if (isLocalPlayer && hasAuthority)
             NetworkGameManager.GamePlayers.Remove(this);

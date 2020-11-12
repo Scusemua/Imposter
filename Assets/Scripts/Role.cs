@@ -57,7 +57,7 @@ public abstract class Role : NetworkBehaviour, IRole
         if (player == null)
             Debug.LogError("Player is null during Role.AssignPlayer()");
 
-        playerUI = player.playerUI;
+        playerUI = player.PlayerUI;
 
         if (_player.isLocalPlayer)
         {
