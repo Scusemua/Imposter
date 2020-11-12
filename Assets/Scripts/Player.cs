@@ -11,7 +11,7 @@ public class Player : NetworkBehaviour
     public GameObject PlayerUIPrefab;
 
     [HideInInspector]
-    public GameObject PlayerUIInstance;
+    public GameObject PlayerUIGameObject;
 
     [HideInInspector]
     public PlayerUI PlayerUI;
@@ -124,7 +124,8 @@ public class Player : NetworkBehaviour
     [ClientRpc]
     public void RpcPlayerVoted(uint voterId)
     {
-        
+        // Pass this event to the UI.
+        PlayerUI.PlayerVoted(voterId);
     }
 
     /// <summary>
@@ -206,10 +207,10 @@ public class Player : NetworkBehaviour
         Debug.Log("OnStartLocalPlayer() called...");
 
         // Create PlayerUI
-        PlayerUIInstance = Instantiate(PlayerUIPrefab);
+        PlayerUIGameObject = Instantiate(PlayerUIPrefab);
 
         // Configure PlayerUI
-        PlayerUI ui = PlayerUIInstance.GetComponent<PlayerUI>();
+        PlayerUI ui = PlayerUIGameObject.GetComponent<PlayerUI>();
         if (ui == null)
             Debug.LogError("No PlayerUI component on PlayerUI prefab.");
         PlayerUI = ui;
@@ -219,7 +220,7 @@ public class Player : NetworkBehaviour
 
         ui.SetPlayer(GetComponent<Player>());
 
-        PlayerUIInstance.SetActive(true);
+        PlayerUIGameObject.SetActive(true);
 
         Debug.Log("Player nickname: " + Nickname);
 
@@ -265,7 +266,7 @@ public class Player : NetworkBehaviour
     // When we are destroyed
     void OnDisable()
     {
-        Destroy(PlayerUIInstance);
+        Destroy(PlayerUIGameObject);
 
         if (isLocalPlayer && hasAuthority)
             NetworkGameManager.GamePlayers.Remove(this);
@@ -273,7 +274,7 @@ public class Player : NetworkBehaviour
 
     public override void OnStopClient()
     {
-        Destroy(PlayerUIInstance);
+        Destroy(PlayerUIGameObject);
 
         if (isLocalPlayer && hasAuthority)
             NetworkGameManager.GamePlayers.Remove(this);
