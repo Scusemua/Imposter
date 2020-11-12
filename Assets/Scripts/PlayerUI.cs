@@ -92,6 +92,8 @@ public class PlayerUI : MonoBehaviour
     /// </summary>
     public void OnInteractButtonClicked()
     {
+        if (!player.isLocalPlayer) return;
+
         if (canInteractWithEmergencyButton)
             OnInteractWithEmergencyButton();
     }
@@ -111,15 +113,19 @@ public class PlayerUI : MonoBehaviour
     [Client]
     public void OnInteractWithBody()
     {
+        if (!player.isLocalPlayer) return;
+
         Debug.Log("Player interacted with body.");
     }
 
     [Client]
     public void OnInteractWithEmergencyButton()
     {
+        if (!player.isLocalPlayer) return;
+
         Debug.Log("Player interacted with emergency button.");
 
-        networkGameManager.CmdStartVote();
+        player.CmdStartVote();
     }
 
     #endregion

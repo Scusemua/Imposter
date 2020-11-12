@@ -65,33 +65,12 @@ public class Timer : MonoBehaviour
 
         CurrentPhase = 0;
     }
-
-    private Color getColorFromTimeRemaining(float timeRemaining)
-    {
-        switch (currentPhase)
-        {
-            case Phase.DISCUSSION:
-                if (timeRemaining <= redThresholdDiscussion)
-                    return Color.red;
-                else if (timeRemaining <= orangeThresholdDiscussion)
-                    return orange;
-                else
-                    return Color.white;
-            case Phase.VOTING:
-                if (timeRemaining <= redThresholdVoting)
-                    return Color.red;
-                else if (timeRemaining <= orangeThresholdVoting)
-                    return orange;
-                else
-                    return Color.white;
-            default:
-                return Color.white;
-        }
-    }
     
     // Update is called once per frame
     void Update()
     {
+        if (TimerCompleted) return;
+
         // While the timer is still active, decrement by the amount of time that has passed.
         if (TimeRemaining > 0)
         {
@@ -116,7 +95,7 @@ public class Timer : MonoBehaviour
             {
                 Debug.Log("Timer has finished period " + currentPhase + ". Transitioning to phase " + Phase.TRANSITION);
                 currentPhase = Phase.TRANSITION;
-                PhaseLabel.text = "Vote";
+                PhaseLabel.text = "...";
                 TimeRemaining = 1.0f;
                 TimerText.text = "";
                 CurrentPhase++;
@@ -142,5 +121,40 @@ public class Timer : MonoBehaviour
                 OnTimerCompleted?.Invoke(0);
             }
         }
+    }
+
+    private Color getColorFromTimeRemaining(float timeRemaining)
+    {
+        switch (currentPhase)
+        {
+            case Phase.DISCUSSION:
+                if (timeRemaining <= redThresholdDiscussion)
+                    return Color.red;
+                else if (timeRemaining <= orangeThresholdDiscussion)
+                    return orange;
+                else
+                    return Color.white;
+            case Phase.VOTING:
+                if (timeRemaining <= redThresholdVoting)
+                    return Color.red;
+                else if (timeRemaining <= orangeThresholdVoting)
+                    return orange;
+                else
+                    return Color.white;
+            default:
+                return Color.white;
+        }
+    }
+
+    /// <returns>True if we're in the voting phase, otherwise false.</returns>
+    public bool IsVotingPhase()
+    {
+        return currentPhase == Phase.VOTING;
+    }
+
+    /// <returns>True if we're in the discussion phase, otherwise false.</returns>
+    public bool IsDiscussionPhase()
+    {
+        return currentPhase == Phase.DISCUSSION;
     }
 }

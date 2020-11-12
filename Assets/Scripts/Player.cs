@@ -75,9 +75,17 @@ public class Player : NetworkBehaviour
     #region Commands 
 
     [Command]
+    public void CmdStartVote()
+    {
+        networkGameManager.StartVote();
+    }
+
+    [Command]
     public void CmdCastVote(uint netId)
     {
         Debug.Log("Player " + Nickname + ", netId = " + netId + " has voted for player <TBD>");
+
+        this.networkGameManager.CastVote(this, netId);
     }
 
     [Command]

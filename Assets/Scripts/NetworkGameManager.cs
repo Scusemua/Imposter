@@ -206,8 +206,8 @@ public class NetworkGameManager : NetworkRoomManager
     /// 
     /// This method causes the voting UI to be displayed on all of the players' screens.
     /// </summary>
-    [Command]
-    public void CmdStartVote()
+    [Server]
+    public void StartVote()
     {
         if (!CanHoldEmergencyMeeting)
             return;
@@ -255,7 +255,15 @@ public class NetworkGameManager : NetworkRoomManager
 
         Vote vote = new Vote(candidateId, voter.netId);
 
-        currentVotes.Add(vote);
+        // If there are no existing votes yet for this player, we'll create the list of votes.
+        if (currentVotes == null)
+        {
+            currentVotes = new List<Vote>();
+            currentVotes.Add(vote);
+            votes[candidateId] = currentVotes;
+        }
+        else
+            currentVotes.Add(vote);
 
         if (numVotesReceived == numVotesExpected)
         {

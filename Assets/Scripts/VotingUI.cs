@@ -39,24 +39,33 @@ public class VotingUI : MonoBehaviour
 
         SkipVoteButton.OnClick.AddListener(() =>
         {
-            ConfirmSkipVoteButton.enabled = true;
-            DenySkipVoteButton.enabled = true;
+            if (!CountdownTimer.IsVotingPhase())
+            {
+                Debug.Log("We are not in the voting phase. Returning from primary skip button clicked now.");
+                return;
+            }
+
+            Debug.Log("Skip vote button clicked.");
+
+            ConfirmSkipVoteButton.gameObject.SetActive(true);
+            DenySkipVoteButton.gameObject.SetActive(true);
         });
 
         ConfirmSkipVoteButton.OnClick.AddListener(() =>
         {
+            if (!CountdownTimer.IsVotingPhase()) return;
             Debug.Log("Skipping vote.");
             
-            ConfirmSkipVoteButton.enabled = false;
-            DenySkipVoteButton.enabled = false;
+            ConfirmSkipVoteButton.gameObject.SetActive(false);
+            DenySkipVoteButton.gameObject.SetActive(false);
 
             castVote(NetworkGameManager.SKIPPED_VOTE_NET_ID);
         });
 
         DenySkipVoteButton.OnClick.AddListener(() =>
         {
-            ConfirmSkipVoteButton.enabled = false;
-            DenySkipVoteButton.enabled = false;
+            ConfirmSkipVoteButton.gameObject.SetActive(false);
+            DenySkipVoteButton.gameObject.SetActive(false);
         });
 
         foreach (Player gamePlayer in instance.GamePlayers)
@@ -81,18 +90,28 @@ public class VotingUI : MonoBehaviour
                 // This is just the main button, so it shows a confirmation dialog. 
                 votingEntry.PrimaryVoteButton.OnClick.AddListener(() =>
                 {
+                    if (!CountdownTimer.IsVotingPhase())
+                    {
+                        Debug.Log("We are not in the voting phase. Returning from primary vote button clicked now.");
+                        return;
+                    }
+
                     if (VoteCasted) AlreadyVotedNotification.Pulse();
 
-                    votingEntry.ConfirmVoteButton.enabled = true;
-                    votingEntry.DenyVoteButton.enabled = true;
+                    Debug.Log("Primary vote button clicked for player " + gamePlayer.Nickname + ", netId = " + gamePlayer.netId);
+
+                    votingEntry.ConfirmVoteButton.gameObject.SetActive(true);
+                    votingEntry.DenyVoteButton.gameObject.SetActive(true);
                 });
 
                 // Add an OnClick listener to the "Confirm Vote" button, which 
                 // actually submits the player's vote.
                 votingEntry.ConfirmVoteButton.OnClick.AddListener(() =>
                 {
-                    votingEntry.ConfirmVoteButton.enabled = false;
-                    votingEntry.DenyVoteButton.enabled = false;
+                    if (!CountdownTimer.IsVotingPhase()) return;
+
+                    votingEntry.ConfirmVoteButton.gameObject.SetActive(false);
+                    votingEntry.DenyVoteButton.gameObject.SetActive(false);
 
                     if (VoteCasted) return;
 
@@ -105,8 +124,10 @@ public class VotingUI : MonoBehaviour
                 // just hides the confirm/deny buttons.
                 votingEntry.DenyVoteButton.OnClick.AddListener(() =>
                 {
-                    votingEntry.ConfirmVoteButton.enabled = false;
-                    votingEntry.DenyVoteButton.enabled = false;
+                    Debug.Log("Deny vote button clicked for player " + gamePlayer.Nickname + ", netId = " + gamePlayer.netId);
+
+                    votingEntry.ConfirmVoteButton.gameObject.SetActive(false);
+                    votingEntry.DenyVoteButton.gameObject.SetActive(false);
                 });
             }
         }
@@ -129,8 +150,28 @@ public class VotingUI : MonoBehaviour
 
         PlayerUI.SetActive(true);
         PlayerController.MovementEnabled = true;
+        
+        // Make all buttons NOT interactable. 
+        SkipVoteButton.interactable = false;
+        ConfirmSkipVoteButton.interactable = false;
+        DenySkipVoteButton.interactable = false;
+        ConfirmSkipVoteButton.gameObject.SetActive(false);
+        DenySkipVoteButton.gameObject.SetActive(false);
 
-        Destroy(this, 1.0f);
+        // Make all voting entry buttons not interactable. Hide confirm/deny buttons.
+        foreach (KeyValuePair<uint, VotingEntry> kvp in NetIdToVotingEntryMap)
+        {
+            VotingEntry entry = kvp.Value;
+            entry.PrimaryVoteButton.interactable = false;
+            entry.ConfirmVoteButton.interactable = false;
+            entry.DenyVoteButton.interactable = false;
+
+            entry.ConfirmVoteButton.gameObject.SetActive(false);
+            entry.DenyVoteButton.gameObject.SetActive(false);
+        }
+        
+        // TODO: Display all the votes, play animation for booting kicked player (or doing nothing if nobody got kicked).
+        Destroy(gameObject, 1.0f);
     }
 
     // Update is called once per frame
@@ -142,7 +183,16 @@ public class VotingUI : MonoBehaviour
     void OnDestroy()
     {
         CountdownTimer.OnTimerCompleted -= OnTimerCompleted;
-        PlayerUI.GetComponent<PlayerUI>().OnPlayerVoted -= PlayerVoted; // Clean up this event handler.
+
+        if (PlayerUI != null)
+        {
+            PlayerUI playerUI = PlayerUI.GetComponent<PlayerUI>();
+            
+            if (playerUI != null)
+            {
+                playerUI.OnPlayerVoted -= PlayerVoted; // Clean up this event handler.
+            }
+        }
     }
 
     /// <summary>
