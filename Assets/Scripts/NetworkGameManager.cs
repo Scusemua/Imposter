@@ -267,6 +267,10 @@ public class NetworkGameManager : NetworkRoomManager
 
         if (numVotesReceived == numVotesExpected)
         {
+            // TODO: Remove this as we don't wanna bother when we're just talling the votes.
+            foreach (Player gamePlayer in GamePlayers)
+                gamePlayer.RpcPlayerVoted(voter.netId);
+
             // We skip displaying the "I VOTED" icon in this case. Just tally votes.
             Debug.Log("Successfully received all " + numVotesExpected + " votes. Tallying results now...");
             TallyVotes();

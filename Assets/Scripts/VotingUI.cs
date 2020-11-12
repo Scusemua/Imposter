@@ -72,6 +72,7 @@ public class VotingUI : MonoBehaviour
         {
             GameObject votingEntryGameObject = Instantiate(VotingEntryPrefab, ScrollViewContent.transform);
             VotingEntry votingEntry = votingEntryGameObject.GetComponent<VotingEntry>();
+            NetIdToVotingEntryMap[gamePlayer.netId] = votingEntry;
             votingEntry.PlayerAliveIcon.color = gamePlayer.PlayerColor;
             votingEntry.ButtonText.text = gamePlayer.Nickname;
             votingEntry.PlayerDeadIcon.color = gamePlayer.PlayerColor;
