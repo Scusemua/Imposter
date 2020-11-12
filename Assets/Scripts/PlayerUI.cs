@@ -5,6 +5,7 @@ using UnityEngine.UI;
 using Mirror;
 using TMPro;
 using Lean.Gui;
+using System;
 
 public class PlayerUI : MonoBehaviour
 {
@@ -35,6 +36,8 @@ public class PlayerUI : MonoBehaviour
     private GameOptions gameOptions;
     private NetworkGameManager networkGameManager;
     private bool canInteractWithEmergencyButton;
+
+    public event Action<uint> OnPlayerVoted;
 
     void Alive()
     {
@@ -142,9 +145,29 @@ public class PlayerUI : MonoBehaviour
     {
         PlayerUICanvas.SetActive(false);
 
-        GameObject votingUI = Instantiate(VotingUIPrefab, transform);
-        votingUI.GetComponent<VotingUI>().PlayerUI = PlayerUICanvas;
-        votingUI.GetComponent<VotingUI>().PlayerController = playerController;
+        GameObject votingUIGameObject = Instantiate(VotingUIPrefab, transform);
+        VotingUI votingUI = votingUIGameObject.GetComponent<VotingUI>();
+        votingUI.PlayerUI = PlayerUICanvas;
+        votingUI.PlayerController = playerController;
+
+        OnPlayerVoted += votingUI.PlayerVoted;
+    }
+
+    /// <summary>
+    /// This will cause the I VOTED icon to display on the VotingUI, if it exists.
+    [Client]
+    public void PlayerVoted(uint voterId)
+    {
+        try
+        {
+            OnPlayerVoted?.Invoke(voterId);
+        }
+        catch (Exception ex)
+        {
+            // Do nothing, it's fine.
+            Debug.LogWarning("Caught exception when attempting to fire OnPlayerVoted event.");
+            Debug.LogException(ex);
+        }
     }
 
     #endregion

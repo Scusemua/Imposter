@@ -12,6 +12,8 @@ public class VotingEntry : MonoBehaviour
 
     public Text ButtonText;
 
+    public GameObject PlayerVotedIcon;
+
     /// <summary>
     /// Clicking this displays the confirm/deny buttons.
     /// </summary>

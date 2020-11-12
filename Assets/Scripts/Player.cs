@@ -121,6 +121,12 @@ public class Player : NetworkBehaviour
 
     #region ClientRPC
 
+    [ClientRpc]
+    public void RpcPlayerVoted(uint voterId)
+    {
+        
+    }
+
     /// <summary>
     /// Called by Server (NetworkGameManager, specifically) on each player object (including dead players).
     /// </summary>

@@ -18,6 +18,11 @@ public class VotingUI : MonoBehaviour
     public LeanButton DenySkipVoteButton;
 
     /// <summary>
+    /// Used to update to target UI updates to specific entries based on the player they're associated with.
+    /// </summary>
+    public Dictionary<uint, VotingEntry> NetIdToVotingEntryMap = new Dictionary<uint, VotingEntry>();
+
+    /// <summary>
     /// Indicates whether or not this player has casted a vote yet.
     /// 
     /// The server validates votes so if a player managed to send multiple votes, it wouldn't matter.
@@ -45,9 +50,7 @@ public class VotingUI : MonoBehaviour
             ConfirmSkipVoteButton.enabled = false;
             DenySkipVoteButton.enabled = false;
 
-            PlayerController.Player.CmdCastVote(NetworkGameManager.SKIPPED_VOTE_NET_ID);
-
-            VoteCasted = true;
+            castVote(NetworkGameManager.SKIPPED_VOTE_NET_ID);
         });
 
         DenySkipVoteButton.OnClick.AddListener(() =>
@@ -94,9 +97,8 @@ public class VotingUI : MonoBehaviour
                     if (VoteCasted) return;
 
                     Debug.Log("Casting vote for player " + gamePlayer.netId + " now...");
-                    PlayerController.Player.CmdCastVote(gamePlayer.netId);
 
-                    VoteCasted = true;
+                    castVote(gamePlayer.netId);
                 });
 
                 // Add an OnClick listener to the "Deny/Redact Vote" button, which 
@@ -108,6 +110,17 @@ public class VotingUI : MonoBehaviour
                 });
             }
         }
+    }
+
+    /// <summary>
+    /// Send our vote to the server.
+    /// </summary>
+    [Client]
+    private void castVote(uint recipientNetId)
+    {
+        PlayerController.Player.CmdCastVote(recipientNetId);
+
+        VoteCasted = true;
     }
 
     public void OnTimerCompleted(int arg0)
@@ -129,5 +142,20 @@ public class VotingUI : MonoBehaviour
     void OnDestroy()
     {
         CountdownTimer.OnTimerCompleted -= OnTimerCompleted;
+        PlayerUI.GetComponent<PlayerUI>().OnPlayerVoted -= PlayerVoted; // Clean up this event handler.
+    }
+
+    /// <summary>
+    /// Display the "I VOTED" icon on the voting entry for the player who cast the vote.
+    /// 
+    /// This is only displayed when the server has received the vote.
+    /// </summary>
+    /// <param name="voterId"></param>
+    [Client]
+    public void PlayerVoted(uint voterId)
+    {
+        // Get the voting entry associated with the given player and toggle the voting icon.
+        VotingEntry votingEntry = NetIdToVotingEntryMap[voterId];
+        votingEntry.PlayerVotedIcon.SetActive(true);
     }
 }
