@@ -37,13 +37,17 @@ public class PlayerController : NetworkBehaviour
     [SerializeField] GameObject bulletHolePrefab;
     [SerializeField] GameObject bulletFXPrefab;
     [SerializeField] GameObject bulletBloodFXPrefab;
+    private LineRenderer lineRenderer;
 
     private float curCooldown;
 
+    private float rotationSpeed = 450;
     private float movementSpeed;
     private float runBoost;
     private bool sprintEnabled;
-    
+
+    private Quaternion targetRotation;
+
     private GameOptions GameOptions { get => GameOptions.singleton; }
 
     public Vector3 CameraOffset;
@@ -65,7 +69,7 @@ public class PlayerController : NetworkBehaviour
         if (Input.GetMouseButton(0))
             ShootWeapon();
 
-        if (Input.GetKey(KeyCode.R))
+        if (Input.GetKeyDown(KeyCode.R))
             ReloadButton();
     }
 
@@ -77,8 +81,8 @@ public class PlayerController : NetworkBehaviour
             CmdTryShoot();
             curCooldown = WeaponCooldown;
         }
-        else if (AmmoCount <= 0)
-            ReloadButton();
+        //else if (AmmoCount <= 0)
+        //    ReloadButton();
     }
 
 
@@ -98,29 +102,37 @@ public class PlayerController : NetworkBehaviour
     void RpcPlayerFiredEntity(uint shooterID, uint targetID, Vector3 impactPos, Vector3 impactRot)
     {
         Instantiate(bulletHolePrefab, impactPos + impactRot * 0.1f, Quaternion.LookRotation(impactRot), NetworkIdentity.spawned[targetID].transform);
-        GameObject bulletBloodGO = Instantiate(bulletBloodFXPrefab, impactPos, Quaternion.LookRotation(impactRot));
+        Instantiate(bulletBloodFXPrefab, impactPos, Quaternion.LookRotation(impactRot));
         NetworkIdentity.spawned[shooterID].GetComponent<Player>().MuzzleFlash();
 
-        Destroy(bulletBloodGO, 2);
-        Destroy(bulletHolePrefab, 10);
+        Transform shooterTransform = NetworkIdentity.spawned[shooterID].GetComponent<Player>().GetComponent<Transform>();
+
+        float volumeDistModifier = (1000f - GetDistanceSquaredToTarget(shooterTransform)) / 1000f;
+        Debug.Log("Playing gunshot with volume modifier: " + volumeDistModifier);
+        // Adjust volume of gunshot based on distance.
+        this.AudioSource.PlayOneShot(Gunshot, volumeDistModifier);
+
+        //Destroy(bulletBloodGO, 2);
+        //Destroy(bulletHolePrefab, 10);
     }
 
     [ClientRpc]
     void RpcPlayerFired(uint shooterID, Vector3 impactPos, Vector3 impactRot)
     {
         Instantiate(bulletHolePrefab, impactPos + impactRot * 0.1f, Quaternion.LookRotation(impactRot));
-        GameObject bulletFxPrefab = Instantiate(bulletFXPrefab, impactPos, Quaternion.LookRotation(impactRot));
+        Instantiate(bulletFXPrefab, impactPos, Quaternion.LookRotation(impactRot));
         NetworkIdentity.spawned[shooterID].GetComponent<Player>().MuzzleFlash();
 
         Transform shooterTransform = NetworkIdentity.spawned[shooterID].GetComponent<Player>().GetComponent<Transform>();
 
-        float distanceFromGunshot = GetDistanceSquaredToTarget(shooterTransform);
+        float volumeDistModifier = (1000f - GetDistanceSquaredToTarget(shooterTransform)) / 1000f;
+        Debug.Log("Playing gunshot with volume modifier: " + volumeDistModifier);
 
         // Adjust volume of gunshot based on distance.
-        this.AudioSource.PlayOneShot(Gunshot, (1000 - distanceFromGunshot) / 1000);
+        this.AudioSource.PlayOneShot(Gunshot, volumeDistModifier);
 
-        Destroy(bulletFxPrefab, 2);
-        Destroy(bulletHolePrefab, 10);
+        //Destroy(bulletFxPrefab, 2);
+        //Destroy(bulletHolePrefab, 10);
     }
 
     #endregion 
@@ -175,12 +187,12 @@ public class PlayerController : NetworkBehaviour
         {
             AmmoCount--;
             TargetShoot();
-            Ray ray = Camera.ScreenPointToRay(Input.mousePosition);
-            ray.direction.Set(ray.direction.x, transform.position.y, ray.direction.z);
-            Debug.DrawRay(transform.position, Camera.ScreenToWorldPoint(Input.mousePosition), Color.red, 2f);
+            //Ray ray = Camera.ScreenPointToRay(Input.mousePosition);
+            Ray ray = new Ray(Player.WeaponMuzzle.transform.position, Player.WeaponMuzzle.transform.forward);
             RaycastHit hit;
-            if (Physics.Raycast(ray, out hit))
+            if (Physics.Raycast(ray, out hit, 100f))
             {
+                Debug.DrawRay(ray.origin, ray.direction * hit.distance, Color.red, 1);
                 Debug.Log("SERVER: Player shot: " + hit.collider.name);
                 if (hit.collider.CompareTag("Player"))
                 {
@@ -205,7 +217,6 @@ public class PlayerController : NetworkBehaviour
     #endregion
 
     #region Client 
-
     public override void OnStartLocalPlayer()
     {
         Debug.Log("OnStartLocalPlayer() called for Player " + netId);
@@ -220,6 +231,7 @@ public class PlayerController : NetworkBehaviour
         GameObject cameraObject = Instantiate(CameraPrefab);
         AudioSource = GetComponent<AudioSource>();
         AudioSource.enabled = true;
+        AudioSource.volume = 1.0f;
         Camera = cameraObject.GetComponent<Camera>();
 
         cameraObject.GetComponent<AudioListener>().enabled = true;
@@ -228,6 +240,17 @@ public class PlayerController : NetworkBehaviour
         Camera.transform.position += transform.position;
 
         EmergencyButton = GameObject.FindGameObjectWithTag("EmergencyButton");
+
+        lineRenderer = gameObject.AddComponent<LineRenderer>();
+        lineRenderer.startWidth = 0.025f;
+        lineRenderer.endWidth = 0.025f;
+        lineRenderer.startColor = Color.red;
+        lineRenderer.endColor = Color.red;
+        lineRenderer.positionCount = 2;
+
+        Material whiteDiffuseMat = new Material(Shader.Find("Unlit/Texture"));
+        whiteDiffuseMat.color = Color.red;
+        lineRenderer.material = whiteDiffuseMat;
     }
 
     /// <summary>
@@ -353,6 +376,9 @@ public class PlayerController : NetworkBehaviour
 
             Vector3 lookAt = new Vector3(pointToLook.x, transform.position.y, pointToLook.z);
 
+            lineRenderer.SetPosition(0, Player.WeaponMuzzle.transform.position);
+            lineRenderer.SetPosition(1, transform.position + transform.forward * 10);
+
             transform.LookAt(lookAt);
 
             if (Vector3.Dot(lookAt, movement) < 0)
@@ -360,6 +386,11 @@ public class PlayerController : NetworkBehaviour
             else
                 Animator.SetBool("backwards", false);
         }
+
+        //Vector3 mousePos = Input.mousePosition;
+        //mousePos = Camera.ScreenToWorldPoint(new Vector3(mousePos.x, mousePos.y, Camera.transform.position.y - transform.position.y));
+        //targetRotation = Quaternion.LookRotation(mousePos);
+        //transform.eulerAngles = Vector3.up * Mathf.MoveTowardsAngle(transform.eulerAngles.y, targetRotation.eulerAngles.y, rotationSpeed * Time.deltaTime);
     }
 
     [Client]

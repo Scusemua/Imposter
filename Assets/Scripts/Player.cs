@@ -18,7 +18,7 @@ public class Player : NetworkBehaviour
 
     public TextMesh PlayerNameText;
     [SerializeField] GameObject muzzleFlashPrefab;
-    [SerializeField] Transform weaponMuzzle;
+    [SerializeField] public Transform WeaponMuzzle;
 
     [SyncVar] public float Health = 100;
     [SyncVar] public float HealthMax = 100;
@@ -59,8 +59,7 @@ public class Player : NetworkBehaviour
 
     public void MuzzleFlash()
     {
-        GameObject muzzleFlashGO = Instantiate(muzzleFlashPrefab, weaponMuzzle.transform);
-        Destroy(muzzleFlashGO, 0.5f);
+        Instantiate(muzzleFlashPrefab, WeaponMuzzle.transform);
     }
 
     #region SyncVar Hooks
@@ -115,12 +114,6 @@ public class Player : NetworkBehaviour
     {
         uint _netID = GetComponent<NetworkIdentity>().netId;
         NetworkGameManager.RegisterPlayer(_netID, this);
-    }
-
-    [Command]
-    public void CmdBeginVoting()
-    {
-
     }
 
     [Command(ignoreAuthority = true)]
@@ -247,6 +240,12 @@ public class Player : NetworkBehaviour
 
         CmdSetupPlayer(Nickname);   // This is required for nicknames to be properly synchronized.
         CmdRegisterPlayer();
+    }
+
+    [Client]
+    public void PlayAudioClip(AudioClip clip)
+    {
+        GetComponent<AudioSource>().PlayOneShot(clip);
     }
 
     [Client]

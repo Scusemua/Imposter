@@ -92,7 +92,7 @@ public class CustomNetworkRoomPlayer : NetworkRoomPlayer
         if (LobbyPlayerModel != null && isLocalPlayer)
         {
             Debug.Log("Modifying lobby player renderer component now. New color = " + _New + " (" + GameColors.COLOR_NAMES[_New] + ").");
-            LobbyPlayerModel.GetComponentInChildren<Renderer>().sharedMaterials[1].color = _New;
+            LobbyPlayerModel.GetComponentInChildren<Renderer>().sharedMaterials[0].color = _New;
         }
     }
 
@@ -266,7 +266,10 @@ public class CustomNetworkRoomPlayer : NetworkRoomPlayer
         // Rotate the player model.
         if (LobbyPlayerModel != null)
         {
-            LobbyPlayerModel.transform.Rotate(yAxis, ModelRotationSpeed * Time.deltaTime);
+            float rotateAmnt = ModelRotationSpeed * Time.deltaTime;
+            Debug.Log("Rotating by " + rotateAmnt);
+            LobbyPlayerModel.transform.Rotate(yAxis, rotateAmnt);
+            Debug.Log("LobbyPlayerModel.transform.rotation = " + LobbyPlayerModel.transform.rotation);
         }
     }
 
