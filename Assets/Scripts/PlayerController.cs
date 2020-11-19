@@ -12,6 +12,8 @@ public class PlayerController : NetworkBehaviour
     public AudioClip ImposterStart;
     public AudioClip CrewmateStart;
     public AudioClip ImpactSound;
+    public AudioClip Gunshot;
+    public AudioClip ReloadSound;
     public AudioSource AudioSource;
 
     [Header("Visual")]
@@ -30,6 +32,7 @@ public class PlayerController : NetworkBehaviour
     [SyncVar] int AmmoCountMax = 20;
     [SyncVar] bool Reloading;
     [SerializeField] double reloadTime = 2;
+    [SerializeField] float WeaponDamage;
     [SerializeField] float WeaponCooldown;
     [SerializeField] GameObject bulletHolePrefab;
     [SerializeField] GameObject bulletFXPrefab;
@@ -62,7 +65,7 @@ public class PlayerController : NetworkBehaviour
         if (Input.GetMouseButton(0))
             ShootWeapon();
 
-        if (Input.GetKeyDown(KeyCode.R))
+        if (Input.GetKey(KeyCode.R))
             ReloadButton();
     }
 
@@ -74,6 +77,8 @@ public class PlayerController : NetworkBehaviour
             CmdTryShoot();
             curCooldown = WeaponCooldown;
         }
+        else if (AmmoCount <= 0)
+            ReloadButton();
     }
 
 
@@ -93,16 +98,29 @@ public class PlayerController : NetworkBehaviour
     void RpcPlayerFiredEntity(uint shooterID, uint targetID, Vector3 impactPos, Vector3 impactRot)
     {
         Instantiate(bulletHolePrefab, impactPos + impactRot * 0.1f, Quaternion.LookRotation(impactRot), NetworkIdentity.spawned[targetID].transform);
-        Instantiate(bulletBloodFXPrefab, impactPos, Quaternion.LookRotation(impactRot));
+        GameObject bulletBloodGO = Instantiate(bulletBloodFXPrefab, impactPos, Quaternion.LookRotation(impactRot));
         NetworkIdentity.spawned[shooterID].GetComponent<Player>().MuzzleFlash();
+
+        Destroy(bulletBloodGO, 2);
+        Destroy(bulletHolePrefab, 10);
     }
 
     [ClientRpc]
     void RpcPlayerFired(uint shooterID, Vector3 impactPos, Vector3 impactRot)
     {
         Instantiate(bulletHolePrefab, impactPos + impactRot * 0.1f, Quaternion.LookRotation(impactRot));
-        Instantiate(bulletFXPrefab, impactPos, Quaternion.LookRotation(impactRot));
+        GameObject bulletFxPrefab = Instantiate(bulletFXPrefab, impactPos, Quaternion.LookRotation(impactRot));
         NetworkIdentity.spawned[shooterID].GetComponent<Player>().MuzzleFlash();
+
+        Transform shooterTransform = NetworkIdentity.spawned[shooterID].GetComponent<Player>().GetComponent<Transform>();
+
+        float distanceFromGunshot = GetDistanceSquaredToTarget(shooterTransform);
+
+        // Adjust volume of gunshot based on distance.
+        this.AudioSource.PlayOneShot(Gunshot, (1000 - distanceFromGunshot) / 1000);
+
+        Destroy(bulletFxPrefab, 2);
+        Destroy(bulletHolePrefab, 10);
     }
 
     #endregion 
@@ -157,9 +175,9 @@ public class PlayerController : NetworkBehaviour
         {
             AmmoCount--;
             TargetShoot();
-            Vector3 mousePosition = Camera.ScreenToWorldPoint(Input.mousePosition);
-            Ray ray = new Ray(transform.position, (mousePosition - transform.position) * 500);
-            Debug.DrawRay(transform.position, (mousePosition - transform.position) * 500, Color.red, 2f);
+            Ray ray = Camera.ScreenPointToRay(Input.mousePosition);
+            ray.direction.Set(ray.direction.x, transform.position.y, ray.direction.z);
+            Debug.DrawRay(transform.position, Camera.ScreenToWorldPoint(Input.mousePosition), Color.red, 2f);
             RaycastHit hit;
             if (Physics.Raycast(ray, out hit))
             {
@@ -173,7 +191,7 @@ public class PlayerController : NetworkBehaviour
                         return;
                     }
                     else
-                        hit.collider.GetComponent<Player>().Damage(25, GetComponent<NetworkIdentity>().netId);
+                        hit.collider.GetComponent<Player>().Damage(WeaponDamage, GetComponent<NetworkIdentity>().netId);
                 }
                 else
                 {
@@ -230,7 +248,11 @@ public class PlayerController : NetworkBehaviour
     internal void ReloadButton()
     {
         if (!Reloading || AmmoCount != AmmoCountMax)
+        {
+            AudioSource.PlayOneShot(ReloadSound);
+            Debug.Log("Attempting to reload...");
             CmdTryReload();
+        }
     }
 
     [Client]
@@ -406,6 +428,11 @@ public class PlayerController : NetworkBehaviour
     {
         Vector3 directionToTarget = EmergencyButton.GetComponent<Transform>().position - transform.position;
         return directionToTarget.sqrMagnitude;
+    }
+
+    public float GetDistanceSquaredToTarget(Transform target)
+    {
+        return (transform.position - target.position).sqrMagnitude;
     }
 
     #endregion

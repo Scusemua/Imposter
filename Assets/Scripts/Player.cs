@@ -20,8 +20,8 @@ public class Player : NetworkBehaviour
     [SerializeField] GameObject muzzleFlashPrefab;
     [SerializeField] Transform weaponMuzzle;
 
-    [SyncVar] public int Health = 100;
-    [SyncVar] public int HealthMax = 100;
+    [SyncVar] public float Health = 100;
+    [SyncVar] public float HealthMax = 100;
 
     [SyncVar(hook = nameof(OnNameChanged))]
     public string Nickname = "Loading...";
@@ -59,7 +59,8 @@ public class Player : NetworkBehaviour
 
     public void MuzzleFlash()
     {
-        Instantiate(muzzleFlashPrefab, weaponMuzzle.transform);
+        GameObject muzzleFlashGO = Instantiate(muzzleFlashPrefab, weaponMuzzle.transform);
+        Destroy(muzzleFlashGO, 0.5f);
     }
 
     #region SyncVar Hooks
@@ -282,7 +283,7 @@ public class Player : NetworkBehaviour
     #region Server Functions 
 
     [Server]
-    public void Damage(int amount, uint shoooterID)
+    public void Damage(float amount, uint shoooterID)
     {
         Health -= amount;
         TargetGotDamage();

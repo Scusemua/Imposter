@@ -178,13 +178,13 @@ public class PlayerUI : MonoBehaviour
     }
 
     [Client]
-    public void UpdateHealth(int health)
+    public void UpdateHealth(float health)
     {
         HpBar.TakeDamage(health);
     }
 
     [Client]
-    public void SetUpHpBar(int maxHealth)
+    public void SetUpHpBar(float maxHealth)
     {
         HpBar.maximumHealth = maxHealth;
     }
