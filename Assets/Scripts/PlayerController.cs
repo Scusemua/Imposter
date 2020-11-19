@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using Mirror;
+using System.Collections;
 
 public class PlayerController : NetworkBehaviour
 {
@@ -24,10 +25,22 @@ public class PlayerController : NetworkBehaviour
     public GameObject EmergencyButton;
     public bool MovementEnabled;
 
+    [Header("Weapon")]
+    [SyncVar] public int AmmoCount = 20;
+    [SyncVar] int AmmoCountMax = 20;
+    [SyncVar] bool Reloading;
+    [SerializeField] double reloadTime = 2;
+    [SerializeField] float WeaponCooldown;
+    [SerializeField] GameObject bulletHolePrefab;
+    [SerializeField] GameObject bulletFXPrefab;
+    [SerializeField] GameObject bulletBloodFXPrefab;
+
+    private float curCooldown;
+
     private float movementSpeed;
     private float runBoost;
     private bool sprintEnabled;
-
+    
     private GameOptions GameOptions { get => GameOptions.singleton; }
 
     public Vector3 CameraOffset;
@@ -39,7 +52,31 @@ public class PlayerController : NetworkBehaviour
 
     [SyncVar(hook = nameof(OnPlayerBodyIdentified))]
     public bool Identified;
-    
+
+    void Update()
+    {
+        if (!isLocalPlayer) return;
+
+        curCooldown -= Time.deltaTime;
+
+        if (Input.GetMouseButton(0))
+            ShootWeapon();
+
+        if (Input.GetKeyDown(KeyCode.R))
+            ReloadButton();
+    }
+
+    internal void ShootWeapon()
+    {
+        if (AmmoCount > 0 && !Player.IsDead && curCooldown <= 0.01)
+        {
+            //Do command
+            CmdTryShoot();
+            curCooldown = WeaponCooldown;
+        }
+    }
+
+
     void LateUpdate()
     {
         if (!isLocalPlayer) return;
@@ -49,6 +86,105 @@ public class PlayerController : NetworkBehaviour
             Camera.transform.position = transform.position + CameraOffset;
         }
     }
+
+    #region Client RPC
+
+    [ClientRpc]
+    void RpcPlayerFiredEntity(uint shooterID, uint targetID, Vector3 impactPos, Vector3 impactRot)
+    {
+        Instantiate(bulletHolePrefab, impactPos + impactRot * 0.1f, Quaternion.LookRotation(impactRot), NetworkIdentity.spawned[targetID].transform);
+        Instantiate(bulletBloodFXPrefab, impactPos, Quaternion.LookRotation(impactRot));
+        NetworkIdentity.spawned[shooterID].GetComponent<Player>().MuzzleFlash();
+    }
+
+    [ClientRpc]
+    void RpcPlayerFired(uint shooterID, Vector3 impactPos, Vector3 impactRot)
+    {
+        Instantiate(bulletHolePrefab, impactPos + impactRot * 0.1f, Quaternion.LookRotation(impactRot));
+        Instantiate(bulletFXPrefab, impactPos, Quaternion.LookRotation(impactRot));
+        NetworkIdentity.spawned[shooterID].GetComponent<Player>().MuzzleFlash();
+    }
+
+    #endregion 
+
+    #region Target RPC
+
+    [TargetRpc]
+    void TargetShoot()
+    {
+        // Update the ammo count on the player's screen.
+        Player.PlayerUI.AmmoText.text = AmmoCount.ToString() + "/" + AmmoCountMax.ToString();
+    }
+
+    [TargetRpc]
+    void TargetReload()
+    {
+        //We reloaded successfully.
+        //Update UI
+        Player.PlayerUI.AmmoText.text = AmmoCount.ToString() + "/" + AmmoCountMax.ToString();
+    }
+
+    #endregion
+
+    #region Commands 
+
+    [Command]
+    void CmdTryReload()
+    {
+        if (Reloading || AmmoCount == AmmoCountMax)
+            return;
+
+        StartCoroutine(reloadingWeapon());
+    }
+
+    IEnumerator reloadingWeapon()
+    {
+        Reloading = true;
+        yield return new WaitForSeconds((float)reloadTime);
+        AmmoCount = AmmoCountMax;
+        TargetReload();
+        Reloading = false;
+
+        yield return null;
+    }
+
+    [Command]
+    void CmdTryShoot()
+    {
+        //Server side check
+        //if ammoCount > 0 && isAlive
+        if (AmmoCount > 0 && !Player.IsDead)
+        {
+            AmmoCount--;
+            TargetShoot();
+            Vector3 mousePosition = Camera.ScreenToWorldPoint(Input.mousePosition);
+            Ray ray = new Ray(transform.position, (mousePosition - transform.position) * 500);
+            Debug.DrawRay(transform.position, (mousePosition - transform.position) * 500, Color.red, 2f);
+            RaycastHit hit;
+            if (Physics.Raycast(ray, out hit))
+            {
+                Debug.Log("SERVER: Player shot: " + hit.collider.name);
+                if (hit.collider.CompareTag("Player"))
+                {
+                    RpcPlayerFiredEntity(GetComponent<NetworkIdentity>().netId, hit.collider.GetComponent<NetworkIdentity>().netId, hit.point, hit.normal);
+                    if (hit.collider.GetComponent<NetworkIdentity>().netId == GetComponent<NetworkIdentity>().netId)
+                    {
+                        Debug.Log("Shot self.");
+                        return;
+                    }
+                    else
+                        hit.collider.GetComponent<Player>().Damage(25, GetComponent<NetworkIdentity>().netId);
+                }
+                else
+                {
+                    RpcPlayerFired(GetComponent<NetworkIdentity>().netId, hit.point, hit.normal);
+                }
+            }
+        }
+
+    }
+
+    #endregion
 
     #region Client 
 
@@ -88,6 +224,13 @@ public class PlayerController : NetworkBehaviour
     public override void OnStartAuthority()
     {
         rigidbody = GetComponent<Rigidbody>();
+    }
+
+    [Client]
+    internal void ReloadButton()
+    {
+        if (!Reloading || AmmoCount != AmmoCountMax)
+            CmdTryReload();
     }
 
     [Client]

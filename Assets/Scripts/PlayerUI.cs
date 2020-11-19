@@ -22,6 +22,7 @@ public class PlayerUI : MonoBehaviour
     public TextMeshProUGUI WaitingOnHostText;
     public TextMeshProUGUI NicknameText;
     public TextMeshProUGUI RoleText;
+    public TextMeshProUGUI AmmoText;
     public GameObject VotingUIPrefab;
     public GameObject PlayerUICanvas;
     public Healthbar HpBar;
@@ -174,6 +175,18 @@ public class PlayerUI : MonoBehaviour
             Debug.LogWarning("Caught exception when attempting to fire OnPlayerVoted event.");
             Debug.LogException(ex);
         }
+    }
+
+    [Client]
+    public void UpdateHealth(int health)
+    {
+        HpBar.TakeDamage(health);
+    }
+
+    [Client]
+    public void SetUpHpBar(int maxHealth)
+    {
+        HpBar.maximumHealth = maxHealth;
     }
 
     #endregion

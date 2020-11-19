@@ -143,6 +143,8 @@ public class VotingUI : MonoBehaviour
         PlayerController.Player.CmdCastVote(recipientNetId);
 
         VoteCasted = true;
+
+        Debug.Log("Casted vote: " + VoteCasted);
     }
 
     public void OnTimerCompleted(int arg0)

@@ -139,12 +139,10 @@ public class PlayerControllerOffline : MonoBehaviour
             animator.SetBool("running", false);
         }
         
-        animator.SetFloat("moving", movement.magnitude);
-
         if (movement.magnitude == 0)
-            animator.SetInteger("AnimationPar", 0);
+            animator.SetFloat("moving", 0);
         else
-            animator.SetInteger("AnimationPar", 1);
+            animator.SetFloat("moving", 1);
 
         rigidbody.MovePosition(transform.position + movement);
 
@@ -157,7 +155,6 @@ public class PlayerControllerOffline : MonoBehaviour
         if (groundPlane.Raycast(cameraRay, out rayLength))
         {
             Vector3 pointToLook = cameraRay.GetPoint(rayLength);
-            //Debug.DrawLine(cameraRay.origin, pointToLook, Color.blue);
 
             Vector3 lookAt = new Vector3(pointToLook.x, transform.position.y, pointToLook.z);
 

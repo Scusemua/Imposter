@@ -17,6 +17,11 @@ public class Player : NetworkBehaviour
     public PlayerUI PlayerUI;
 
     public TextMesh PlayerNameText;
+    [SerializeField] GameObject muzzleFlashPrefab;
+    [SerializeField] Transform weaponMuzzle;
+
+    [SyncVar] public int Health = 100;
+    [SyncVar] public int HealthMax = 100;
 
     [SyncVar(hook = nameof(OnNameChanged))]
     public string Nickname = "Loading...";
@@ -50,6 +55,11 @@ public class Player : NetworkBehaviour
                 networkGameManager = NetworkManager.singleton as NetworkGameManager;
             return networkGameManager;
         }
+    }
+
+    public void MuzzleFlash()
+    {
+        Instantiate(muzzleFlashPrefab, weaponMuzzle.transform);
     }
 
     #region SyncVar Hooks
@@ -230,6 +240,8 @@ public class Player : NetworkBehaviour
 
         PlayerUIGameObject.SetActive(true);
 
+        ui.SetUpHpBar(HealthMax);
+
         Debug.Log("Player nickname: " + Nickname);
 
         CmdSetupPlayer(Nickname);   // This is required for nicknames to be properly synchronized.
@@ -255,7 +267,31 @@ public class Player : NetworkBehaviour
 
     #endregion
 
+    #region TargetRPC
+
+    [TargetRpc]
+    public void TargetGotDamage()
+    {
+        PlayerUI.UpdateHealth(Health);
+        Debug.Log("We got hit!");
+    }
+
+
+    #endregion
+
     #region Server Functions 
+
+    [Server]
+    public void Damage(int amount, uint shoooterID)
+    {
+        Health -= amount;
+        TargetGotDamage();
+
+        if (Health <= 0)
+        {
+            Kill(networkGameManager.NetIdMap[shoooterID].Nickname, false);
+        }
+    }
 
     [Server]
     public void Kill(string killerNickname, bool serverKilled)
