@@ -172,31 +172,31 @@ public class GameOptionsUI : NetworkBehaviour
                     GameOptions.singleton.ImposterSprintDuration = setting.Value;
                     break;
                 case "NumberRoundtables":
-                    GameOptions.singleton.PlayerSpeed = setting.Value;
+                    GameOptions.singleton.NumEmergencyMeetings = (int)setting.Value;
                     break;
                 case "RoundtableCooldown":
-                    GameOptions.singleton.PlayerSpeed = setting.Value;
+                    GameOptions.singleton.EmergencyMeetingCooldown = setting.Value;
                     break;
                 case "DiscussionPeriodLength":
-                    GameOptions.singleton.PlayerSpeed = setting.Value;
+                    GameOptions.singleton.DiscussionPeriodLength = setting.Value;
                     break;
                 case "VotingPeriodLength":
-                    GameOptions.singleton.PlayerSpeed = setting.Value;
+                    GameOptions.singleton.VotingPeriodLength = setting.Value;
                     break;
                 case "PlayerLimit":
-                    GameOptions.singleton.PlayerSpeed = setting.Value;
+                    GameOptions.singleton.NumPlayers = (int)setting.Value;
                     break;
                 case "NumberOfImposters":
-                    GameOptions.singleton.PlayerSpeed = setting.Value;
+                    GameOptions.singleton.NumberOfImposters = (int)setting.Value;
                     break;
                 case "NumberOfSheriffs":
-                    GameOptions.singleton.PlayerSpeed = setting.Value;
+                    GameOptions.singleton.MaxSheriffs = (int)setting.Value;
                     break;
                 case "NumberOfAssassins":
-                    GameOptions.singleton.PlayerSpeed = setting.Value;
+                    GameOptions.singleton.MaxAssassins = (int)setting.Value;
                     break;
                 case "NumberOfSaboteurs":
-                    GameOptions.singleton.PlayerSpeed = setting.Value;
+                    GameOptions.singleton.MaxSaboteurs = (int)setting.Value;
                     break;
                 case "KillCooldownStandard":
                     GameOptions.singleton.KillIntervalStandard = setting.Value;
@@ -212,20 +212,52 @@ public class GameOptionsUI : NetworkBehaviour
                     break;
                 // Booleans.
                 case "SprintEnabled":
+                    if (setting.Value == 1.0f)
+                        GameOptions.singleton.SprintEnabled = true;
+                    else
+                        GameOptions.singleton.SprintEnabled = false;
                     break;
                 case "PlayersSpawnWithAllWeapons":
+                    if (setting.Value == 1.0f)
+                        GameOptions.singleton.SpawnPlayersWithAllWeapons = true;
+                    else
+                        GameOptions.singleton.SpawnPlayersWithAllWeapons = false;
                     break;
                 case "SpawnWeaponsAroundMap":
+                    if (setting.Value == 1.0f)
+                        GameOptions.singleton.SpawnWeaponsAroundMap = true;
+                    else
+                        GameOptions.singleton.SpawnWeaponsAroundMap = false;
                     break;
                 case "MustKillAllCrewmates":
+                    if (setting.Value == 1.0f)
+                        GameOptions.singleton.ImpostersMustKillAllCrewmates = true;
+                    else
+                        GameOptions.singleton.ImpostersMustKillAllCrewmates = false;
                     break;
                 case "DarkMode":
+                    if (setting.Value == 1.0f)
+                        GameOptions.singleton.DarkModeEnabled = true;
+                    else
+                        GameOptions.singleton.DarkModeEnabled = false;
                     break;
                 case "SheriffsEnabled":
+                    if (setting.Value == 1.0f)
+                        GameOptions.singleton.SheriffEnabled = true;
+                    else
+                        GameOptions.singleton.SheriffEnabled = false;
                     break;
                 case "AssassinsEnabled":
+                    if (setting.Value == 1.0f)
+                        GameOptions.singleton.AssassinEnabled = true;
+                    else
+                        GameOptions.singleton.AssassinEnabled = false;
                     break;
                 case "SaboteursEnabled":
+                    if (setting.Value == 1.0f)
+                        GameOptions.singleton.SaboteurEnabled = true;
+                    else
+                        GameOptions.singleton.SaboteurEnabled = false;
                     break;
                 default:
                     Debug.LogError("Received unknown setting.");

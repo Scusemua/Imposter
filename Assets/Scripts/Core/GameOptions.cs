@@ -97,6 +97,8 @@ public class GameOptions : NetworkBehaviour
     [SyncVar] public float NumProjectiles;
     [SyncVar] public float Range;
     [SyncVar] public float ProjectileDamage;  // How much damage each individual projectile does.
+    [SyncVar] public bool SpawnPlayersWithAllWeapons;
+    [SyncVar] public bool SpawnWeaponsAroundMap;
 
     [Header("Debug")]
     /* Debug */
