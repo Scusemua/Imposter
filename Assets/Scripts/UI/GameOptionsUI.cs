@@ -68,10 +68,16 @@ public class GameOptionsUI : NetworkBehaviour
     public LeanToggle SheriffsEnabledToggle;
     public LeanToggle AssassinsEnabledToggle;
     public LeanToggle SaboteursEnabledToggle;
-    
+
+    void Start()
+    {
+        gameObject.SetActive(false); // Hide self.
+    }
+
     public override void OnStartLocalPlayer()
     {
         PopulateValues();
+        gameObject.SetActive(false); // Hide self.
     }
 
     #region Client 
@@ -204,7 +210,7 @@ public class GameOptionsUI : NetworkBehaviour
 
     #region Commands
 
-    [Command]
+    [Command(ignoreAuthority = true)]
     public void CmdApplyChanges(string[] keys, float[] values)
     {
         // Iterate over the settings and update changes to GameOptions.
