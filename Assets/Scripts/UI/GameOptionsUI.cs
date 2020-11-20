@@ -31,6 +31,15 @@ public class GameOptionsUI : NetworkBehaviour
 
     public GameObject PrimaryLobbyUIGameObject;
 
+    [Header("Buttons")]
+    public GameObject SaveButton;
+    public GameObject DiscardButton;
+    public GameObject YesButton;
+    public GameObject NoButton;
+
+    [Header("Text")]
+    public Text ExitDialogText;
+
     [Header("Input Fields")]
     public TMP_InputField PlayerMovementInput;
     public TMP_InputField SprintBoostInput;
@@ -59,8 +68,16 @@ public class GameOptionsUI : NetworkBehaviour
     public LeanToggle SheriffsEnabledToggle;
     public LeanToggle AssassinsEnabledToggle;
     public LeanToggle SaboteursEnabledToggle;
-
+    
     public override void OnStartLocalPlayer()
+    {
+        PopulateValues();
+    }
+
+    #region Client 
+
+    [Client]
+    public void PopulateValues()
     {
         // Create a list for each type of gun.
         foreach (GunType gunType in Enum.GetValues(typeof(GunType)))
@@ -121,8 +138,6 @@ public class GameOptionsUI : NetworkBehaviour
         SaboteursEnabledToggle.On = GameOptions.singleton.SaboteurEnabled;
     }
 
-    #region Client 
-
     [Client]
     public void OnCommitChanges()
     {
@@ -170,9 +185,19 @@ public class GameOptionsUI : NetworkBehaviour
     {
         // If they aren't host, then just exit. Don't show the exit confirmation window.
         if (isClientOnly)
+        {
             gameObject.SetActive(false);
-        else
-            ExitConfirmationWindow.TurnOn();
+            return;
+        }
+
+        // Configure the window to show the correct buttons and the correct text.
+        SaveButton.SetActive(true);
+        DiscardButton.SetActive(true);
+        YesButton.SetActive(false);
+        NoButton.SetActive(false);
+        ExitDialogText.text = "Save changes?";
+
+        ExitConfirmationWindow.TurnOn();
     }
 
     #endregion 
