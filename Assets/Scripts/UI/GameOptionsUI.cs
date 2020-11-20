@@ -10,6 +10,8 @@ using Lean.Gui;
 
 public class GameOptionsUI : NetworkBehaviour
 {
+    // TODO: Implement enabling and disablign weapons.
+
     [Header("UI Elements")]
     public GameObject WeaponScrollviewContent;
 
@@ -25,6 +27,8 @@ public class GameOptionsUI : NetworkBehaviour
     public Dictionary<GunType, List<Gun>> GunsOrganizedByType = new Dictionary<GunType, List<Gun>>();
 
     public LeanWindow ExitConfirmationWindow;
+
+    public GameObject PrimaryLobbyUIGameObject;
 
     [Header("Input Fields")]
     public TMP_InputField PlayerMovementInput;
@@ -87,10 +91,33 @@ public class GameOptionsUI : NetworkBehaviour
             }
         }
 
-        if (isClientOnly)
-        {
+        PlayerMovementInput.text = GameOptions.singleton.PlayerSpeed.ToString();
+        SprintBoostInput.text = GameOptions.singleton.PlayerSpeed.ToString();
+        CrewmateStaminaInput.text = GameOptions.singleton.PlayerSpeed.ToString();
+        ImposterStaminaInput.text = GameOptions.singleton.PlayerSpeed.ToString();
+        NumberRoundtablesInput.text = GameOptions.singleton.PlayerSpeed.ToString();
+        RoundtableCooldownInput.text = GameOptions.singleton.PlayerSpeed.ToString();
+        DiscussionPeriodLengthInput.text = GameOptions.singleton.PlayerSpeed.ToString();
+        VotingPeriodLengthInput.text = GameOptions.singleton.PlayerSpeed.ToString();
+        PlayerLimitInput.text = GameOptions.singleton.PlayerSpeed.ToString();
+        NumberOfImpostersInput.text = GameOptions.singleton.PlayerSpeed.ToString();
+        NumberOfSheriffsInput.text = GameOptions.singleton.PlayerSpeed.ToString();
+        NumberOfAssassinsInput.text = GameOptions.singleton.PlayerSpeed.ToString();
+        NumberOfSaboteursInput.text = GameOptions.singleton.PlayerSpeed.ToString();
+        KillCooldownStandardInput.text = GameOptions.singleton.PlayerSpeed.ToString();
+        KillCooldownAssassinInput.text = GameOptions.singleton.PlayerSpeed.ToString();
+        KillDistanceStandardInput.text = GameOptions.singleton.PlayerSpeed.ToString();
+        KillDistanceAssassinInput.text = GameOptions.singleton.PlayerSpeed.ToString();
 
-        }
+        // Toggles.
+        SprintEnabledToggle.On = GameOptions.singleton.SprintEnabled;
+        PlayersSpawnWithAllWeaponsToggle.On = GameOptions.singleton.SpawnPlayersWithAllWeapons;
+        SpawnWeaponsAroundMapToggle.On = GameOptions.singleton.SpawnWeaponsAroundMap;
+        MustKillAllCrewmatesToggle.On = GameOptions.singleton.ImpostersMustKillAllCrewmates;
+        DarkModeToggle.On = GameOptions.singleton.DarkModeEnabled;
+        SheriffsEnabledToggle.On = GameOptions.singleton.SheriffEnabled;
+        AssassinsEnabledToggle.On = GameOptions.singleton.AssassinEnabled;
+        SaboteursEnabledToggle.On = GameOptions.singleton.SaboteurEnabled;
     }
 
     #region Client 
