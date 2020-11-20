@@ -234,6 +234,8 @@ public class Player : NetworkBehaviour
 
         PlayerUIGameObject.SetActive(true);
 
+        GetComponent<PlayerController>().UpdateAmmoDisplay();
+
         ui.SetUpHpBar(HealthMax);
 
         Debug.Log("Player nickname: " + Nickname);

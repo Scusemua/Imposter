@@ -22,7 +22,8 @@ public class PlayerUI : MonoBehaviour
     public TextMeshProUGUI WaitingOnHostText;
     public TextMeshProUGUI NicknameText;
     public TextMeshProUGUI RoleText;
-    public TextMeshProUGUI AmmoText;
+    public TextMeshProUGUI AmmoReserveText;
+    public TextMeshProUGUI AmmoClipText;
     public GameObject VotingUIPrefab;
     public GameObject PlayerUICanvas;
     public Healthbar HpBar;

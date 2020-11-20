@@ -29,8 +29,9 @@ public class PlayerController : NetworkBehaviour
 
     [Header("Weapon")]
     [SyncVar] public int AmmoCount = 20;
+    [SyncVar] public int ReserveAmmo = 60;
     [SyncVar] int AmmoCountMax = 20;
-    [SyncVar] bool Reloading;
+    [SyncVar(hook = nameof(OnReloadingStateChanged))] bool Reloading;
     [SerializeField] double reloadTime = 2;
     [SerializeField] float WeaponDamage;
     [SerializeField] float WeaponCooldown;
@@ -102,7 +103,7 @@ public class PlayerController : NetworkBehaviour
     void RpcPlayerFiredEntity(uint shooterID, uint targetID, Vector3 impactPos, Vector3 impactRot)
     {
         //Instantiate(bulletHolePrefab, impactPos + impactRot * 0.1f, Quaternion.LookRotation(impactRot), NetworkIdentity.spawned[targetID].transform);
-        Instantiate(bulletBloodFXPrefab, impactPos, Quaternion.LookRotation(impactRot));
+        //Instantiate(bulletBloodFXPrefab, impactPos, Quaternion.LookRotation(impactRot));
         NetworkIdentity.spawned[shooterID].GetComponent<Player>().MuzzleFlash();
 
         Transform shooterTransform = NetworkIdentity.spawned[shooterID].GetComponent<Player>().GetComponent<Transform>();
@@ -143,7 +144,7 @@ public class PlayerController : NetworkBehaviour
     void TargetShoot()
     {
         // Update the ammo count on the player's screen.
-        Player.PlayerUI.AmmoText.text = AmmoCount.ToString() + "/" + AmmoCountMax.ToString();
+        Player.PlayerUI.AmmoClipText.text = AmmoCount.ToString();
     }
 
     [TargetRpc]
@@ -151,7 +152,8 @@ public class PlayerController : NetworkBehaviour
     {
         //We reloaded successfully.
         //Update UI
-        Player.PlayerUI.AmmoText.text = AmmoCount.ToString() + "/" + AmmoCountMax.ToString();
+        Player.PlayerUI.AmmoClipText.text = AmmoCount.ToString();
+        Player.PlayerUI.AmmoReserveText.text = ReserveAmmo.ToString();
     }
 
     #endregion
@@ -169,13 +171,40 @@ public class PlayerController : NetworkBehaviour
 
     IEnumerator reloadingWeapon()
     {
-        Reloading = true;
-        yield return new WaitForSeconds((float)reloadTime);
-        AmmoCount = AmmoCountMax;
-        TargetReload();
-        Reloading = false;
+        if (ReserveAmmo <= 0)
+        {
+            ReserveAmmo = 0;
+            yield return null;
+        }
+        else
+        {
+            Reloading = true;
+            yield return new WaitForSeconds((float)reloadTime);
 
-        yield return null;
+            // Determine how much ammo the player is missing.
+            // If we have enough ammo in reserve to top off the clip/magazine,
+            // then do so. Otherwise, put back however much ammo we have left.
+            int ammoMissing = AmmoCountMax - AmmoCount;
+
+            // Remove from our reserve ammo whatever we loaded into the weapon.
+            if (ReserveAmmo - ammoMissing >= 0)
+            {
+                AmmoCount += ammoMissing;
+                ReserveAmmo -= ammoMissing;
+            }
+            else
+            {
+                // We do not have enough ammo to completely top off the magazine.
+                // Just add what we have.
+                AmmoCount += ReserveAmmo;
+                ReserveAmmo = 0;
+            }
+
+            TargetReload();
+            Reloading = false;
+
+            yield return null;
+        }
     }
 
     [Command]
@@ -212,6 +241,16 @@ public class PlayerController : NetworkBehaviour
     #endregion
 
     #region Client 
+
+    [Client]
+    public void OnReloadingStateChanged(bool _Old, bool _New)
+    {
+        if (!isLocalPlayer) return;
+
+        if (_New)
+            AudioSource.PlayOneShot(ReloadSound);
+    }
+
     public override void OnStartLocalPlayer()
     {
         Debug.Log("OnStartLocalPlayer() called for Player " + netId);
@@ -267,10 +306,21 @@ public class PlayerController : NetworkBehaviour
     {
         if (!Reloading || AmmoCount != AmmoCountMax)
         {
-            AudioSource.PlayOneShot(ReloadSound);
             Debug.Log("Attempting to reload...");
             CmdTryReload();
         }
+    }
+
+    /// <summary>
+    /// Updates the ammo values.
+    /// </summary>
+    [Client]
+    public void UpdateAmmoDisplay()
+    {
+        if (!isLocalPlayer) return;
+
+        Player.PlayerUI.AmmoClipText.text = AmmoCount.ToString();
+        Player.PlayerUI.AmmoReserveText.text = ReserveAmmo.ToString();
     }
 
     [Client]
@@ -280,7 +330,7 @@ public class PlayerController : NetworkBehaviour
     public void PlayImposterStart()
     {
         Debug.Log("Playing Imposter start sound.");
-        AudioSource.PlayOneShot(ImposterStart);
+        AudioSource.PlayOneShot(ImposterStart, 0.25f);
     }
 
     [Client]
@@ -290,7 +340,7 @@ public class PlayerController : NetworkBehaviour
     public void PlayCrewmateStart()
     {
         Debug.Log("Playing Crewmate start sound.");
-        AudioSource.PlayOneShot(CrewmateStart);
+        AudioSource.PlayOneShot(CrewmateStart, 0.25f);
     }
 
     [Client]
@@ -300,7 +350,7 @@ public class PlayerController : NetworkBehaviour
     public void PlayImpactSound()
     {
         Debug.Log("Playing impact sound.");
-        AudioSource.PlayOneShot(ImpactSound, 1);
+        AudioSource.PlayOneShot(ImpactSound, 0.75f);
     }
 
     public override void OnStartClient()
