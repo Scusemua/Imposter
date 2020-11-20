@@ -30,4 +30,21 @@ public class Gun : MonoBehaviour
     [Header("Weapon Audio")]
     public AudioClip ShootSound;    // Sound that gets played when shooting.
     public AudioClip ReloadSound;   // Sound that gets played when reloading.
+
+    public override int GetHashCode()
+    {
+        int hash = 13;
+        hash = (hash * 7) + Name.GetHashCode();
+        return hash;
+    }
+
+    public override bool Equals(object other)
+    {
+        Gun _other = other as Gun;
+
+        if (_other == null)
+            return false;
+
+        return this.Name.Equals(_other.Name);
+    }
 }
