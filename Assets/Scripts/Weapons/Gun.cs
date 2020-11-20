@@ -15,6 +15,7 @@ public class Gun : MonoBehaviour
     #endregion 
 
     [Header("Weapon Statistics")]
+    public int Id;                  // Unique identifier of the weapon.
     public GunType GunType;         // Defines maximum ammo.
     public int ClipSize;            // Number of times that the player can shoot before needing to reload.
     public float WeaponCooldown;    // Firerate.

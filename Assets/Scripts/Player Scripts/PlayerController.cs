@@ -1,6 +1,7 @@
 ﻿using UnityEngine;
 using Mirror;
 using System.Collections;
+using System.Collections.Generic;
 
 public class PlayerController : NetworkBehaviour
 {
@@ -28,6 +29,7 @@ public class PlayerController : NetworkBehaviour
     public bool MovementEnabled;
 
     [Header("Weapon")]
+    [SerializeField] Transform weaponContainer; // This is where the weapon goes.
     [SyncVar] public int AmmoCount = 20;
     [SyncVar] public int ReserveAmmo = 60;
     [SyncVar] int AmmoCountMax = 20;
@@ -38,16 +40,43 @@ public class PlayerController : NetworkBehaviour
     [SerializeField] GameObject bulletHolePrefab;
     [SerializeField] GameObject bulletFXPrefab;
     [SerializeField] GameObject bulletBloodFXPrefab;
+
+    [SyncVar(hook = nameof(OnCurrentWeaponIdChanged))]
+    public int CurrentWeaponID = -1;
+    public Gun CurrentWeapon;
+    
+    private Dictionary<GunType, int> ammoCounts = new Dictionary<GunType, int>
+    {
+        [GunType.ASSAULT_RIFLE] = 100,
+        [GunType.SHOTGUN] = 100,
+        [GunType.SUBMACHINE_GUN] = 100,
+        [GunType.RIFLE] = 100,
+        [GunType.PISTOL] = 100,
+        [GunType.LIGHT_MACHINE_GUN] = 100,
+        [GunType.EXPLOSIVE] = 100
+    };
+    
+    private List<Gun> primaryInventory = new List<Gun>();
+    private List<Gun> secondaryInventory = new List<Gun>();
+    private List<Gun> meleeInventory = new List<Gun>();
+    private List<Gun> explosiveInventory = new List<Gun>();
+    private List<Gun> grenadeInventory = new List<Gun>();
+
+    private ItemDatabase itemDatabase;
+
+    /// <summary>
+    /// Refer to weapons by their ID.
+    /// </summary>
+    [SyncVar]
+    public int CurrrentGunID;
+
     private LineRenderer lineRenderer;
 
     private float curCooldown;
 
-    private float rotationSpeed = 450;
     private float movementSpeed;
     private float runBoost;
     private bool sprintEnabled;
-
-    private Quaternion targetRotation;
 
     private GameOptions GameOptions { get => GameOptions.singleton; }
 
@@ -80,12 +109,11 @@ public class PlayerController : NetworkBehaviour
         {
             //Do command
             CmdTryShoot();
-            curCooldown = WeaponCooldown;
+            curCooldown = CurrentWeapon.WeaponCooldown;
         }
         //else if (AmmoCount <= 0)
         //    ReloadButton();
     }
-
 
     void LateUpdate()
     {
@@ -163,60 +191,27 @@ public class PlayerController : NetworkBehaviour
     [Command]
     void CmdTryReload()
     {
-        if (Reloading || AmmoCount == AmmoCountMax)
+        if (CurrentWeapon == null || Reloading || AmmoCount == CurrentWeapon.ClipSize)
             return;
 
         StartCoroutine(reloadingWeapon());
     }
 
-    IEnumerator reloadingWeapon()
-    {
-        if (ReserveAmmo <= 0)
-        {
-            ReserveAmmo = 0;
-            yield return null;
-        }
-        else
-        {
-            Reloading = true;
-            yield return new WaitForSeconds((float)reloadTime);
-
-            // Determine how much ammo the player is missing.
-            // If we have enough ammo in reserve to top off the clip/magazine,
-            // then do so. Otherwise, put back however much ammo we have left.
-            int ammoMissing = AmmoCountMax - AmmoCount;
-
-            // Remove from our reserve ammo whatever we loaded into the weapon.
-            if (ReserveAmmo - ammoMissing >= 0)
-            {
-                AmmoCount += ammoMissing;
-                ReserveAmmo -= ammoMissing;
-            }
-            else
-            {
-                // We do not have enough ammo to completely top off the magazine.
-                // Just add what we have.
-                AmmoCount += ReserveAmmo;
-                ReserveAmmo = 0;
-            }
-
-            TargetReload();
-            Reloading = false;
-
-            yield return null;
-        }
-    }
-
     [Command]
     void CmdTryShoot()
     {
+        // TODO: Play error sound indicating no weapon? Or just punch?
+        if (CurrentWeapon == null)
+            return;
+
         //Server side check
         //if ammoCount > 0 && isAlive
         if (AmmoCount > 0 && !Player.IsDead)
         {
             AmmoCount--;
             TargetShoot();
-            //Ray ray = Camera.ScreenPointToRay(Input.mousePosition);
+            
+            // TODO: Projectile count, accuracy, etc.
             Ray ray = new Ray(Player.WeaponMuzzle.transform.position, Player.WeaponMuzzle.transform.forward);
             RaycastHit hit;
             if (Physics.Raycast(ray, out hit, 100f))
@@ -241,6 +236,17 @@ public class PlayerController : NetworkBehaviour
     #endregion
 
     #region Client 
+
+    [Client]
+    public void OnCurrentWeaponIdChanged(int _Old, int _New)
+    {
+        if (CurrentWeapon != null)
+            Destroy(CurrentWeapon.gameObject);
+
+        // The player could've put away all their weapons, meaning the new ID would be -1.
+        if (_New >= 0)
+            CurrentWeapon = Instantiate(itemDatabase.GetGunByID(_New), weaponContainer).GetComponent<Gun>();
+    }
 
     [Client]
     public void OnReloadingStateChanged(bool _Old, bool _New)
@@ -285,6 +291,8 @@ public class PlayerController : NetworkBehaviour
         Material whiteDiffuseMat = new Material(Shader.Find("Unlit/Texture"));
         whiteDiffuseMat.color = Color.red;
         lineRenderer.material = whiteDiffuseMat;
+
+        itemDatabase = GameObject.FindGameObjectWithTag("ItemDatabase").GetComponent<ItemDatabase>();
     }
 
     /// <summary>
@@ -514,6 +522,59 @@ public class PlayerController : NetworkBehaviour
     #endregion
 
     #region Server
-    
+
+    public override void OnStartServer()
+    {
+        CurrentWeaponID = 0;
+    }
+
+    [Server]
+    IEnumerator reloadingWeapon()
+    {
+        if (CurrentWeapon == null)
+            yield return null;
+        else if (ReserveAmmo <= 0)
+        {
+            ReserveAmmo = 0;
+            yield return null;
+        }
+        else
+        {
+            int currentWeaponId = CurrentWeapon.Id;
+            Reloading = true;
+            yield return new WaitForSeconds(CurrentWeapon.ReloadTime);
+
+            // Make sure player hasn't switched guns to get away with any funny business.
+            if (CurrentWeapon == null || CurrentWeapon.Id != currentWeaponId)
+                yield return null;
+            else
+            {
+                // Determine how much ammo the player is missing.
+                // If we have enough ammo in reserve to top off the clip/magazine,
+                // then do so. Otherwise, put back however much ammo we have left.
+                int ammoMissing = CurrentWeapon.ClipSize - AmmoCount;
+
+                // Remove from our reserve ammo whatever we loaded into the weapon.
+                if (ammoCounts[CurrentWeapon.GunType] - ammoMissing >= 0)
+                {
+                    AmmoCount += ammoMissing;
+                    ammoCounts[CurrentWeapon.GunType] -= ammoMissing;
+                }
+                else
+                {
+                    // We do not have enough ammo to completely top off the magazine.
+                    // Just add what we have.
+                    AmmoCount += ReserveAmmo;
+                    ammoCounts[CurrentWeapon.GunType] = 0;
+                }
+
+                TargetReload();
+                Reloading = false;
+
+                yield return null;
+            }
+        }
+    }
+
     #endregion 
 }

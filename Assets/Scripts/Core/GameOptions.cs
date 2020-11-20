@@ -97,8 +97,6 @@ public class GameOptions : NetworkBehaviour
     
     /* Player Visuals */
     [SyncVar] public float playerScale;   // Multiplier for visual size of players.
-    [SyncVar] public bool trailEnabled;   // Should players leave a trail (of particles or some shit)
-    [SyncVar] public float trailDuration; // How far back does the trail go?
 
     /// <summary>
     /// NetworkManager singleton
