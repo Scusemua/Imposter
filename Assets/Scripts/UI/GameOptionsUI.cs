@@ -40,6 +40,10 @@ public class GameOptionsUI : NetworkBehaviour
     public TMP_InputField NumberOfSheriffsInput;
     public TMP_InputField NumberOfAssassinsInput;
     public TMP_InputField NumberOfSaboteursInput;
+    public TMP_InputField KillCooldownStandardInput;
+    public TMP_InputField KillCooldownAssassinInput;
+    public TMP_InputField KillDistanceStandardInput;
+    public TMP_InputField KillDistanceAssassinInput;
 
     [Header("Toggles")]
     public LeanToggle SprintEnabledToggle;
@@ -89,46 +93,48 @@ public class GameOptionsUI : NetworkBehaviour
         }
     }
 
-    // Start is called before the first frame update
-    void Start()
-    {
-        //// Create a list for each type of gun.
-        //foreach (GunType gunType in Enum.GetValues(typeof(GunType)))
-        //{
-        //    GunsOrganizedByType[gunType] = new List<Gun>();
-        //}
-
-        //// Store all of the guns in their respective lists.
-        //foreach (Gun gun in WeaponPrefabs)
-        //{
-        //    Debug.Log("Initial processing on gun " + gun.Name);
-        //    GunsOrganizedByType[gun.GunType].Add(gun);
-        //}
-
-        //foreach (KeyValuePair<GunType, List<Gun>> kvp in GunsOrganizedByType)
-        //{
-        //    List<Gun> guns = kvp.Value;
-
-        //    GameObject header = Instantiate(WeaponGroupHeaderPrefab, WeaponScrollviewContent.transform);
-        //    header.GetComponentInChildren<TextMeshProUGUI>().text = kvp.Key.ToString();
-
-        //    foreach (Gun gun in guns)
-        //    {
-        //        Debug.Log("Creating entry for gun " + gun.Name);
-        //        GameObject entry = Instantiate(WeaponEntryPrefab, WeaponScrollviewContent.transform);
-        //        entry.GetComponentInChildren<Text>().text = gun.Name;
-
-        //        WeaponEntries[gun] = entry;
-        //    }
-        //}
-    }
-
     #region Client 
 
     [Client]
     public void OnCommitChanges()
     {
-        if (isClientOnly) return;
+        if (isClientOnly)
+        {
+            Debug.LogError("Non-host player somehow committed changes to game options...?");
+            return;
+        }
+
+        Dictionary<string, float> settings = new Dictionary<string, float>();
+        // Input fields.
+        settings.Add("PlayerMovement", float.Parse(PlayerMovementInput.text));
+        settings.Add("SprintBoost", float.Parse(SprintBoostInput.text));
+        settings.Add("CrewmateStamina", float.Parse(CrewmateStaminaInput.text));
+        settings.Add("ImposterStamina", float.Parse(ImposterStaminaInput.text));
+        settings.Add("NumberRoundtables", float.Parse(NumberRoundtablesInput.text));
+        settings.Add("RoundtableCooldown", float.Parse(RoundtableCooldownInput.text));
+        settings.Add("DiscussionPeriodLength", float.Parse(DiscussionPeriodLengthInput.text));
+        settings.Add("VotingPeriodLength", float.Parse(VotingPeriodLengthInput.text));
+        settings.Add("PlayerLimit", float.Parse(PlayerLimitInput.text));
+        settings.Add("NumberOfImposters", float.Parse(NumberOfImpostersInput.text));
+        settings.Add("NumberOfSheriffs", float.Parse(NumberOfSheriffsInput.text));
+        settings.Add("NumberOfAssassins", float.Parse(NumberOfAssassinsInput.text));
+        settings.Add("NumberOfSaboteurs", float.Parse(NumberOfSaboteursInput.text));
+        settings.Add("KillCooldownStandard", float.Parse(KillCooldownStandardInput.text));
+        settings.Add("KillCooldownAssassin", float.Parse(KillCooldownAssassinInput.text));
+        settings.Add("KillDistanceStandard", float.Parse(KillDistanceStandardInput.text));
+        settings.Add("KillDistanceAssassin", float.Parse(KillDistanceAssassinInput.text));
+
+        // Toggles.
+        settings.Add("SprintEnabled", SprintEnabledToggle.enabled ? 1.0f : 0.0f);
+        settings.Add("PlayersSpawnWithAllWeapons", PlayersSpawnWithAllWeaponsToggle.enabled ? 1.0f : 0.0f);
+        settings.Add("SpawnWeaponsAroundMap", SpawnWeaponsAroundMapToggle.enabled ? 1.0f : 0.0f);
+        settings.Add("MustKillAllCrewmates", MustKillAllCrewmatesToggle.enabled ? 1.0f : 0.0f);
+        settings.Add("DarkMode", DarkModeToggle.enabled ? 1.0f : 0.0f);
+        settings.Add("SheriffsEnabled", SheriffsEnabledToggle.enabled ? 1.0f : 0.0f);
+        settings.Add("AssassinsEnabled", AssassinsEnabledToggle.enabled ? 1.0f : 0.0f);
+        settings.Add("SaboteursEnabled", SaboteursEnabledToggle.enabled ? 1.0f : 0.0f);
+
+        CmdApplyChanges(settings);
     }
 
     [Client]
@@ -146,9 +152,86 @@ public class GameOptionsUI : NetworkBehaviour
     #region Commands
 
     [Command]
-    public void CmdApplyChanges(Dictionary<string, int> settings)
+    public void CmdApplyChanges(Dictionary<string, float> settings)
     {
-
+        // Iterate over the settings and update changes to GameOptions.
+        foreach (KeyValuePair<string, float> setting in settings)
+        {
+            switch (setting.Key)
+            {
+                case "PlayerMovement":
+                    GameOptions.singleton.PlayerSpeed = setting.Value;
+                    break;
+                case "SprintBoost":
+                    GameOptions.singleton.SprintBoost = setting.Value;
+                    break;
+                case "CrewmateStamina":
+                    GameOptions.singleton.CrewmateSprintDuration = setting.Value;
+                    break;
+                case "ImposterStamina":
+                    GameOptions.singleton.ImposterSprintDuration = setting.Value;
+                    break;
+                case "NumberRoundtables":
+                    GameOptions.singleton.PlayerSpeed = setting.Value;
+                    break;
+                case "RoundtableCooldown":
+                    GameOptions.singleton.PlayerSpeed = setting.Value;
+                    break;
+                case "DiscussionPeriodLength":
+                    GameOptions.singleton.PlayerSpeed = setting.Value;
+                    break;
+                case "VotingPeriodLength":
+                    GameOptions.singleton.PlayerSpeed = setting.Value;
+                    break;
+                case "PlayerLimit":
+                    GameOptions.singleton.PlayerSpeed = setting.Value;
+                    break;
+                case "NumberOfImposters":
+                    GameOptions.singleton.PlayerSpeed = setting.Value;
+                    break;
+                case "NumberOfSheriffs":
+                    GameOptions.singleton.PlayerSpeed = setting.Value;
+                    break;
+                case "NumberOfAssassins":
+                    GameOptions.singleton.PlayerSpeed = setting.Value;
+                    break;
+                case "NumberOfSaboteurs":
+                    GameOptions.singleton.PlayerSpeed = setting.Value;
+                    break;
+                case "KillCooldownStandard":
+                    GameOptions.singleton.KillIntervalStandard = setting.Value;
+                    break;
+                case "KillCooldownAssassin":
+                    GameOptions.singleton.KillIntervalAssassin = setting.Value;
+                    break;
+                case "KillDistanceStandard":
+                    GameOptions.singleton.KillDistanceStandard = setting.Value;
+                    break;
+                case "KillDistanceAssassin":
+                    GameOptions.singleton.KillDistanceAssassin = setting.Value;
+                    break;
+                // Booleans.
+                case "SprintEnabled":
+                    break;
+                case "PlayersSpawnWithAllWeapons":
+                    break;
+                case "SpawnWeaponsAroundMap":
+                    break;
+                case "MustKillAllCrewmates":
+                    break;
+                case "DarkMode":
+                    break;
+                case "SheriffsEnabled":
+                    break;
+                case "AssassinsEnabled":
+                    break;
+                case "SaboteursEnabled":
+                    break;
+                default:
+                    Debug.LogError("Received unknown setting.");
+                    break;
+            }
+        }
     }
 
     #endregion 
