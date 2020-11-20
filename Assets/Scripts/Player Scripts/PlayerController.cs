@@ -240,12 +240,13 @@ public class PlayerController : NetworkBehaviour
     [Client]
     public void OnCurrentWeaponIdChanged(int _Old, int _New)
     {
+        Debug.Log("Current weapon ID changed. Old value: " + _Old + ", New value: " + _New);
         if (CurrentWeapon != null)
             Destroy(CurrentWeapon.gameObject);
 
         // The player could've put away all their weapons, meaning the new ID would be -1.
         if (_New >= 0)
-            CurrentWeapon = Instantiate(itemDatabase.GetGunByID(_New), weaponContainer).GetComponent<Gun>();
+            AssignWeapon(_New);
     }
 
     [Client]
@@ -288,11 +289,17 @@ public class PlayerController : NetworkBehaviour
         lineRenderer.endColor = Color.red;
         lineRenderer.positionCount = 2;
 
-        Material whiteDiffuseMat = new Material(Shader.Find("Unlit/Texture"));
-        whiteDiffuseMat.color = Color.red;
+        Material whiteDiffuseMat = new Material(Shader.Find("Unlit/Texture"))
+        {
+            color = Color.red
+        };
         lineRenderer.material = whiteDiffuseMat;
 
         itemDatabase = GameObject.FindGameObjectWithTag("ItemDatabase").GetComponent<ItemDatabase>();
+
+        if (CurrentWeaponID >= 0 && CurrentWeapon == null)
+            AssignWeapon(CurrentWeaponID);
+
     }
 
     /// <summary>
@@ -307,6 +314,13 @@ public class PlayerController : NetworkBehaviour
     public override void OnStartAuthority()
     {
         rigidbody = GetComponent<Rigidbody>();
+    }
+
+    [Client]
+    public void AssignWeapon(int id)
+    {
+        Debug.Log("Assigning weapon " + id + " to player now.");
+        CurrentWeapon = Instantiate(itemDatabase.GetGunByID(id), weaponContainer).GetComponent<Gun>();
     }
 
     [Client]
@@ -328,7 +342,7 @@ public class PlayerController : NetworkBehaviour
         if (!isLocalPlayer) return;
 
         Player.PlayerUI.AmmoClipText.text = AmmoCount.ToString();
-        Player.PlayerUI.AmmoReserveText.text = ReserveAmmo.ToString();
+        Player.PlayerUI.AmmoReserveText.text = ammoCounts[CurrentWeapon.GunType].ToString();
     }
 
     [Client]
@@ -525,7 +539,8 @@ public class PlayerController : NetworkBehaviour
 
     public override void OnStartServer()
     {
-        CurrentWeaponID = 0;
+        print("Giving player gun id=0.");
+        CurrentWeaponID = 3;
     }
 
     [Server]

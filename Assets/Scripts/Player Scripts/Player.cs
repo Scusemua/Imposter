@@ -183,7 +183,7 @@ public class Player : NetworkBehaviour
                 break;
         }
 
-        Debug.Log("Player " + Nickname + ", netId = " + netId + "assigned role " + role);
+        Debug.Log("Player " + Nickname + ", netId = " + netId + ", assigned role " + role);
 
         Role.AssignPlayer(this);
 
@@ -196,6 +196,12 @@ public class Player : NetworkBehaviour
             else
                 GetComponent<PlayerController>().PlayCrewmateStart();
         }
+    }
+
+    [ClientRpc]
+    public void RpcGotDamage()
+    {
+        PlayerUI.UpdateHealth(Health);
     }
 
     [ClientRpc]
@@ -271,13 +277,6 @@ public class Player : NetworkBehaviour
 
     #region TargetRPC
 
-    [TargetRpc]
-    public void TargetGotDamage()
-    {
-        PlayerUI.UpdateHealth(Health);
-        Debug.Log("We got hit!");
-    }
-
 
     #endregion
 
@@ -287,7 +286,7 @@ public class Player : NetworkBehaviour
     public void Damage(float amount, uint shoooterID)
     {
         Health -= amount;
-        TargetGotDamage();
+        RpcGotDamage();
 
         if (Health <= 0)
         {
