@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Linq;
 using System.Collections.Generic;
 using UnityEngine;
 using Mirror;
@@ -15,15 +16,6 @@ public class GameOptions : NetworkBehaviour
     [SyncVar] public float SprintBoost = 2;                   // Base speed is multiplied by this value when sprinting.
     [SyncVar] public float CrewmateSprintDuration = 10;       // How long can crewmates sprint?
     [SyncVar] public float ImposterSprintDuration = 15;       // How long can imposters sprint?
-
-    [Header("Footprints")]
-    /* Footprint related. */
-    [SyncVar] public bool BloodyFootprintsEnabled;    // Are there bloody footprints after killing?
-    [SyncVar] public bool BloodyFootprintsOnKillOnly; // If False, any player will have bloody footprints after walking over a dead body.
-    [SyncVar] public float FootprintDistance;         // For how long will you have bloody footprints?         
-    [SyncVar] public float FootprintOpacity;          // How dark are the footprints on the ground?
-    [SyncVar] public bool FootprintsDisappear;        // Do the footprints eventually disappear?       
-    [SyncVar] public float FootprintDuration;         // How long do footprints stick around before disappearing?
 
     [Header("Killing")]
     /* Killing related. */
@@ -76,27 +68,8 @@ public class GameOptions : NetworkBehaviour
 
     [Header("Weapons")]
     /* Gun Related */
-    [SyncVar] public bool GunsEnabled;
-    [SyncVar] public bool CrewmatesHaveGuns;
-    [SyncVar] public bool SheriffHasGun;              // If crewmatesHaveGUns is true, then this is ignored.
-    [SyncVar] public bool Instakill;                  // If true, all guns insta-kill.
     [SyncVar] public float PlayerHealth;              // If instakill is false, then bullets do damage.
     [SyncVar] public float ImposterHealthMultiplier;  // PlayerHealth is multiplied by this to determine base health for imposters.
-    [SyncVar] public int NumBulletsImposter;
-    [SyncVar] public int NumBulletsAssassin;
-    [SyncVar] public int NumBulletsSheriff;
-    [SyncVar] public int NumBulletsSaboteur;
-    [SyncVar] public int NumBulletsCrewmate;
-    [SyncVar] public float GunshotVolume;
-    [SyncVar] public float GunshotBrightness;
-    [SyncVar] public float Firerate;
-    [SyncVar] public bool ReloadsRequired;    // If false, then players can shoot infinitely without reloading.
-    [SyncVar] public float ReloadTime;
-    [SyncVar] public float MagazineSize;
-    [SyncVar] public float Accuracy;
-    [SyncVar] public float NumProjectiles;
-    [SyncVar] public float Range;
-    [SyncVar] public float ProjectileDamage;  // How much damage each individual projectile does.
     [SyncVar] public bool SpawnPlayersWithAllWeapons;
     [SyncVar] public bool SpawnWeaponsAroundMap;
 
@@ -157,5 +130,29 @@ public class GameOptions : NetworkBehaviour
     {
         // Don't allow collision-destroyed second instance to continue.
         if (!InitializeSingleton()) return;
+    }
+}
+
+/// <summary>
+/// Extension class/methods to send settings dictionary over the network.
+/// </summary>
+public static class SettingsDictionaryReaderWriter
+{
+    public static void WriteDictionary(this NetworkWriter writer, Dictionary<string, float> dict)
+    {
+        writer.WriteArray(dict.Keys.ToArray());
+        writer.WriteArray(dict.Values.ToArray());
+    }
+
+    public static Dictionary<string, float> ReadDictionary(this NetworkReader reader)
+    {
+        Dictionary<string, float> settingsDictionary = new Dictionary<string, float>();
+        string[] keys = reader.ReadArray<string>();
+        float[] values = reader.ReadArray<float>();
+
+        for (int i = 0; i < keys.Length; i++)
+            settingsDictionary.Add(keys[i], values[i]);
+
+        return settingsDictionary;
     }
 }

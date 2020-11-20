@@ -7,6 +7,7 @@ using TMPro;
 using UnityEngine.UI;
 using Mirror;
 using Lean.Gui;
+using System.Linq;
 
 public class GameOptionsUI : NetworkBehaviour
 {
@@ -161,7 +162,7 @@ public class GameOptionsUI : NetworkBehaviour
         settings.Add("AssassinsEnabled", AssassinsEnabledToggle.enabled ? 1.0f : 0.0f);
         settings.Add("SaboteursEnabled", SaboteursEnabledToggle.enabled ? 1.0f : 0.0f);
 
-        CmdApplyChanges(settings);
+        CmdApplyChanges(settings.Keys.ToArray(), settings.Values.ToArray());
     }
 
     [Client]
@@ -179,109 +180,112 @@ public class GameOptionsUI : NetworkBehaviour
     #region Commands
 
     [Command]
-    public void CmdApplyChanges(Dictionary<string, float> settings)
+    public void CmdApplyChanges(string[] keys, float[] values)
     {
         // Iterate over the settings and update changes to GameOptions.
-        foreach (KeyValuePair<string, float> setting in settings)
+        //foreach (KeyValuePair<string, float> setting in settings)
+        for (int i = 0; i < keys.Length; i++)
         {
-            switch (setting.Key)
+            string key = keys[i];
+            float value = values[i];
+            switch (key)
             {
                 case "PlayerMovement":
-                    GameOptions.singleton.PlayerSpeed = setting.Value;
+                    GameOptions.singleton.PlayerSpeed = value;
                     break;
                 case "SprintBoost":
-                    GameOptions.singleton.SprintBoost = setting.Value;
+                    GameOptions.singleton.SprintBoost = value;
                     break;
                 case "CrewmateStamina":
-                    GameOptions.singleton.CrewmateSprintDuration = setting.Value;
+                    GameOptions.singleton.CrewmateSprintDuration = value;
                     break;
                 case "ImposterStamina":
-                    GameOptions.singleton.ImposterSprintDuration = setting.Value;
+                    GameOptions.singleton.ImposterSprintDuration = value;
                     break;
                 case "NumberRoundtables":
-                    GameOptions.singleton.NumEmergencyMeetings = (int)setting.Value;
+                    GameOptions.singleton.NumEmergencyMeetings = (int)value;
                     break;
                 case "RoundtableCooldown":
-                    GameOptions.singleton.EmergencyMeetingCooldown = setting.Value;
+                    GameOptions.singleton.EmergencyMeetingCooldown = value;
                     break;
                 case "DiscussionPeriodLength":
-                    GameOptions.singleton.DiscussionPeriodLength = setting.Value;
+                    GameOptions.singleton.DiscussionPeriodLength = value;
                     break;
                 case "VotingPeriodLength":
-                    GameOptions.singleton.VotingPeriodLength = setting.Value;
+                    GameOptions.singleton.VotingPeriodLength = value;
                     break;
                 case "PlayerLimit":
-                    GameOptions.singleton.NumPlayers = (int)setting.Value;
+                    GameOptions.singleton.NumPlayers = (int)value;
                     break;
                 case "NumberOfImposters":
-                    GameOptions.singleton.NumberOfImposters = (int)setting.Value;
+                    GameOptions.singleton.NumberOfImposters = (int)value;
                     break;
                 case "NumberOfSheriffs":
-                    GameOptions.singleton.MaxSheriffs = (int)setting.Value;
+                    GameOptions.singleton.MaxSheriffs = (int)value;
                     break;
                 case "NumberOfAssassins":
-                    GameOptions.singleton.MaxAssassins = (int)setting.Value;
+                    GameOptions.singleton.MaxAssassins = (int)value;
                     break;
                 case "NumberOfSaboteurs":
-                    GameOptions.singleton.MaxSaboteurs = (int)setting.Value;
+                    GameOptions.singleton.MaxSaboteurs = (int)value;
                     break;
                 case "KillCooldownStandard":
-                    GameOptions.singleton.KillIntervalStandard = setting.Value;
+                    GameOptions.singleton.KillIntervalStandard = value;
                     break;
                 case "KillCooldownAssassin":
-                    GameOptions.singleton.KillIntervalAssassin = setting.Value;
+                    GameOptions.singleton.KillIntervalAssassin = value;
                     break;
                 case "KillDistanceStandard":
-                    GameOptions.singleton.KillDistanceStandard = setting.Value;
+                    GameOptions.singleton.KillDistanceStandard = value;
                     break;
                 case "KillDistanceAssassin":
-                    GameOptions.singleton.KillDistanceAssassin = setting.Value;
+                    GameOptions.singleton.KillDistanceAssassin = value;
                     break;
                 // Booleans.
                 case "SprintEnabled":
-                    if (setting.Value == 1.0f)
+                    if (value == 1.0f)
                         GameOptions.singleton.SprintEnabled = true;
                     else
                         GameOptions.singleton.SprintEnabled = false;
                     break;
                 case "PlayersSpawnWithAllWeapons":
-                    if (setting.Value == 1.0f)
+                    if (value == 1.0f)
                         GameOptions.singleton.SpawnPlayersWithAllWeapons = true;
                     else
                         GameOptions.singleton.SpawnPlayersWithAllWeapons = false;
                     break;
                 case "SpawnWeaponsAroundMap":
-                    if (setting.Value == 1.0f)
+                    if (value == 1.0f)
                         GameOptions.singleton.SpawnWeaponsAroundMap = true;
                     else
                         GameOptions.singleton.SpawnWeaponsAroundMap = false;
                     break;
                 case "MustKillAllCrewmates":
-                    if (setting.Value == 1.0f)
+                    if (value == 1.0f)
                         GameOptions.singleton.ImpostersMustKillAllCrewmates = true;
                     else
                         GameOptions.singleton.ImpostersMustKillAllCrewmates = false;
                     break;
                 case "DarkMode":
-                    if (setting.Value == 1.0f)
+                    if (value == 1.0f)
                         GameOptions.singleton.DarkModeEnabled = true;
                     else
                         GameOptions.singleton.DarkModeEnabled = false;
                     break;
                 case "SheriffsEnabled":
-                    if (setting.Value == 1.0f)
+                    if (value == 1.0f)
                         GameOptions.singleton.SheriffEnabled = true;
                     else
                         GameOptions.singleton.SheriffEnabled = false;
                     break;
                 case "AssassinsEnabled":
-                    if (setting.Value == 1.0f)
+                    if (value == 1.0f)
                         GameOptions.singleton.AssassinEnabled = true;
                     else
                         GameOptions.singleton.AssassinEnabled = false;
                     break;
                 case "SaboteursEnabled":
-                    if (setting.Value == 1.0f)
+                    if (value == 1.0f)
                         GameOptions.singleton.SaboteurEnabled = true;
                     else
                         GameOptions.singleton.SaboteurEnabled = false;
