@@ -110,23 +110,23 @@ public class GameOptionsUI : NetworkBehaviour
         }
 
         PlayerMovementInput.text = GameOptions.singleton.PlayerSpeed.ToString();
-        SprintBoostInput.text = GameOptions.singleton.PlayerSpeed.ToString();
-        CrewmateStaminaInput.text = GameOptions.singleton.PlayerSpeed.ToString();
-        ImposterStaminaInput.text = GameOptions.singleton.PlayerSpeed.ToString();
-        NumberRoundtablesInput.text = GameOptions.singleton.PlayerSpeed.ToString();
-        RoundtableCooldownInput.text = GameOptions.singleton.PlayerSpeed.ToString();
-        DiscussionPeriodLengthInput.text = GameOptions.singleton.PlayerSpeed.ToString();
-        VotingPeriodLengthInput.text = GameOptions.singleton.PlayerSpeed.ToString();
-        PlayerLimitInput.text = GameOptions.singleton.PlayerSpeed.ToString();
-        NumberOfImpostersInput.text = GameOptions.singleton.PlayerSpeed.ToString();
-        NumberOfSheriffsInput.text = GameOptions.singleton.PlayerSpeed.ToString();
-        NumberOfAssassinsInput.text = GameOptions.singleton.PlayerSpeed.ToString();
-        NumberOfSaboteursInput.text = GameOptions.singleton.PlayerSpeed.ToString();
-        KillCooldownStandardInput.text = GameOptions.singleton.PlayerSpeed.ToString();
-        KillCooldownAssassinInput.text = GameOptions.singleton.PlayerSpeed.ToString();
-        KillDistanceStandardInput.text = GameOptions.singleton.PlayerSpeed.ToString();
-        KillDistanceAssassinInput.text = GameOptions.singleton.PlayerSpeed.ToString();
-
+        SprintBoostInput.text = GameOptions.singleton.SprintBoost.ToString();
+        CrewmateStaminaInput.text = GameOptions.singleton.CrewmateSprintDuration.ToString();
+        ImposterStaminaInput.text = GameOptions.singleton.ImposterSprintDuration.ToString();
+        NumberRoundtablesInput.text = GameOptions.singleton.NumEmergencyMeetings.ToString();
+        RoundtableCooldownInput.text = GameOptions.singleton.EmergencyMeetingCooldown.ToString();
+        DiscussionPeriodLengthInput.text = GameOptions.singleton.DiscussionPeriodLength.ToString();
+        VotingPeriodLengthInput.text = GameOptions.singleton.VotingPeriodLength.ToString();
+        PlayerLimitInput.text = GameOptions.singleton.NumPlayers.ToString();
+        NumberOfImpostersInput.text = GameOptions.singleton.NumberOfImposters.ToString();
+        NumberOfSheriffsInput.text = GameOptions.singleton.MaxSheriffs.ToString();
+        NumberOfAssassinsInput.text = GameOptions.singleton.MaxAssassins.ToString();
+        NumberOfSaboteursInput.text = GameOptions.singleton.MaxSaboteurs.ToString();
+        KillCooldownStandardInput.text = GameOptions.singleton.KillIntervalStandard.ToString();
+        KillCooldownAssassinInput.text = GameOptions.singleton.KillIntervalAssassin.ToString();
+        KillDistanceStandardInput.text = GameOptions.singleton.KillDistanceStandard.ToString();
+        KillDistanceAssassinInput.text = GameOptions.singleton.KillDistanceAssassin.ToString();
+        
         // Toggles.
         SprintEnabledToggle.On = GameOptions.singleton.SprintEnabled;
         PlayersSpawnWithAllWeaponsToggle.On = GameOptions.singleton.SpawnPlayersWithAllWeapons;
