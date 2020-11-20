@@ -5,8 +5,10 @@ using Mirror;
 using System;
 using TMPro;
 using UnityEngine.UI;
+using Mirror;
+using Lean.Gui;
 
-public class GameOptionsUI : MonoBehaviour
+public class GameOptionsUI : NetworkBehaviour
 {
     [Header("UI Elements")]
     public GameObject WeaponScrollviewContent;
@@ -22,39 +24,34 @@ public class GameOptionsUI : MonoBehaviour
 
     public Dictionary<GunType, List<Gun>> GunsOrganizedByType = new Dictionary<GunType, List<Gun>>();
 
-    //public override void OnStartLocalPlayer()
-    //{
-    //    // Create a list for each type of gun.
-    //    foreach (GunType gunType in Enum.GetValues(typeof(GunType)))
-    //    {
-    //        GunsOrganizedByType[gunType] = new List<Gun>();
-    //    }
+    public LeanWindow ExitConfirmationWindow;
 
-    //    // Store all of the guns in their respective lists.
-    //    foreach (Gun gun in WeaponPrefabs)
-    //    {
-    //        GunsOrganizedByType[gun.GunType].Add(gun);
-    //    }
+    [Header("Input Fields")]
+    public TMP_InputField PlayerMovementInput;
+    public TMP_InputField SprintBoostInput;
+    public TMP_InputField CrewmateStaminaInput;
+    public TMP_InputField ImposterStaminaInput;
+    public TMP_InputField NumberRoundtablesInput;
+    public TMP_InputField RoundtableCooldownInput;
+    public TMP_InputField DiscussionPeriodLengthInput;
+    public TMP_InputField VotingPeriodLengthInput;
+    public TMP_InputField PlayerLimitInput;
+    public TMP_InputField NumberOfImpostersInput;
+    public TMP_InputField NumberOfSheriffsInput;
+    public TMP_InputField NumberOfAssassinsInput;
+    public TMP_InputField NumberOfSaboteursInput;
 
-    //    foreach (KeyValuePair<GunType, List<Gun>> kvp in GunsOrganizedByType)
-    //    {
-    //        List<Gun> guns = kvp.Value;
+    [Header("Toggles")]
+    public LeanToggle SprintEnabledToggle;
+    public LeanToggle PlayersSpawnWithAllWeaponsToggle;
+    public LeanToggle SpawnWeaponsAroundMapToggle;
+    public LeanToggle MustKillAllCrewmatesToggle;
+    public LeanToggle DarkModeToggle;
+    public LeanToggle SheriffsEnabledToggle;
+    public LeanToggle AssassinsEnabledToggle;
+    public LeanToggle SaboteursEnabledToggle;
 
-    //        GameObject header = Instantiate(WeaponGroupHeaderPrefab, WeaponScrollviewContent.transform);
-    //        header.GetComponentInChildren<TextMeshProUGUI>().text = kvp.Key.ToString();
-
-    //        foreach (Gun gun in guns)
-    //        {
-    //            GameObject entry = Instantiate(WeaponEntryPrefab, WeaponScrollviewContent.transform);
-    //            header.GetComponentInChildren<TextMeshProUGUI>().text = gun.Name;
-
-    //            WeaponEntries[gun] = entry;
-    //        }
-    //    }
-    //}
-
-    // Start is called before the first frame update
-    void Start()
+    public override void OnStartLocalPlayer()
     {
         // Create a list for each type of gun.
         foreach (GunType gunType in Enum.GetValues(typeof(GunType)))
@@ -85,11 +82,74 @@ public class GameOptionsUI : MonoBehaviour
                 WeaponEntries[gun] = entry;
             }
         }
+
+        if (isClientOnly)
+        {
+
+        }
     }
 
-    // Update is called once per frame
-    void Update()
+    // Start is called before the first frame update
+    void Start()
     {
-        
+        //// Create a list for each type of gun.
+        //foreach (GunType gunType in Enum.GetValues(typeof(GunType)))
+        //{
+        //    GunsOrganizedByType[gunType] = new List<Gun>();
+        //}
+
+        //// Store all of the guns in their respective lists.
+        //foreach (Gun gun in WeaponPrefabs)
+        //{
+        //    Debug.Log("Initial processing on gun " + gun.Name);
+        //    GunsOrganizedByType[gun.GunType].Add(gun);
+        //}
+
+        //foreach (KeyValuePair<GunType, List<Gun>> kvp in GunsOrganizedByType)
+        //{
+        //    List<Gun> guns = kvp.Value;
+
+        //    GameObject header = Instantiate(WeaponGroupHeaderPrefab, WeaponScrollviewContent.transform);
+        //    header.GetComponentInChildren<TextMeshProUGUI>().text = kvp.Key.ToString();
+
+        //    foreach (Gun gun in guns)
+        //    {
+        //        Debug.Log("Creating entry for gun " + gun.Name);
+        //        GameObject entry = Instantiate(WeaponEntryPrefab, WeaponScrollviewContent.transform);
+        //        entry.GetComponentInChildren<Text>().text = gun.Name;
+
+        //        WeaponEntries[gun] = entry;
+        //    }
+        //}
     }
+
+    #region Client 
+
+    [Client]
+    public void OnCommitChanges()
+    {
+        if (isClientOnly) return;
+    }
+
+    [Client]
+    public void OnExitClicked()
+    {
+        // If they aren't host, then just exit. Don't show the exit confirmation window.
+        if (isClientOnly)
+            gameObject.SetActive(false);
+        else
+            ExitConfirmationWindow.TurnOn();
+    }
+
+    #endregion 
+
+    #region Commands
+
+    [Command]
+    public void CmdApplyChanges(Dictionary<string, int> settings)
+    {
+
+    }
+
+    #endregion 
 }

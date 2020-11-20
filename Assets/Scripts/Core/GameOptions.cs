@@ -1,101 +1,102 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using Mirror;
 
 // Used to configure all of the various game options.
-public class GameOptions : MonoBehaviour
+public class GameOptions : NetworkBehaviour
 {
-    public int NumPlayers;
+    [SyncVar] public int NumPlayers;
 
     [Header("Movement")]
     /* Movement related. */
-    public float PlayerSpeed = 5;
-    public bool SprintEnabled = true;               // Is the sprint mechanic enabled?
-    public float SprintBoost = 2;                   // Base speed is multiplied by this value when sprinting.
-    public float CrewmateSprintDuration = 10;       // How long can crewmates sprint?
-    public float ImposterSprintDuration = 15;       // How long can imposters sprint?
+    [SyncVar] public float PlayerSpeed = 5;
+    [SyncVar] public bool SprintEnabled = true;               // Is the sprint mechanic enabled?
+    [SyncVar] public float SprintBoost = 2;                   // Base speed is multiplied by this value when sprinting.
+    [SyncVar] public float CrewmateSprintDuration = 10;       // How long can crewmates sprint?
+    [SyncVar] public float ImposterSprintDuration = 15;       // How long can imposters sprint?
 
     [Header("Footprints")]
     /* Footprint related. */
-    public bool BloodyFootprintsEnabled;    // Are there bloody footprints after killing?
-    public bool BloodyFootprintsOnKillOnly; // If False, any player will have bloody footprints after walking over a dead body.
-    public float FootprintDistance;         // For how long will you have bloody footprints?         
-    public float FootprintOpacity;          // How dark are the footprints on the ground?
-    public bool FootprintsDisappear;        // Do the footprints eventually disappear?       
-    public float FootprintDuration;         // How long do footprints stick around before disappearing?
+    [SyncVar] public bool BloodyFootprintsEnabled;    // Are there bloody footprints after killing?
+    [SyncVar] public bool BloodyFootprintsOnKillOnly; // If False, any player will have bloody footprints after walking over a dead body.
+    [SyncVar] public float FootprintDistance;         // For how long will you have bloody footprints?         
+    [SyncVar] public float FootprintOpacity;          // How dark are the footprints on the ground?
+    [SyncVar] public bool FootprintsDisappear;        // Do the footprints eventually disappear?       
+    [SyncVar] public float FootprintDuration;         // How long do footprints stick around before disappearing?
 
     [Header("Killing")]
     /* Killing related. */
-    public float KillIntervalStandard;              // How long inbetween kills by standard imposter?
-    public float KillIntervalAssassin;              // How long do assassins wait inbetween kills?
-    public float KillDistanceStandard = 0.5f;       // Minimum distance required between crewmate and standard imposter for kill to be available.
-    public float KillDistanceAssassin;              // Minimum distance required between crewmate and assassin imposter for kill to be available.
+    [SyncVar] public float KillIntervalStandard;              // How long inbetween kills by standard imposter?
+    [SyncVar] public float KillIntervalAssassin;              // How long do assassins wait inbetween kills?
+    [SyncVar] public float KillDistanceStandard = 0.5f;       // Minimum distance required between crewmate and standard imposter for kill to be available.
+    [SyncVar] public float KillDistanceAssassin;              // Minimum distance required between crewmate and assassin imposter for kill to be available.
 
     [Header("Tasks")]
     /* Task-related settings. */
-    public int NumCommonTasks;              // How many tasks do ALL players have?
-    public int NumShortTasks;               // How many short-length tasks does each player get?
-    public int NumLongTasks;                // How many long-length tasks does each player get?
+    [SyncVar] public int NumCommonTasks;              // How many tasks do ALL players have?
+    [SyncVar] public int NumShortTasks;               // How many short-length tasks does each player get?
+    [SyncVar] public int NumLongTasks;                // How many long-length tasks does each player get?
 
     [Header("Voting & Discussion")]
     /* Voting and discussion related. */
-    public int NumEmergencyMeetings;        // How many emergency players may each player call?
-    public float MeetingCooldown;           // How long must players wait inbetween emergency meetings?
-    public float DiscussionPeriodLength;    // How long do players have to discuss before voting begins?
-    public float VotingPeriodLength;        // How long do players have to cast their votes once voting begins?
+    [SyncVar] public int NumEmergencyMeetings;        // How many emergency players may each player call?
+    [SyncVar] public float MeetingCooldown;           // How long must players wait inbetween emergency meetings?
+    [SyncVar] public float DiscussionPeriodLength;    // How long do players have to discuss before voting begins?
+    [SyncVar] public float VotingPeriodLength;        // How long do players have to cast their votes once voting begins?
 
     [Header("Emergencies")]
     /* Emergency related. */
-    public float EmergencyCooldownStandard; // How long must regular imposters wait inbetween causing emergencies?
-    public float EmergencyCooldownSaboteur; // How long must Saboteurs wait inbetween causing emergencies?
-    public float EmergencyMeetingCooldown;  // How much time must pass before the next emergency meeting can be called?
+    [SyncVar] public float EmergencyCooldownStandard; // How long must regular imposters wait inbetween causing emergencies?
+    [SyncVar] public float EmergencyCooldownSaboteur; // How long must Saboteurs wait inbetween causing emergencies?
+    [SyncVar] public float EmergencyMeetingCooldown;  // How much time must pass before the next emergency meeting can be called?
 
     [Header("Win Conditions")]
     /* Win Conditions */
-    public bool ImpostersMustKillAllCrewmates;
+    [SyncVar] public bool ImpostersMustKillAllCrewmates;
 
     [Header("Roles")]
     /* Role related */
-    public bool SaboteurEnabled;                // Is the "Saboteur" imposter role enabled?
-    public bool AssassinEnabled;                // Is the "Assassin" imposter role enabled?
-    public bool SheriffEnabled;                 // Is the "Sheriff" crewmate role enabed?
-    public int MaxSaboteurs;                    // What is the maximum number of Saboteur imposters allowed?
-    public int MaxAssassins;                    // What is the maximum number of Assassin imposters allowed?
-    public int MaxSheriffs;                     // What is the maximum number of sheriffs allowed?
-    public int NumberOfImposters;               // How many imposters are there?
-    public float SheriffScannerCooldown;        // How long must the sheriff wait inbetween uses of his/her scanner?
+    [SyncVar] public bool SaboteurEnabled;                // Is the "Saboteur" imposter role enabled?
+    [SyncVar] public bool AssassinEnabled;                // Is the "Assassin" imposter role enabled?
+    [SyncVar] public bool SheriffEnabled;                 // Is the "Sheriff" crewmate role enabed?
+    [SyncVar] public int MaxSaboteurs;                    // What is the maximum number of Saboteur imposters allowed?
+    [SyncVar] public int MaxAssassins;                    // What is the maximum number of Assassin imposters allowed?
+    [SyncVar] public int MaxSheriffs;                     // What is the maximum number of sheriffs allowed?
+    [SyncVar] public int NumberOfImposters;               // How many imposters are there?
+    [SyncVar] public float SheriffScannerCooldown;        // How long must the sheriff wait inbetween uses of his/her scanner?
 
     [Header("Vision")]
     /* Vision related. */
-    public int CrewmateVision;              // How far can crewmates see?
-    public int ImposterVision;              // How far can imposters see?
+    [SyncVar] public int CrewmateVision;              // How far can crewmates see?
+    [SyncVar] public int ImposterVision;              // How far can imposters see?
 
     /* Dark-mode Related */
-    public bool DarkModeEnabled;
+    [SyncVar] public bool DarkModeEnabled;
 
     [Header("Weapons")]
     /* Gun Related */
-    public bool GunsEnabled;
-    public bool CrewmatesHaveGuns;
-    public bool SheriffHasGun;              // If crewmatesHaveGUns is true, then this is ignored.
-    public bool Instakill;                  // If true, all guns insta-kill.
-    public float PlayerHealth;              // If instakill is false, then bullets do damage.
-    public float ImposterHealthMultiplier;  // PlayerHealth is multiplied by this to determine base health for imposters.
-    public int NumBulletsImposter;
-    public int NumBulletsAssassin;
-    public int NumBulletsSheriff;
-    public int NumBulletsSaboteur;
-    public int NumBulletsCrewmate;
-    public float GunshotVolume;
-    public float GunshotBrightness;
-    public float Firerate;
-    public bool ReloadsRequired;    // If false, then players can shoot infinitely without reloading.
-    public float ReloadTime;
-    public float MagazineSize;
-    public float Accuracy;
-    public float NumProjectiles;
-    public float Range;
-    public float ProjectileDamage;  // How much damage each individual projectile does.
+    [SyncVar] public bool GunsEnabled;
+    [SyncVar] public bool CrewmatesHaveGuns;
+    [SyncVar] public bool SheriffHasGun;              // If crewmatesHaveGUns is true, then this is ignored.
+    [SyncVar] public bool Instakill;                  // If true, all guns insta-kill.
+    [SyncVar] public float PlayerHealth;              // If instakill is false, then bullets do damage.
+    [SyncVar] public float ImposterHealthMultiplier;  // PlayerHealth is multiplied by this to determine base health for imposters.
+    [SyncVar] public int NumBulletsImposter;
+    [SyncVar] public int NumBulletsAssassin;
+    [SyncVar] public int NumBulletsSheriff;
+    [SyncVar] public int NumBulletsSaboteur;
+    [SyncVar] public int NumBulletsCrewmate;
+    [SyncVar] public float GunshotVolume;
+    [SyncVar] public float GunshotBrightness;
+    [SyncVar] public float Firerate;
+    [SyncVar] public bool ReloadsRequired;    // If false, then players can shoot infinitely without reloading.
+    [SyncVar] public float ReloadTime;
+    [SyncVar] public float MagazineSize;
+    [SyncVar] public float Accuracy;
+    [SyncVar] public float NumProjectiles;
+    [SyncVar] public float Range;
+    [SyncVar] public float ProjectileDamage;  // How much damage each individual projectile does.
 
     [Header("Debug")]
     /* Debug */
@@ -118,13 +119,11 @@ public class GameOptions : MonoBehaviour
         LMG,
         RPG
     }
-
+    
     /* Player Visuals */
-    public float playerScale;   // Multiplier for visual size of players.
-    public bool trailEnabled;   // Should players leave a trail (of particles or some shit)
-    public float trailDuration; // How far back does the trail go?
-
-    // TODO: Set minimum and maximum values for all of these.
+    [SyncVar] public float playerScale;   // Multiplier for visual size of players.
+    [SyncVar] public bool trailEnabled;   // Should players leave a trail (of particles or some shit)
+    [SyncVar] public float trailDuration; // How far back does the trail go?
 
     /// <summary>
     /// NetworkManager singleton
