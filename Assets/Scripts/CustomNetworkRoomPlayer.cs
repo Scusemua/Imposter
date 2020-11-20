@@ -267,9 +267,7 @@ public class CustomNetworkRoomPlayer : NetworkRoomPlayer
         if (LobbyPlayerModel != null)
         {
             float rotateAmnt = ModelRotationSpeed * Time.deltaTime;
-            Debug.Log("Rotating by " + rotateAmnt);
             LobbyPlayerModel.transform.Rotate(yAxis, rotateAmnt);
-            Debug.Log("LobbyPlayerModel.transform.rotation = " + LobbyPlayerModel.transform.rotation);
         }
     }
 

@@ -101,7 +101,7 @@ public class PlayerController : NetworkBehaviour
     [ClientRpc]
     void RpcPlayerFiredEntity(uint shooterID, uint targetID, Vector3 impactPos, Vector3 impactRot)
     {
-        Instantiate(bulletHolePrefab, impactPos + impactRot * 0.1f, Quaternion.LookRotation(impactRot), NetworkIdentity.spawned[targetID].transform);
+        //Instantiate(bulletHolePrefab, impactPos + impactRot * 0.1f, Quaternion.LookRotation(impactRot), NetworkIdentity.spawned[targetID].transform);
         Instantiate(bulletBloodFXPrefab, impactPos, Quaternion.LookRotation(impactRot));
         NetworkIdentity.spawned[shooterID].GetComponent<Player>().MuzzleFlash();
 
@@ -197,18 +197,13 @@ public class PlayerController : NetworkBehaviour
                 if (hit.collider.CompareTag("Player"))
                 {
                     RpcPlayerFiredEntity(GetComponent<NetworkIdentity>().netId, hit.collider.GetComponent<NetworkIdentity>().netId, hit.point, hit.normal);
-                    if (hit.collider.GetComponent<NetworkIdentity>().netId == GetComponent<NetworkIdentity>().netId)
-                    {
-                        Debug.Log("Shot self.");
-                        return;
-                    }
-                    else
+                    if (hit.collider.GetComponent<NetworkIdentity>().netId != GetComponent<NetworkIdentity>().netId)
                         hit.collider.GetComponent<Player>().Damage(WeaponDamage, GetComponent<NetworkIdentity>().netId);
                 }
+                else if (hit.collider.CompareTag("Enemy"))
+                    RpcPlayerFiredEntity(GetComponent<NetworkIdentity>().netId, hit.collider.GetComponent<NetworkIdentity>().netId, hit.point, hit.normal);
                 else
-                {
                     RpcPlayerFired(GetComponent<NetworkIdentity>().netId, hit.point, hit.normal);
-                }
             }
         }
 
