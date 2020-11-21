@@ -34,7 +34,7 @@ public class PlayerUI : MonoBehaviour
     public GameObject ExplosiveInventoryPanel;
     public GameObject WeaponUiEntryPrefab;
 
-    private List<GameObject> weaponUiEntries;
+    private List<GameObject> weaponUiEntries = new List<GameObject>();
 
     private Coroutine WeaponUiFadeRoutine;
 
@@ -206,6 +206,7 @@ public class PlayerUI : MonoBehaviour
             GameObject entry = Instantiate(WeaponUiEntryPrefab, PrimaryInventoryPanel.transform);
             TextMeshProUGUI weaponName = entry.GetComponentInChildren<TextMeshProUGUI>();
             weaponName.text = name;
+            weaponUiEntries.Add(entry);
         }
 
         foreach (string name in secondaryWeapons)
@@ -213,6 +214,7 @@ public class PlayerUI : MonoBehaviour
             GameObject entry = Instantiate(WeaponUiEntryPrefab, SecondaryInventoryPanel.transform);
             TextMeshProUGUI weaponName = entry.GetComponentInChildren<TextMeshProUGUI>(); weaponName.text = name;
             weaponName.text = name;
+            weaponUiEntries.Add(entry);
         }
 
         foreach (string name in explosiveWeapons)
@@ -220,6 +222,7 @@ public class PlayerUI : MonoBehaviour
             GameObject entry = Instantiate(WeaponUiEntryPrefab, ExplosiveInventoryPanel.transform);
             TextMeshProUGUI weaponName = entry.GetComponentInChildren<TextMeshProUGUI>();
             weaponName.text = name;
+            weaponUiEntries.Add(entry);
         }
 
         WeaponUI.SetActive(true);
