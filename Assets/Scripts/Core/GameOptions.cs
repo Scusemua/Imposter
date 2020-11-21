@@ -113,7 +113,7 @@ public class GameOptions : NetworkBehaviour
     /// <summary>
     /// This is the chance that a weapon spawns (rather than an ammo box) at a given item spawn position.
     /// </summary>
-    public static float WeaponSpawnChance = 0.50f;
+    public static float WeaponSpawnChance = 0.85f;
 
     /// <summary>
     /// This is the chance that, when an ammo box spawns, it spawns as a medkit rather than an actual ammo box.

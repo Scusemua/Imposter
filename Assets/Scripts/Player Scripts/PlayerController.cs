@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using Mirror;
+using System.Linq;
 using System.Collections;
 using System.Collections.Generic;
 
@@ -128,21 +129,36 @@ public class PlayerController : NetworkBehaviour
         if (Input.GetKeyDown(KeyCode.R))
             ReloadButton();
 
-        if (Input.GetKeyDown(KeyCode.B))
+        if (Input.GetKeyDown(KeyCode.V))
             DropButton();
 
         if (Input.GetKeyDown(KeyCode.Alpha1))
         {
+            string[] primaryWeaponNames = PrimaryInventory.Select(gun => itemDatabase.GetGunByID(gun.Id).Name).ToArray<string>();
+            string[] secondaryWeaponNames = SecondaryInventory.Select(gun => itemDatabase.GetGunByID(gun.Id).Name).ToArray<string>();
+            string[] explosiveWeaponNames = ExplosiveInventory.Select(gun => itemDatabase.GetGunByID(gun.Id).Name).ToArray<string>();
+
+            Player.PlayerUI.ShowWeaponUI(primaryWeaponNames, secondaryWeaponNames, explosiveWeaponNames);
             CmdTryCycleInventory(0);
         }
 
         if (Input.GetKeyDown(KeyCode.Alpha2))
         {
+            string[] primaryWeaponNames = PrimaryInventory.Select(gun => itemDatabase.GetGunByID(gun.Id).Name).ToArray<string>();
+            string[] secondaryWeaponNames = SecondaryInventory.Select(gun => itemDatabase.GetGunByID(gun.Id).Name).ToArray<string>();
+            string[] explosiveWeaponNames = ExplosiveInventory.Select(gun => itemDatabase.GetGunByID(gun.Id).Name).ToArray<string>();
+
+            Player.PlayerUI.ShowWeaponUI(primaryWeaponNames, secondaryWeaponNames, explosiveWeaponNames);
             CmdTryCycleInventory(1);
         }
 
         if (Input.GetKeyDown(KeyCode.Alpha3))
         {
+            string[] primaryWeaponNames = PrimaryInventory.Select(gun => itemDatabase.GetGunByID(gun.Id).Name).ToArray<string>();
+            string[] secondaryWeaponNames = SecondaryInventory.Select(gun => itemDatabase.GetGunByID(gun.Id).Name).ToArray<string>();
+            string[] explosiveWeaponNames = ExplosiveInventory.Select(gun => itemDatabase.GetGunByID(gun.Id).Name).ToArray<string>();
+
+            Player.PlayerUI.ShowWeaponUI(primaryWeaponNames, secondaryWeaponNames, explosiveWeaponNames);
             CmdTryCycleInventory(2);
         }
     }
@@ -170,7 +186,7 @@ public class PlayerController : NetworkBehaviour
     #region Client RPC
 
     [ClientRpc]
-    void RpcPlayerFiredEntity(uint shooterID, uint targetID, Vector3 impactPos, Vector3 impactRot)
+    void RpcPlayerFiredEntity(uint shooterID, uint targetID, int gunId, Vector3 impactPos, Vector3 impactRot)
     {
         //Instantiate(bulletHolePrefab, impactPos + impactRot * 0.1f, Quaternion.LookRotation(impactRot), NetworkIdentity.spawned[targetID].transform);
         //Instantiate(bulletBloodFXPrefab, impactPos, Quaternion.LookRotation(impactRot));
@@ -180,6 +196,11 @@ public class PlayerController : NetworkBehaviour
 
         float volumeDistModifier = (1000f - GetDistanceSquaredToTarget(shooterTransform)) / 1000f;
         Debug.Log("Playing gunshot with volume modifier: " + volumeDistModifier);
+
+        AudioClip gunshotSound = Gunshot;
+        if (itemDatabase.GetGunByID(gunId).ShootSound != null)
+            gunshotSound = itemDatabase.GetGunByID(gunId).ShootSound;
+
         // Adjust volume of gunshot based on distance.
         this.AudioSource.PlayOneShot(Gunshot, volumeDistModifier);
 
@@ -188,7 +209,7 @@ public class PlayerController : NetworkBehaviour
     }
 
     [ClientRpc]
-    void RpcPlayerFired(uint shooterID, Vector3 impactPos, Vector3 impactRot)
+    void RpcPlayerFired(uint shooterID, int gunId, Vector3 impactPos, Vector3 impactRot)
     {
         //Instantiate(bulletHolePrefab, impactPos + impactRot * 0.1f, Quaternion.LookRotation(impactRot));
         Instantiate(bulletFXPrefab, impactPos, Quaternion.LookRotation(impactRot));
@@ -198,6 +219,10 @@ public class PlayerController : NetworkBehaviour
 
         float volumeDistModifier = (1000f - GetDistanceSquaredToTarget(shooterTransform)) / 1000f;
         //Debug.Log("Playing gunshot with volume modifier: " + volumeDistModifier);
+
+        AudioClip gunshotSound = Gunshot;
+        if (itemDatabase.GetGunByID(gunId).ShootSound != null)
+            gunshotSound = itemDatabase.GetGunByID(gunId).ShootSound;
 
         // Adjust volume of gunshot based on distance.
         this.AudioSource.PlayOneShot(Gunshot, volumeDistModifier);
@@ -266,16 +291,22 @@ public class PlayerController : NetworkBehaviour
         {
             PrimaryInventory.Add(new InventoryGun(gun.AmmoInClip, gun.Id));
             NetworkServer.Destroy(weaponGameObject);
+
+            TargetPlayPickupWeaponSound();
         }
         else if (gunType == Gun.GunType.SECONDARY && SecondaryInventory.Count < GameOptions.GunTypeInventoryLimits[gunType] && !SecondaryInventory.Contains(temp))
         {
             SecondaryInventory.Add(new InventoryGun(gun.AmmoInClip, gun.Id));
             NetworkServer.Destroy(weaponGameObject);
+
+            TargetPlayPickupWeaponSound();
         }
         else if (gunType == Gun.GunType.EXPLOSIVE && ExplosiveInventory.Count < GameOptions.GunTypeInventoryLimits[gunType] && !ExplosiveInventory.Contains(temp))
         {
             ExplosiveInventory.Add(new InventoryGun(gun.AmmoInClip, gun.Id));
             NetworkServer.Destroy(weaponGameObject);
+
+            TargetPlayPickupWeaponSound();
         }
     }
 
@@ -340,6 +371,7 @@ public class PlayerController : NetworkBehaviour
                 NetworkServer.Destroy(ammoBoxGameObject);
 
                 TargetUpdateAmmoCounts();
+                TargetPlayPickupAmmoSound();
             }
         }
         else
@@ -349,6 +381,7 @@ public class PlayerController : NetworkBehaviour
             {
                 Player.Health = Mathf.Min(Player.HealthMax, Player.Health + ammoBox.NumberBullets);
                 NetworkServer.Destroy(ammoBoxGameObject);
+                TargetPlayPickupHealthSound();
             }
         }
     }
@@ -385,14 +418,14 @@ public class PlayerController : NetworkBehaviour
                 //Debug.Log("SERVER: Player shot: " + hit.collider.name);
                 if (hit.collider.CompareTag("Player"))
                 {
-                    RpcPlayerFiredEntity(GetComponent<NetworkIdentity>().netId, hit.collider.GetComponent<NetworkIdentity>().netId, hit.point, hit.normal);
+                    RpcPlayerFiredEntity(GetComponent<NetworkIdentity>().netId, hit.collider.GetComponent<NetworkIdentity>().netId, CurrentWeapon.Id, hit.point, hit.normal);
                     if (hit.collider.GetComponent<NetworkIdentity>().netId != GetComponent<NetworkIdentity>().netId)
                         hit.collider.GetComponent<Player>().Damage(CurrentWeapon.Damage, GetComponent<NetworkIdentity>().netId);
                 }
                 else if (hit.collider.CompareTag("Enemy"))
-                    RpcPlayerFiredEntity(GetComponent<NetworkIdentity>().netId, hit.collider.GetComponent<NetworkIdentity>().netId, hit.point, hit.normal);
+                    RpcPlayerFiredEntity(GetComponent<NetworkIdentity>().netId, hit.collider.GetComponent<NetworkIdentity>().netId, CurrentWeapon.Id, hit.point, hit.normal);
                 else
-                    RpcPlayerFired(GetComponent<NetworkIdentity>().netId, hit.point, hit.normal);
+                    RpcPlayerFired(GetComponent<NetworkIdentity>().netId, CurrentWeapon.Id, hit.point, hit.normal);
             }
         }
 
@@ -455,7 +488,7 @@ public class PlayerController : NetworkBehaviour
 
     void OnTriggerEnter(Collider other)
     {
-        if (other.gameObject.CompareTag("Ammo Box"))
+        if (other.gameObject.CompareTag("AmmoBox"))
         {
             CmdPickupAmmoBox(other.gameObject);
         }   
@@ -471,7 +504,12 @@ public class PlayerController : NetworkBehaviour
         if (!isLocalPlayer) return;
 
         if (_New)
-            AudioSource.PlayOneShot(ReloadSound);
+        {
+            if (CurrentWeapon.ReloadSound != null)
+                AudioSource.PlayOneShot(CurrentWeapon.ReloadSound);
+            else
+                AudioSource.PlayOneShot(ReloadSound);
+        }
     }
 
     public override void OnStartLocalPlayer()
@@ -542,6 +580,7 @@ public class PlayerController : NetworkBehaviour
         Debug.Log("Assigning weapon " + id + " to player now.");
         CurrentWeapon = Instantiate(itemDatabase.GetGunByID(id), weaponContainer).GetComponent<Gun>();
         CurrentWeapon.GetComponent<Collider>().enabled = false; // Disable the collider.
+        CurrentWeapon.GetComponent<Rigidbody>().isKinematic = false;
         CurrentWeapon.OnGround = false;
 
         if (ammoInClip >= 0)
@@ -853,6 +892,12 @@ public class PlayerController : NetworkBehaviour
     {
         public int AmmoInClip;
         public int Id;
+
+        public InventoryGun()
+        {
+            AmmoInClip = 0;
+            Id = -1;
+        }
 
         public InventoryGun(int ammoInClip, int id)
         {

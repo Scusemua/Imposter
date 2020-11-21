@@ -28,6 +28,15 @@ public class PlayerUI : MonoBehaviour
     public GameObject PlayerUICanvas;
     public Healthbar HpBar;
     public Healthbar StaminaBar;
+    public GameObject WeaponUI;
+    public GameObject PrimaryInventoryPanel;
+    public GameObject SecondaryInventoryPanel;
+    public GameObject ExplosiveInventoryPanel;
+    public GameObject WeaponUiEntryPrefab;
+
+    private List<GameObject> weaponUiEntries;
+
+    private Coroutine WeaponUiFadeRoutine;
 
     public GameObject RoleAnimator;
     public Text RoleAnimationText;
@@ -182,6 +191,67 @@ public class PlayerUI : MonoBehaviour
     public void UpdateHealth(float health)
     {
         HpBar.TakeDamage(health);
+    }
+
+    [Client]
+    public void ShowWeaponUI(string[] primaryWeapons, string[] secondaryWeapons, string[] explosiveWeapons)
+    {
+        foreach (GameObject gameObject in weaponUiEntries)
+        {
+            Destroy(gameObject);
+        }
+
+        foreach (string name in primaryWeapons)
+        {
+            GameObject entry = Instantiate(WeaponUiEntryPrefab, PrimaryInventoryPanel.transform);
+            TextMeshProUGUI weaponName = entry.GetComponentInChildren<TextMeshProUGUI>();
+            weaponName.text = name;
+        }
+
+        foreach (string name in secondaryWeapons)
+        {
+            GameObject entry = Instantiate(WeaponUiEntryPrefab, SecondaryInventoryPanel.transform);
+            TextMeshProUGUI weaponName = entry.GetComponentInChildren<TextMeshProUGUI>(); weaponName.text = name;
+            weaponName.text = name;
+        }
+
+        foreach (string name in explosiveWeapons)
+        {
+            GameObject entry = Instantiate(WeaponUiEntryPrefab, ExplosiveInventoryPanel.transform);
+            TextMeshProUGUI weaponName = entry.GetComponentInChildren<TextMeshProUGUI>();
+            weaponName.text = name;
+        }
+
+        WeaponUI.SetActive(true);
+        InitWeaponUIFade();
+    }
+
+    [Client]
+    public void InitWeaponUIFade()
+    {
+        if (WeaponUiFadeRoutine != null)
+        {
+            CanvasGroup canvasGroup = WeaponUI.GetComponent<CanvasGroup>();
+            canvasGroup.alpha = 1.0f;
+            StopCoroutine(WeaponUiFadeRoutine);
+        }
+        WeaponUiFadeRoutine = StartCoroutine(DoFade());
+    }
+
+    IEnumerator DoFade()
+    {
+        CanvasGroup canvasGroup = WeaponUI.GetComponent<CanvasGroup>();
+        yield return new WaitForSeconds(3.0f);
+        while (canvasGroup.alpha > 0)
+        {
+            canvasGroup.alpha -= Time.deltaTime / 2;
+            yield return null;
+        }
+
+        canvasGroup.interactable = false;
+        canvasGroup.blocksRaycasts = true;
+        WeaponUI.SetActive(false);
+        yield return null;
     }
 
     [Client]

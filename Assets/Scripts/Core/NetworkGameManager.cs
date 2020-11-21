@@ -491,7 +491,6 @@ public class NetworkGameManager : NetworkRoomManager
 
                 // set the RigidBody as non-kinematic on the server only (isKinematic = true in prefab).
                 gun.GetComponent<Rigidbody>().isKinematic = false;
-                gun.GetComponent<Collider>().enabled = true;
 
                 NetworkServer.Spawn(gun.gameObject);
                 Debug.Log("Spawned weapon " + gunId + " -- \"" + gun.Name + "\" -- at position " + position + ".");
@@ -507,7 +506,6 @@ public class NetworkGameManager : NetworkRoomManager
 
                     // set the RigidBody as non-kinematic on the server only (isKinematic = true in prefab).
                     medkit.GetComponent<Rigidbody>().isKinematic = false;
-                    medkit.GetComponent<Collider>().enabled = true;
 
                     NetworkServer.Spawn(medkit.gameObject);
                     Debug.Log("Spawned medkit variant " + medkitPrefabVariantIndex + " at position " + position + ".");
@@ -520,7 +518,6 @@ public class NetworkGameManager : NetworkRoomManager
 
                     // set the RigidBody as non-kinematic on the server only (isKinematic = true in prefab).
                     ammoBox.GetComponent<Rigidbody>().isKinematic = false;
-                    ammoBox.GetComponent<Collider>().enabled = true;
 
                     NetworkServer.Spawn(ammoBox.gameObject);
                     Debug.Log("Spawned ammo box variant " + ammoBoxPrefabVariantIndex + " at position " + position + ".");
