@@ -72,7 +72,7 @@ public class PlayerController : NetworkBehaviour
     /// <summary>
     /// The player's melee weapons.
     /// </summary>
-    [SerializeField] private SyncList<InventoryGun> MeleeInventory = new SyncList<InventoryGun>();
+    //[SerializeField] private SyncList<InventoryGun> MeleeInventory = new SyncList<InventoryGun>();
 
     /// <summary>
     /// The player's explosive weapons.
@@ -82,7 +82,7 @@ public class PlayerController : NetworkBehaviour
     /// <summary>
     /// The player's grenades.
     /// </summary>
-    [SerializeField] private SyncList<InventoryGun> GrenadeInventory = new SyncList<InventoryGun>();
+    //[SerializeField] private SyncList<InventoryGun> GrenadeInventory = new SyncList<InventoryGun>();
 
     private ItemDatabase itemDatabase;
     
@@ -618,7 +618,11 @@ public class PlayerController : NetworkBehaviour
     public void OnPlayerBodyIdentified(bool _Old, bool _New)
     {
         // If the player's body has been identified, then disable the outline.
-        if (Identified) this.PlayerOutline.enabled = false;
+        if (_New)
+        {
+            Debug.Log(GetPlayerDebugString() + " has been identified.");
+            PlayerOutline.enabled = false;
+        }
     }
 
     public override void OnStartAuthority()
@@ -820,7 +824,10 @@ public class PlayerController : NetworkBehaviour
         setRigidbodyState(false);
         setColliderState(true);
 
-        this.PlayerOutline.OutlineColor = new Color32(245, 233, 66, 0);
+        PlayerOutline.enabled = false;
+        PlayerOutline.OutlineWidth = 8;
+        PlayerOutline.OutlineColor = new Color32(245, 233, 66, 0);
+        PlayerOutline.enabled = true;
 
         if (isLocalPlayer)
             AudioSource.PlayOneShot(ImpactSound);
@@ -891,8 +898,7 @@ public class PlayerController : NetworkBehaviour
 
     public override void OnStartServer()
     {
-        //print("Giving player gun id=0.");
-        //GivePlayerWeapon(3, false, false);
+        GivePlayerWeapon(3, false, false);
     }
 
     /// <summary>

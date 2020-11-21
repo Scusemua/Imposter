@@ -6,12 +6,12 @@ using Mirror;
 public class Gun : NetworkBehaviour
 {
     #region Static Constants
-    public static int MAX_PISTOL_AMMO = 120;
-    public static int MAX_ASSAULT_RIFLE_AMMO = 180;
-    public static int MAX_SHOTGUN_AMMO = 75;
-    public static int MAX_RIFLE_AMMO = 90;
-    public static int MAX_SUBMACHINE_GUN_AMMO = 300;
-    public static int MAX_LMG_AMMO = 500;
+    public static int MAX_PISTOL_AMMO = 175;
+    public static int MAX_ASSAULT_RIFLE_AMMO = 360;
+    public static int MAX_SHOTGUN_AMMO = 100;
+    public static int MAX_RIFLE_AMMO = 125;
+    public static int MAX_SUBMACHINE_GUN_AMMO = 450;
+    public static int MAX_LMG_AMMO = 1500;
     public static int MAX_EXPLOSIVE_AMMO = 30;
 
     public static Dictionary<GunClass, int> AmmoMaxCounts = new Dictionary<GunClass, int>
