@@ -12,6 +12,8 @@ public class NetworkGameManager : NetworkRoomManager
     /// </summary>
     public static uint SKIPPED_VOTE_NET_ID = 9999;
 
+    private ItemDatabase itemDatabase;
+    
     public enum GameState
     {
         LOBBY,
@@ -27,6 +29,12 @@ public class NetworkGameManager : NetworkRoomManager
     public static event Action OnClientDisconnected;
     public static event Action<NetworkConnection> OnServerReadied;
     public static event Action OnServerStopped;
+
+    /// <summary>
+    /// We can spawn ammo and weapons at these locations when the match starts.
+    /// </summary>
+    [HideInInspector]
+    public static List<Transform> ItemSpawnLocations = new List<Transform>();
 
     private GameState currentGameState;
     private GameOptions gameOptions;
@@ -312,6 +320,24 @@ public class NetworkGameManager : NetworkRoomManager
     #region Game Management
 
     /// <summary>
+    /// Register a Transform as a location at which weapons and ammo can be spawned by the server.
+    /// </summary>
+    public static void RegisterItemSpawnLocation(Transform spawnLocation)
+    {
+        Debug.Log("Registering item spawn location at " + spawnLocation.position);
+        ItemSpawnLocations.Add(spawnLocation);
+    }
+
+    /// <summary>
+    /// UnRegister a Transform as a location at which weapons and ammo can be spawned by the server.
+    /// </summary>
+    public static void UnRegisterItemSpawnLocation(Transform spawnLocation)
+    {
+        Debug.Log("Unregistering item spawn location at " + spawnLocation.position);
+        ItemSpawnLocations.Remove(spawnLocation);
+    }
+
+    /// <summary>
     /// Perform the necessary clean-up once the game has ended and players are returning back to the lobby.
     /// </summary>
     void GameEnded()
@@ -437,6 +463,69 @@ public class NetworkGameManager : NetworkRoomManager
 
         //return base.OnRoomServerSceneLoadedForPlayer(conn, roomPlayer, gamePlayer);
         return true;
+    }
+
+    public override void OnServerSceneChanged(string sceneName)
+    {
+        if (sceneName == GameplayScene)
+            itemDatabase = GameObject.FindGameObjectWithTag("ItemDatabase").GetComponent<ItemDatabase>();
+
+        if (gameOptions.SpawnWeaponsAroundMap)
+        {
+            Debug.Log("Spawning items now. There are " + ItemSpawnLocations.Count + " item spawn locations.");
+            System.Random rng = new System.Random();
+            foreach (Transform transform in ItemSpawnLocations)
+            {
+                Vector3 position = transform.position;
+                Quaternion rotation = transform.rotation;
+
+                if (rng.NextDouble() <= GameOptions.WeaponSpawnChance)
+                {
+                    // Instantiate the scene object on the server.
+                    int gunId = rng.Next(0, itemDatabase.MaxWeaponId + 1); // We add 1 bc this is exclusive.
+                    Gun gun = Instantiate(itemDatabase.GetGunByID(gunId), position, rotation);
+
+                    // set the RigidBody as non-kinematic on the server only (isKinematic = true in prefab).
+                    gun.GetComponent<Rigidbody>().isKinematic = false;
+
+                    NetworkServer.Spawn(gun.gameObject);
+                    Debug.Log("Spawned weapon " + gunId + " -- \"" + gun.Name + "\" -- at position " + position + ".");
+                }
+                else
+                {
+                    // Spawn an ammo box instead -- with the possibility that it is a medkit.
+                    if (rng.NextDouble() <= GameOptions.MedkitSpawnChance)
+                    {
+                        // Instantiate the scene object on the server.
+                        int medkitPrefabVariantIndex = rng.Next(0, itemDatabase.NumMedkitVariants);
+                        AmmoBox medkit = Instantiate(itemDatabase.GetMedkitByIndex(medkitPrefabVariantIndex), position, rotation);
+
+                        // set the RigidBody as non-kinematic on the server only (isKinematic = true in prefab).
+                        medkit.GetComponent<Rigidbody>().isKinematic = false;
+
+                        NetworkServer.Spawn(medkit.gameObject);
+                        Debug.Log("Spawned medkit variant " + medkitPrefabVariantIndex + " at position " + position + ".");
+                    }
+                    else
+                    {
+                        // Instantiate the scene object on the server.
+                        int ammoBoxPrefabVariantIndex = rng.Next(0, itemDatabase.NumMedkitVariants);
+                        AmmoBox ammoBox = Instantiate(itemDatabase.GetMedkitByIndex(ammoBoxPrefabVariantIndex), position, rotation);
+
+                        // set the RigidBody as non-kinematic on the server only (isKinematic = true in prefab).
+                        ammoBox.GetComponent<Rigidbody>().isKinematic = false;
+
+                        NetworkServer.Spawn(ammoBox.gameObject);
+                        Debug.Log("Spawned ammo box variant " + ammoBoxPrefabVariantIndex + " at position " + position + ".");
+                    }
+                }
+            }
+        }
+    }
+
+    private void SpawnItemsAroundMap()
+    {
+
     }
 
     public override void OnRoomServerPlayersReady()

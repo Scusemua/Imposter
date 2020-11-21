@@ -25,7 +25,7 @@ public class GameOptionsUI : NetworkBehaviour
 
     public Dictionary<Gun, GameObject> WeaponEntries = new Dictionary<Gun, GameObject>();
 
-    public Dictionary<GunType, List<Gun>> GunsOrganizedByType = new Dictionary<GunType, List<Gun>>();
+    public Dictionary<GunClass, List<Gun>> GunsOrganizedByType = new Dictionary<GunClass, List<Gun>>();
 
     public LeanWindow ExitConfirmationWindow;
 
@@ -86,7 +86,7 @@ public class GameOptionsUI : NetworkBehaviour
     public void PopulateValues()
     {
         // Create a list for each type of gun.
-        foreach (GunType gunType in Enum.GetValues(typeof(GunType)))
+        foreach (GunClass gunType in Enum.GetValues(typeof(GunClass)))
         {
             GunsOrganizedByType[gunType] = new List<Gun>();
         }
@@ -95,10 +95,10 @@ public class GameOptionsUI : NetworkBehaviour
         foreach (Gun gun in WeaponPrefabs)
         {
             Debug.Log("Initial processing on gun " + gun.Name);
-            GunsOrganizedByType[gun.GunType].Add(gun);
+            GunsOrganizedByType[gun.GunClass].Add(gun);
         }
 
-        foreach (KeyValuePair<GunType, List<Gun>> kvp in GunsOrganizedByType)
+        foreach (KeyValuePair<GunClass, List<Gun>> kvp in GunsOrganizedByType)
         {
             List<Gun> guns = kvp.Value;
 

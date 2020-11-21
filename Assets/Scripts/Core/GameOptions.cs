@@ -77,6 +77,43 @@ public class GameOptions : NetworkBehaviour
     /* Debug */
     public bool disableWinChecking;
 
+    #region Static Properties (not user configurable)
+
+    // Holding a different weapon type impacts your speed.
+    public static float PistolSpeedModifier = 0.98f;
+    public static float ShotgunSpeedModifier = 0.95f;
+    public static float SMGSpeedModifier = 0.96f;
+    public static float ARSpeedModifier = 0.93f;
+    public static float ExplosiveSpeedModifier = 0.90f;
+    public static float LMGSpeedModifier = 0.87f;
+    public static float RifleSpeedModifier = 0.91f;
+
+    /// <summary>
+    /// Map from each gun class to its speed modifier.
+    /// </summary>
+    public static Dictionary<GunClass, float> GunClassSpeedModifiers = new Dictionary<GunClass, float>()
+    {
+        [GunClass.ASSAULT_RIFLE] = ARSpeedModifier,
+        [GunClass.SHOTGUN] = ShotgunSpeedModifier,
+        [GunClass.SUBMACHINE_GUN] = SMGSpeedModifier,
+        [GunClass.RIFLE] = RifleSpeedModifier,
+        [GunClass.PISTOL] = PistolSpeedModifier,
+        [GunClass.LIGHT_MACHINE_GUN] = LMGSpeedModifier,
+        [GunClass.EXPLOSIVE] = ExplosiveSpeedModifier
+    };
+
+    /// <summary>
+    /// This is the chance that a weapon spawns (rather than an ammo box) at a given item spawn position.
+    /// </summary>
+    public static float WeaponSpawnChance = 0.50f;
+
+    /// <summary>
+    /// This is the chance that, when an ammo box spawns, it spawns as a medkit rather than an actual ammo box.
+    /// </summary>
+    public static float MedkitSpawnChance = 0.15f;
+    
+    #endregion 
+
     public enum ProjectileType
     {
         BULLET, // Regular bullets

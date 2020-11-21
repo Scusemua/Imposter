@@ -1,8 +1,9 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using Mirror;
 
-public class Gun : MonoBehaviour
+public class Gun : NetworkBehaviour
 {
     #region Static Constants
     public static int MAX_PISTOL_AMMO = 120;
@@ -14,9 +15,17 @@ public class Gun : MonoBehaviour
     public static int MAX_EXPLOSIVE_AMMO = 30;
     #endregion 
 
+    public enum GunType
+    {
+        PRIMARY,
+        SECONDARY,
+        EXPLOSIVE
+    }
+
     [Header("Weapon Statistics")]
     public int Id;                  // Unique identifier of the weapon.
-    public GunType GunType;         // Defines maximum ammo.
+    public GunClass GunClass;       // Defines maximum ammo and other properties.
+    public GunType _GunType;        // We can only pick up a certian number of each type of weapon.
     public int ClipSize;            // Number of times that the player can shoot before needing to reload.
     public float WeaponCooldown;    // Firerate.
     public float ReloadTime;        // How long it takes to reload.
@@ -27,10 +36,23 @@ public class Gun : MonoBehaviour
     public float Damage;            // How much damage weapon does.
     public string Name;             // Name of the weapon.
     public float SwapTime;          // How long it takes to put this gun away or take it out.
+    public bool OnGround;
+
+    [Tooltip("If this is true, then you can specify an explicit speed modifier for the weapon. Otherwise it defaults to its class speed modifier.")]
+    public bool UseCustomSpeedModifier;
+    [Tooltip("Changing this value will not have an effect unless 'UseCustomSpeedModifier' is toggled (i.e., set to true).")]
+    public float SpeedModifier;
     
     [Header("Weapon Audio")]
     public AudioClip ShootSound;    // Sound that gets played when shooting.
     public AudioClip ReloadSound;   // Sound that gets played when reloading.
+
+    void Alive()
+    {
+        // If this weapon isn't configured to use a particular speed modifier, then use the default class speed modifier.
+        if (!UseCustomSpeedModifier)
+            SpeedModifier = GameOptions.GunClassSpeedModifiers[GunClass];
+    }
 
     public override int GetHashCode()
     {

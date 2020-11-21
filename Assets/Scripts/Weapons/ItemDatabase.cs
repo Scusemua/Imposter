@@ -6,6 +6,16 @@ public class ItemDatabase : MonoBehaviour
 {
     [SerializeField] private List<Gun> AllGuns = new List<Gun>();
 
+    /// <summary>
+    /// This list contains ammo box variants. The only difference between each prefab in this list is cosmetic.
+    /// </summary>
+    [SerializeField] private List<AmmoBox> AmmoBoxes = new List<AmmoBox>();
+
+    /// <summary>
+    /// This list contains medkit variants. The only difference between each prefab in this list is cosmetic.
+    /// </summary>
+    [SerializeField] private List<AmmoBox> Medkits = new List<AmmoBox>();
+
     private Dictionary<int, Gun> gunMap = new Dictionary<int, Gun>();
 
     public Gun GetGunByID(int id)
@@ -16,6 +26,30 @@ public class ItemDatabase : MonoBehaviour
             gun = gunMap[id];
 
         return gun;
+    }
+
+    /// <summary>
+    /// The largest weapon ID.
+    /// </summary>
+    public int MaxWeaponId
+    {
+        get
+        {
+            return AllGuns.Count - 1;
+        }
+    }
+
+    public int NumMedkitVariants { get => Medkits.Count; }
+    public int NumAmmoBoxVariants { get => AmmoBoxes.Count; }
+
+    public AmmoBox GetAmmoBoxByIndex(int index)
+    {
+        return AmmoBoxes[index];
+    }
+
+    public AmmoBox GetMedkitByIndex(int index)
+    {
+        return Medkits[index];
     }
 
     public Gun GetGunByName(string name)

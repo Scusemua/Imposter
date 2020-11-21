@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public enum GunType
+public enum GunClass
 {
     PISTOL,
     ASSAULT_RIFLE,

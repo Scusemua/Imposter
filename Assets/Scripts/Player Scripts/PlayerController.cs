@@ -30,13 +30,8 @@ public class PlayerController : NetworkBehaviour
 
     [Header("Weapon")]
     [SerializeField] Transform weaponContainer; // This is where the weapon goes.
-    [SyncVar] public int AmmoCount = 20;
-    [SyncVar] public int ReserveAmmo = 60;
-    [SyncVar] int AmmoCountMax = 20;
+    [SyncVar] public int AmmoInGun = 20;
     [SyncVar(hook = nameof(OnReloadingStateChanged))] bool Reloading;
-    [SerializeField] double reloadTime = 2;
-    [SerializeField] float WeaponDamage;
-    [SerializeField] float WeaponCooldown;
     [SerializeField] GameObject bulletHolePrefab;
     [SerializeField] GameObject bulletFXPrefab;
     [SerializeField] GameObject bulletBloodFXPrefab;
@@ -45,15 +40,15 @@ public class PlayerController : NetworkBehaviour
     public int CurrentWeaponID = -1;
     public Gun CurrentWeapon;
     
-    private Dictionary<GunType, int> ammoCounts = new Dictionary<GunType, int>
+    private Dictionary<GunClass, int> ammoCounts = new Dictionary<GunClass, int>
     {
-        [GunType.ASSAULT_RIFLE] = 100,
-        [GunType.SHOTGUN] = 100,
-        [GunType.SUBMACHINE_GUN] = 100,
-        [GunType.RIFLE] = 100,
-        [GunType.PISTOL] = 100,
-        [GunType.LIGHT_MACHINE_GUN] = 100,
-        [GunType.EXPLOSIVE] = 100
+        [GunClass.ASSAULT_RIFLE] = 100,
+        [GunClass.SHOTGUN] = 100,
+        [GunClass.SUBMACHINE_GUN] = 100,
+        [GunClass.RIFLE] = 100,
+        [GunClass.PISTOL] = 100,
+        [GunClass.LIGHT_MACHINE_GUN] = 100,
+        [GunClass.EXPLOSIVE] = 100
     };
     
     private List<Gun> primaryInventory = new List<Gun>();
@@ -77,6 +72,12 @@ public class PlayerController : NetworkBehaviour
     private float movementSpeed;
     private float runBoost;
     private bool sprintEnabled;
+
+    /// <summary>
+    /// Animation
+    /// </summary>
+    private float lastX;
+    private float lastY;
 
     private GameOptions GameOptions { get => GameOptions.singleton; }
 
@@ -105,7 +106,7 @@ public class PlayerController : NetworkBehaviour
 
     internal void ShootWeapon()
     {
-        if (AmmoCount > 0 && !Player.IsDead && curCooldown <= 0.01)
+        if (AmmoInGun > 0 && !Player.IsDead && curCooldown <= 0.01)
         {
             //Do command
             CmdTryShoot();
@@ -172,7 +173,7 @@ public class PlayerController : NetworkBehaviour
     void TargetShoot()
     {
         // Update the ammo count on the player's screen.
-        Player.PlayerUI.AmmoClipText.text = AmmoCount.ToString();
+        Player.PlayerUI.AmmoClipText.text = AmmoInGun.ToString();
     }
 
     [TargetRpc]
@@ -180,8 +181,8 @@ public class PlayerController : NetworkBehaviour
     {
         //We reloaded successfully.
         //Update UI
-        Player.PlayerUI.AmmoClipText.text = AmmoCount.ToString();
-        Player.PlayerUI.AmmoReserveText.text = ReserveAmmo.ToString();
+        Player.PlayerUI.AmmoClipText.text = AmmoInGun.ToString();
+        Player.PlayerUI.AmmoReserveText.text = ammoCounts[CurrentWeapon.GunClass].ToString();
     }
 
     #endregion
@@ -191,7 +192,7 @@ public class PlayerController : NetworkBehaviour
     [Command]
     void CmdTryReload()
     {
-        if (CurrentWeapon == null || Reloading || AmmoCount == CurrentWeapon.ClipSize)
+        if (CurrentWeapon == null || Reloading || AmmoInGun == CurrentWeapon.ClipSize)
             return;
 
         StartCoroutine(reloadingWeapon());
@@ -206,9 +207,9 @@ public class PlayerController : NetworkBehaviour
 
         //Server side check
         //if ammoCount > 0 && isAlive
-        if (AmmoCount > 0 && !Player.IsDead)
+        if (AmmoInGun > 0 && !Player.IsDead)
         {
-            AmmoCount--;
+            AmmoInGun--;
             TargetShoot();
             
             // TODO: Projectile count, accuracy, etc.
@@ -222,7 +223,7 @@ public class PlayerController : NetworkBehaviour
                 {
                     RpcPlayerFiredEntity(GetComponent<NetworkIdentity>().netId, hit.collider.GetComponent<NetworkIdentity>().netId, hit.point, hit.normal);
                     if (hit.collider.GetComponent<NetworkIdentity>().netId != GetComponent<NetworkIdentity>().netId)
-                        hit.collider.GetComponent<Player>().Damage(WeaponDamage, GetComponent<NetworkIdentity>().netId);
+                        hit.collider.GetComponent<Player>().Damage(CurrentWeapon.Damage, GetComponent<NetworkIdentity>().netId);
                 }
                 else if (hit.collider.CompareTag("Enemy"))
                     RpcPlayerFiredEntity(GetComponent<NetworkIdentity>().netId, hit.collider.GetComponent<NetworkIdentity>().netId, hit.point, hit.normal);
@@ -233,9 +234,46 @@ public class PlayerController : NetworkBehaviour
 
     }
 
+    [Command]
+    public void CmdDropWeapon()
+    {
+        // Instantiate the scene object on the server
+        Vector3 pos = weaponContainer.transform.position;
+        Quaternion rot = weaponContainer.transform.rotation;
+        Gun droppedWeapon = Instantiate(itemDatabase.GetGunByID(CurrentWeaponID), pos, rot);
+        droppedWeapon.OnGround = true;
+
+        // Set the RigidBody as non-kinematic on the server only (isKinematic = true in prefab).
+        droppedWeapon.GetComponent<Rigidbody>().isKinematic = false;
+
+        // Toss it out in front of us a bit.
+        droppedWeapon.GetComponent<Rigidbody>().velocity = transform.forward * 5.0f;
+
+        // Set the player's SyncVar to nothing so clients will destroy the equipped child item.
+        CurrentWeaponID = -1;
+
+        // Spawn the scene object on the network for all to see
+        NetworkServer.Spawn(droppedWeapon.gameObject);
+    }
+
+    [Command]
+    public void CmdPickupItem(GameObject item)
+    {
+
+    }
+
     #endregion
 
     #region Client 
+
+    [Client]
+    public void OnDropWeaponButtonPressed()
+    {
+        if (CurrentWeapon == null || CurrentWeaponID < 0)
+            // TODO: Play error sound.
+            return;
+
+    }
 
     [Client]
     public void OnCurrentWeaponIdChanged(int _Old, int _New)
@@ -321,12 +359,13 @@ public class PlayerController : NetworkBehaviour
     {
         Debug.Log("Assigning weapon " + id + " to player now.");
         CurrentWeapon = Instantiate(itemDatabase.GetGunByID(id), weaponContainer).GetComponent<Gun>();
+        CurrentWeapon.OnGround = false;
     }
 
     [Client]
     internal void ReloadButton()
     {
-        if (!Reloading || AmmoCount != AmmoCountMax)
+        if (!Reloading || AmmoInGun != CurrentWeapon.ClipSize)
         {
             Debug.Log("Attempting to reload...");
             CmdTryReload();
@@ -341,8 +380,8 @@ public class PlayerController : NetworkBehaviour
     {
         if (!isLocalPlayer) return;
 
-        Player.PlayerUI.AmmoClipText.text = AmmoCount.ToString();
-        Player.PlayerUI.AmmoReserveText.text = ammoCounts[CurrentWeapon.GunType].ToString();
+        Player.PlayerUI.AmmoClipText.text = AmmoInGun.ToString();
+        Player.PlayerUI.AmmoReserveText.text = ammoCounts[CurrentWeapon.GunClass].ToString();
     }
 
     [Client]
@@ -410,25 +449,17 @@ public class PlayerController : NetworkBehaviour
 
         Vector3 movement = new Vector3(h, 0, v);
 
+        float weaponSpeedModifier = 1.0f;
+        if (CurrentWeaponID > 0) // If we have a weapon equipped...
+            weaponSpeedModifier = itemDatabase.GetGunByID(CurrentWeaponID).SpeedModifier;
+
         if (sprintEnabled && Input.GetKey(KeyCode.LeftShift))
-        {
-            movement = movement.normalized * movementSpeed * runBoost * Time.deltaTime;
-
-            Animator.SetBool("running", true);
-        }
+            movement = movement.normalized * movementSpeed * runBoost * weaponSpeedModifier * Time.deltaTime;
         else
-        {
-            movement = movement.normalized * movementSpeed * Time.deltaTime;
-
-            Animator.SetBool("running", false);
-        }
+            movement = movement.normalized * movementSpeed * weaponSpeedModifier * Time.deltaTime;
 
         if (Input.GetKey(KeyCode.P))
-        {
             PlayImpactSound();
-        }
-
-        Animator.SetFloat("moving", movement.magnitude);
 
         rigidbody.MovePosition(transform.position + movement);
 
@@ -447,17 +478,32 @@ public class PlayerController : NetworkBehaviour
             lineRenderer.SetPosition(1, transform.position + transform.forward * 10);
 
             transform.LookAt(lookAt);
-
-            if (Vector3.Dot(lookAt, movement) < 0)
-                Animator.SetBool("backwards", true);
-            else
-                Animator.SetBool("backwards", false);
         }
 
-        //Vector3 mousePos = Input.mousePosition;
-        //mousePos = Camera.ScreenToWorldPoint(new Vector3(mousePos.x, mousePos.y, Camera.transform.position.y - transform.position.y));
-        //targetRotation = Quaternion.LookRotation(mousePos);
-        //transform.eulerAngles = Vector3.up * Mathf.MoveTowardsAngle(transform.eulerAngles.y, targetRotation.eulerAngles.y, rotationSpeed * Time.deltaTime);
+        //Vector3 rightMovement = Vector3.right * movement;
+        //Vector3 upMovement = Vector3.up * movement;
+        //Vector3 heading = Vector3.Normalize(upMovement + rightMovement);
+        UpdateAnimation(movement.normalized);
+    }
+
+    [Client]
+    public void UpdateAnimation(Vector3 dir)
+    {
+        if (dir.x == 0f && dir.y == 0f)
+        {
+            Animator.SetFloat("LastDirX", lastX);
+            Animator.SetFloat("LastDirY", lastY);
+            Animator.SetBool("Movement", false);
+        }
+        else
+        {
+            lastX = dir.x;
+            lastY = dir.y;
+            Animator.SetBool("Movement", true);
+        }
+
+        Animator.SetFloat("DirX", dir.x);
+        Animator.SetFloat("DirY", dir.y);
     }
 
     [Client]
@@ -548,9 +594,9 @@ public class PlayerController : NetworkBehaviour
     {
         if (CurrentWeapon == null)
             yield return null;
-        else if (ReserveAmmo <= 0)
+        else if (ammoCounts[CurrentWeapon.GunClass] <= 0)
         {
-            ReserveAmmo = 0;
+            ammoCounts[CurrentWeapon.GunClass] = 0;
             yield return null;
         }
         else
@@ -567,20 +613,20 @@ public class PlayerController : NetworkBehaviour
                 // Determine how much ammo the player is missing.
                 // If we have enough ammo in reserve to top off the clip/magazine,
                 // then do so. Otherwise, put back however much ammo we have left.
-                int ammoMissing = CurrentWeapon.ClipSize - AmmoCount;
+                int ammoMissing = CurrentWeapon.ClipSize - AmmoInGun;
 
                 // Remove from our reserve ammo whatever we loaded into the weapon.
-                if (ammoCounts[CurrentWeapon.GunType] - ammoMissing >= 0)
+                if (ammoCounts[CurrentWeapon.GunClass] - ammoMissing >= 0)
                 {
-                    AmmoCount += ammoMissing;
-                    ammoCounts[CurrentWeapon.GunType] -= ammoMissing;
+                    AmmoInGun += ammoMissing;
+                    ammoCounts[CurrentWeapon.GunClass] -= ammoMissing;
                 }
                 else
                 {
                     // We do not have enough ammo to completely top off the magazine.
                     // Just add what we have.
-                    AmmoCount += ReserveAmmo;
-                    ammoCounts[CurrentWeapon.GunType] = 0;
+                    AmmoInGun += ammoCounts[CurrentWeapon.GunClass];
+                    ammoCounts[CurrentWeapon.GunClass] = 0;
                 }
 
                 TargetReload();
