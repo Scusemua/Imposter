@@ -27,7 +27,9 @@ public class PlayerUI : MonoBehaviour
     public GameObject VotingUIPrefab;
     public GameObject PlayerUICanvas;
     public Healthbar HpBar;
+    public TextMeshProUGUI HealthText;
     public Healthbar StaminaBar;
+    public TextMeshProUGUI StaminaText;
     public Healthbar ReloadingProgressBar;
     public GameObject AmmoUI;
     public GameObject WeaponUI;
@@ -198,7 +200,10 @@ public class PlayerUI : MonoBehaviour
     [Client]
     public void UpdateHealth(float health)
     {
-        HpBar.TakeDamage(health);
+        //HpBar.TakeDamage((int)health);
+        HpBar.health = health;
+        HpBar.UpdateHealth();
+        HealthText.text = ((int)health).ToString();
     }
 
     [Client]

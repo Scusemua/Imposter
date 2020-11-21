@@ -128,6 +128,8 @@ public class PlayerController : NetworkBehaviour
             ReloadButton();
         else if (Input.GetKeyDown(KeyCode.V))
             DropButton();
+        else if (Input.GetKeyDown(KeyCode.H))
+            CmdTakeDamage(10.0f);
         else if (Input.GetKeyDown(KeyCode.Alpha1))
         {
             string[] primaryWeaponNames = PrimaryInventory.Select(gun => itemDatabase.GetGunByID(gun.Id).Name).ToArray<string>();
@@ -196,7 +198,7 @@ public class PlayerController : NetworkBehaviour
             gunshotSound = itemDatabase.GetGunByID(gunId).ShootSound;
 
         // Adjust volume of gunshot based on distance.
-        this.AudioSource.PlayOneShot(Gunshot, volumeDistModifier);
+        this.AudioSource.PlayOneShot(gunshotSound, volumeDistModifier);
 
         //Destroy(bulletBloodGO, 2);
         //Destroy(bulletHolePrefab, 10);
@@ -219,7 +221,7 @@ public class PlayerController : NetworkBehaviour
             gunshotSound = itemDatabase.GetGunByID(gunId).ShootSound;
 
         // Adjust volume of gunshot based on distance.
-        this.AudioSource.PlayOneShot(Gunshot, volumeDistModifier);
+        this.AudioSource.PlayOneShot(gunshotSound, volumeDistModifier);
 
         //Destroy(bulletFxPrefab, 2);
         //Destroy(bulletHolePrefab, 10);
@@ -280,6 +282,12 @@ public class PlayerController : NetworkBehaviour
     #endregion
 
     #region Commands 
+
+    [Command]
+    public void CmdTakeDamage(float damage)
+    {
+        Player.Damage(damage, Player.netId);
+    }
 
     [Command]
     public void CmdPickupWeapon(GameObject weaponGameObject)
@@ -540,11 +548,12 @@ public class PlayerController : NetworkBehaviour
         if (_New >= 0)
         {
             AssignWeaponClientSide(_New);
-            Player.PlayerUI.AmmoUI.SetActive(true);
+
+            if (isLocalPlayer) Player.PlayerUI.AmmoUI.SetActive(true);
         }
         else
         {
-            Player.PlayerUI.AmmoUI.SetActive(false);
+            if (isLocalPlayer) Player.PlayerUI.AmmoUI.SetActive(false);
         }
     }
 

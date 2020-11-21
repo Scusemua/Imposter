@@ -16,11 +16,12 @@ public class Player : NetworkBehaviour
     [HideInInspector]
     public PlayerUI PlayerUI;
 
+    public Healthbar FloatingHealthBar;
     public TextMesh PlayerNameText;
     [SerializeField] GameObject muzzleFlashPrefab;
     [SerializeField] public Transform WeaponMuzzle;
 
-    [SyncVar] public float Health = 100;
+    [SyncVar(hook = nameof(OnHealthChanged))] public float Health = 100;
     [SyncVar] public float HealthMax = 100;
 
     [SyncVar(hook = nameof(OnNameChanged))]
@@ -197,12 +198,6 @@ public class Player : NetworkBehaviour
     }
 
     [ClientRpc]
-    public void RpcGotDamage()
-    {
-        PlayerUI.UpdateHealth(Health);
-    }
-
-    [ClientRpc]
     public void RpcKill(string killerNickname, bool serverKilled)
     {
         if (serverKilled)
@@ -262,6 +257,14 @@ public class Player : NetworkBehaviour
     }
 
     [Client]
+    public void OnHealthChanged(float _Old, float _New)
+    {
+        //FloatingHealthBar.TakeDamage(Mathf.Abs(_Old - _New);
+        FloatingHealthBar.health = _New;
+        FloatingHealthBar.UpdateHealth();
+    }
+
+    [Client]
     /// <summary>
     /// Display the end-of-game screen for whichever outcome (i.e., Imposter victory or Crewmate victory).
     /// </summary>
@@ -275,6 +278,11 @@ public class Player : NetworkBehaviour
 
     #region TargetRPC
 
+    [TargetRpc]
+    public void TargetGotDamage()
+    {
+        PlayerUI.UpdateHealth(Health);
+    }
 
     #endregion
 
@@ -284,7 +292,7 @@ public class Player : NetworkBehaviour
     public void Damage(float amount, uint shoooterID)
     {
         Health -= amount;
-        RpcGotDamage();
+        TargetGotDamage();
 
         if (Health <= 0)
         {
