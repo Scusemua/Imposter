@@ -20,8 +20,8 @@ public class CustomNetworkRoomPlayer : NetworkRoomPlayer
         get => lobbyPlayerList;
         set
         {
-            Debug.Log("Modifying value of LobbyPlayerList for Player " + DisplayName + ", netId = " + netId + ".");
-            Debug.Log("Old value: " + (lobbyPlayerList == null ? "null" : "non-null") + ", New Value: " + (value == null ? "null" : "non-null"));
+            //Debug.Log("Modifying value of LobbyPlayerList for Player " + DisplayName + ", netId = " + netId + ".");
+            //Debug.Log("Old value: " + (lobbyPlayerList == null ? "null" : "non-null") + ", New Value: " + (value == null ? "null" : "non-null"));
             lobbyPlayerList = value;
         }
     }
@@ -51,17 +51,17 @@ public class CustomNetworkRoomPlayer : NetworkRoomPlayer
 
     private void UpdateDisplay()
     {
-        Debug.Log("UpdateDisplay() called for Player " + DisplayName + ", netId = " + netId + ". isLocalPlayer = " + isLocalPlayer + ", hasAuthority = " + hasAuthority + ".");
+        //Debug.Log("UpdateDisplay() called for Player " + DisplayName + ", netId = " + netId + ". isLocalPlayer = " + isLocalPlayer + ", hasAuthority = " + hasAuthority + ".");
 
         if (!NetworkManager.IsSceneActive(NetworkGameManagerInstance.RoomScene))
         {
-            Debug.Log("Current game scene is NOT the room/lobby scene. Returning from UpdateDisplay() immediately.");
+            //Debug.Log("Current game scene is NOT the room/lobby scene. Returning from UpdateDisplay() immediately.");
             return;
         }
 
         if (!hasAuthority)
         {
-            Debug.Log("Size of roomSlots during UpdateDisplay(): " + NetworkGameManagerInstance.roomSlots.Count + "!");
+            //Debug.Log("Size of roomSlots during UpdateDisplay(): " + NetworkGameManagerInstance.roomSlots.Count + "!");
 
             foreach (NetworkRoomPlayer player in NetworkGameManagerInstance.roomSlots)
             {
@@ -76,7 +76,7 @@ public class CustomNetworkRoomPlayer : NetworkRoomPlayer
             return;
         }
 
-        Debug.Log("Size of roomSlots during UpdateDisplay(): " + NetworkGameManagerInstance.roomSlots.Count + ".");
+        //Debug.Log("Size of roomSlots during UpdateDisplay(): " + NetworkGameManagerInstance.roomSlots.Count + ".");
 
         foreach (NetworkRoomPlayer player in NetworkGameManagerInstance.roomSlots)
         {
@@ -88,10 +88,10 @@ public class CustomNetworkRoomPlayer : NetworkRoomPlayer
 
     public void OnPlayerModelColorChanged(Color _Old, Color _New)
     {
-        Debug.Log("OnPlayerModelColorChanged() called for player " + netId + ". _Old = " + _Old + ", _New = " + _New + ".");
+        //Debug.Log("OnPlayerModelColorChanged() called for player " + netId + ". _Old = " + _Old + ", _New = " + _New + ".");
         if (LobbyPlayerModel != null && isLocalPlayer)
         {
-            Debug.Log("Modifying lobby player renderer component now. New color = " + _New + " (" + GameColors.COLOR_NAMES[_New] + ").");
+            //Debug.Log("Modifying lobby player renderer component now. New color = " + _New + " (" + GameColors.COLOR_NAMES[_New] + ").");
             LobbyPlayerModel.GetComponentInChildren<Renderer>().sharedMaterials[0].color = _New;
         }
     }
@@ -109,7 +109,7 @@ public class CustomNetworkRoomPlayer : NetworkRoomPlayer
 
     public override void OnStartAuthority()
     {
-        Debug.Log("OnStartAuthority() called for RoomPlayer " + netId + ". isLocalPlayer = " + isLocalPlayer + ".");
+        //Debug.Log("OnStartAuthority() called for RoomPlayer " + netId + ". isLocalPlayer = " + isLocalPlayer + ".");
     }
 
     [Command]
@@ -137,24 +137,24 @@ public class CustomNetworkRoomPlayer : NetworkRoomPlayer
     [Command]
     private void CmdSetDisplayName(string displayName)
     {
-        Debug.Log("CmdSetDisplayName called for RoomPlayer " + netId + ". isLocalPlayer = " + isLocalPlayer + ", hasAuthority = " + hasAuthority + ".");
+        //Debug.Log("CmdSetDisplayName called for RoomPlayer " + netId + ". isLocalPlayer = " + isLocalPlayer + ", hasAuthority = " + hasAuthority + ".");
         DisplayName = displayName;
     }
 
     public override void OnClientEnterRoom()
     {
-        Debug.Log("OnClientEnterRoom() called for RoomPlayer " + netId + ". isLocalPlayer = " + isLocalPlayer + ", hasAuthority = " + hasAuthority + ".");
+        //Debug.Log("OnClientEnterRoom() called for RoomPlayer " + netId + ". isLocalPlayer = " + isLocalPlayer + ", hasAuthority = " + hasAuthority + ".");
         if (isLocalPlayer)
         {
             //DisplayName = PlayerPrefs.GetString("nickname");
             Debug.Log("Player " + DisplayName + " joined the lobby.");
 
-            Debug.Log("RoomPlayer " + netId + " is a local player, so creating UI hooks now.");
+            //Debug.Log("RoomPlayer " + netId + " is a local player, so creating UI hooks now.");
             CreateUIHooks();
 
             if (hasAuthority)
             {
-                Debug.Log("RoomPlayer " + netId + " has authority, so calling CmdSetDisplayName now...");
+                //Debug.Log("RoomPlayer " + netId + " has authority, so calling CmdSetDisplayName now...");
                 CmdSetDisplayName(PlayerPrefs.GetString("nickname"));
             }
         }
@@ -166,11 +166,11 @@ public class CustomNetworkRoomPlayer : NetworkRoomPlayer
     [Client]
     public void CreateUIHooks()
     {
-        Debug.Log("CreateUIHooks called for Player " + DisplayName + ", netId = " + netId + ", isLocalPlayer = " + isLocalPlayer + ", hasAuthority = " + hasAuthority + ".");
+        //Debug.Log("CreateUIHooks called for Player " + DisplayName + ", netId = " + netId + ", isLocalPlayer = " + isLocalPlayer + ", hasAuthority = " + hasAuthority + ".");
 
         if (uiHooksCreated)
         {
-            Debug.Log("UI Hooks already created. Returning.");
+            //Debug.Log("UI Hooks already created. Returning.");
             return;
         }
 
@@ -232,7 +232,7 @@ public class CustomNetworkRoomPlayer : NetworkRoomPlayer
 
         if (chatHandler != null)
         {
-            Debug.Log("Calling CreateUIHooks() on chatHandler now.");
+            //Debug.Log("Calling CreateUIHooks() on chatHandler now.");
             chatHandler.CreateUIHooks();
         }
 
@@ -244,17 +244,17 @@ public class CustomNetworkRoomPlayer : NetworkRoomPlayer
 
     public override void OnClientExitRoom()
     {
-        Debug.Log("OnClientExitRoom() called for player " + DisplayName + ", netId = " + netId + ", isLocalPlayer = " + isLocalPlayer + ", hasAuthority = " + hasAuthority + ".");
+        //Debug.Log("OnClientExitRoom() called for player " + DisplayName + ", netId = " + netId + ", isLocalPlayer = " + isLocalPlayer + ", hasAuthority = " + hasAuthority + ".");
 
         if (isLocalPlayer) uiHooksCreated = false;
 
         if (LobbyPlayerList == null)
         {
-            Debug.LogWarning("LobbyPlayerList is null for Player " + DisplayName + ", netId = " + netId + ", cannot remove entry from list...");
+            //Debug.LogWarning("LobbyPlayerList is null for Player " + DisplayName + ", netId = " + netId + ", cannot remove entry from list...");
             return;
         }
 
-        Debug.Log("Removing entry for player " + DisplayName + ", netId = " + netId + ", from lobby player list now.");
+        //Debug.Log("Removing entry for player " + DisplayName + ", netId = " + netId + ", from lobby player list now.");
 
         LobbyPlayerList.RemoveEntry(netId, DisplayName, false);
     }
@@ -273,7 +273,7 @@ public class CustomNetworkRoomPlayer : NetworkRoomPlayer
 
     public override void ReadyStateChanged(bool _, bool newReadyState)
     {
-        Debug.Log("ReadyStateChanged() called for RoomPlayer " + DisplayName + ", netId = " + netId + ", isLocalPlayer = " + isLocalPlayer + ", hasAuthority = " + hasAuthority + ", (LobbyPlayerList == null) = " + (LobbyPlayerList == null));
+        //Debug.Log("ReadyStateChanged() called for RoomPlayer " + DisplayName + ", netId = " + netId + ", isLocalPlayer = " + isLocalPlayer + ", hasAuthority = " + hasAuthority + ", (LobbyPlayerList == null) = " + (LobbyPlayerList == null));
 
         // if (LobbyPlayerList == null) return;
         UpdateDisplay();
@@ -283,7 +283,7 @@ public class CustomNetworkRoomPlayer : NetworkRoomPlayer
     {
         if (!isLocalPlayer) return;
 
-        Debug.Log("Player " + netId + " clicked Leave button. isLocalPlayer = " + isLocalPlayer + ", hasAuthority = " + hasAuthority);
+        //Debug.Log("Player " + netId + " clicked Leave button. isLocalPlayer = " + isLocalPlayer + ", hasAuthority = " + hasAuthority);
 
         if (NetworkServer.active && NetworkClient.isConnected) // Stop host if host mode.
             NetworkGameManagerInstance.StopHost();
@@ -296,7 +296,7 @@ public class CustomNetworkRoomPlayer : NetworkRoomPlayer
     [Client]
     public void ReadyUp()
     {
-        Debug.Log("Player " + netId + " clicked Ready button. isLocalPlayer = " + isLocalPlayer + ", hasAuthority = " + hasAuthority + ", readyToBegin = " + readyToBegin);
+        //Debug.Log("Player " + netId + " clicked Ready button. isLocalPlayer = " + isLocalPlayer + ", hasAuthority = " + hasAuthority + ", readyToBegin = " + readyToBegin);
 
         //if (!isLocalPlayer) return;
 

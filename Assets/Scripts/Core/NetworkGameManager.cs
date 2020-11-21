@@ -324,7 +324,7 @@ public class NetworkGameManager : NetworkRoomManager
     /// </summary>
     public static void RegisterItemSpawnLocation(Transform spawnLocation)
     {
-        Debug.Log("Registering item spawn location at " + spawnLocation.position);
+        //Debug.Log("Registering item spawn location at " + spawnLocation.position);
         ItemSpawnLocations.Add(spawnLocation);
     }
 
@@ -333,7 +333,7 @@ public class NetworkGameManager : NetworkRoomManager
     /// </summary>
     public static void UnRegisterItemSpawnLocation(Transform spawnLocation)
     {
-        Debug.Log("Unregistering item spawn location at " + spawnLocation.position);
+        //Debug.Log("Unregistering item spawn location at " + spawnLocation.position);
         ItemSpawnLocations.Remove(spawnLocation);
     }
 

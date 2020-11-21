@@ -71,13 +71,13 @@ public class Player : NetworkBehaviour
             Debug.Log("Player " + Nickname + " is now dead.");
             GetComponent<PlayerController>().Die();
         }
-        else
-            Debug.Log("Player " + Nickname + " is now alive.");
+        //else
+            //Debug.Log("Player " + Nickname + " is now alive.");
     }
 
     void OnNameChanged(string _Old, string _New)
     {
-        Debug.Log("OnNameChanged called. Old = " + _Old + ", New = " + _New);
+        //Debug.Log("OnNameChanged called. Old = " + _Old + ", New = " + _New);
         PlayerNameText.text = Nickname;
     }
     #endregion
@@ -103,7 +103,7 @@ public class Player : NetworkBehaviour
     {
         IsDead = false;
 
-        Debug.Log("CmdSetupPlayer --> _name = nickname = " + _name);
+        //Debug.Log("CmdSetupPlayer --> _name = nickname = " + _name);
 
         // player info sent to server, then server updates sync vars which handles it on all clients
         Nickname = _name;
@@ -222,7 +222,7 @@ public class Player : NetworkBehaviour
 
     public override void OnStartLocalPlayer()
     {
-        Debug.Log("OnStartLocalPlayer() called...");
+        //Debug.Log("OnStartLocalPlayer() called...");
 
         // Create PlayerUI
         PlayerUIGameObject = Instantiate(PlayerUIPrefab);
@@ -244,7 +244,7 @@ public class Player : NetworkBehaviour
 
         ui.SetUpHpBar(HealthMax);
 
-        Debug.Log("Player nickname: " + Nickname);
+        //Debug.Log("Player nickname: " + Nickname);
 
         CmdSetupPlayer(Nickname);   // This is required for nicknames to be properly synchronized.
         CmdRegisterPlayer();
@@ -259,7 +259,7 @@ public class Player : NetworkBehaviour
     [Client]
     public void OnPlayerColorChanged(Color _, Color _New)
     {
-        Debug.Log("OnPlayerModelColorChanged() called for player " + netId);
+        //Debug.Log("OnPlayerModelColorChanged() called for player " + netId);
         GetComponentInChildren<Renderer>().material.color = _New;
     }
 

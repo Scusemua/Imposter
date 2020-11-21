@@ -36,6 +36,8 @@ public class PlayerController : NetworkBehaviour
     [SerializeField] GameObject bulletFXPrefab;
     [SerializeField] GameObject bulletBloodFXPrefab;
 
+    private float weaponSpeedModifier;
+
     [SyncVar(hook = nameof(OnCurrentWeaponIdChanged))]
     public int CurrentWeaponID = -1;
     public Gun CurrentWeapon;
@@ -149,14 +151,14 @@ public class PlayerController : NetworkBehaviour
     [ClientRpc]
     void RpcPlayerFired(uint shooterID, Vector3 impactPos, Vector3 impactRot)
     {
-        Instantiate(bulletHolePrefab, impactPos + impactRot * 0.1f, Quaternion.LookRotation(impactRot));
+        //Instantiate(bulletHolePrefab, impactPos + impactRot * 0.1f, Quaternion.LookRotation(impactRot));
         Instantiate(bulletFXPrefab, impactPos, Quaternion.LookRotation(impactRot));
         NetworkIdentity.spawned[shooterID].GetComponent<Player>().MuzzleFlash();
 
         Transform shooterTransform = NetworkIdentity.spawned[shooterID].GetComponent<Player>().GetComponent<Transform>();
 
         float volumeDistModifier = (1000f - GetDistanceSquaredToTarget(shooterTransform)) / 1000f;
-        Debug.Log("Playing gunshot with volume modifier: " + volumeDistModifier);
+        //Debug.Log("Playing gunshot with volume modifier: " + volumeDistModifier);
 
         // Adjust volume of gunshot based on distance.
         this.AudioSource.PlayOneShot(Gunshot, volumeDistModifier);
@@ -218,7 +220,7 @@ public class PlayerController : NetworkBehaviour
             if (Physics.Raycast(ray, out hit, 100f))
             {
                 Debug.DrawRay(ray.origin, ray.direction * hit.distance, Color.red, 1);
-                Debug.Log("SERVER: Player shot: " + hit.collider.name);
+                //Debug.Log("SERVER: Player shot: " + hit.collider.name);
                 if (hit.collider.CompareTag("Player"))
                 {
                     RpcPlayerFiredEntity(GetComponent<NetworkIdentity>().netId, hit.collider.GetComponent<NetworkIdentity>().netId, hit.point, hit.normal);
@@ -333,7 +335,8 @@ public class PlayerController : NetworkBehaviour
         };
         lineRenderer.material = whiteDiffuseMat;
 
-        itemDatabase = GameObject.FindGameObjectWithTag("ItemDatabase").GetComponent<ItemDatabase>();
+        if (itemDatabase == null)
+            itemDatabase = GameObject.FindGameObjectWithTag("ItemDatabase").GetComponent<ItemDatabase>();
 
         if (CurrentWeaponID >= 0 && CurrentWeapon == null)
             AssignWeapon(CurrentWeaponID);
@@ -357,9 +360,18 @@ public class PlayerController : NetworkBehaviour
     [Client]
     public void AssignWeapon(int id)
     {
+        if (itemDatabase == null)
+            itemDatabase = GameObject.FindGameObjectWithTag("ItemDatabase").GetComponent<ItemDatabase>();
+
         Debug.Log("Assigning weapon " + id + " to player now.");
         CurrentWeapon = Instantiate(itemDatabase.GetGunByID(id), weaponContainer).GetComponent<Gun>();
+        CurrentWeapon.GetComponent<Collider>().enabled = false; // Disable the collider.
         CurrentWeapon.OnGround = false;
+
+        if (CurrentWeapon.UseCustomSpeedModifier)
+            weaponSpeedModifier = CurrentWeapon.SpeedModifier;
+        else
+            weaponSpeedModifier = GameOptions.GunClassSpeedModifiers[CurrentWeapon.GunClass];
     }
 
     [Client]
@@ -367,7 +379,7 @@ public class PlayerController : NetworkBehaviour
     {
         if (!Reloading || AmmoInGun != CurrentWeapon.ClipSize)
         {
-            Debug.Log("Attempting to reload...");
+            //Debug.Log("Attempting to reload...");
             CmdTryReload();
         }
     }
@@ -448,10 +460,6 @@ public class PlayerController : NetworkBehaviour
         }
 
         Vector3 movement = new Vector3(h, 0, v);
-
-        float weaponSpeedModifier = 1.0f;
-        if (CurrentWeaponID > 0) // If we have a weapon equipped...
-            weaponSpeedModifier = itemDatabase.GetGunByID(CurrentWeaponID).SpeedModifier;
 
         if (sprintEnabled && Input.GetKey(KeyCode.LeftShift))
             movement = movement.normalized * movementSpeed * runBoost * weaponSpeedModifier * Time.deltaTime;

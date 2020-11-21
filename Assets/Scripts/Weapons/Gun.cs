@@ -54,6 +54,12 @@ public class Gun : NetworkBehaviour
             SpeedModifier = GameOptions.GunClassSpeedModifiers[GunClass];
     }
 
+    void Awake()
+    {
+        if (!UseCustomSpeedModifier)
+            SpeedModifier = GameOptions.GunClassSpeedModifiers[GunClass];
+    }
+
     public override int GetHashCode()
     {
         int hash = 13;
