@@ -13,6 +13,17 @@ public class Gun : NetworkBehaviour
     public static int MAX_SUBMACHINE_GUN_AMMO = 300;
     public static int MAX_LMG_AMMO = 500;
     public static int MAX_EXPLOSIVE_AMMO = 30;
+
+    public static Dictionary<GunClass, int> AmmoMaxCounts = new Dictionary<GunClass, int>
+    {
+        [GunClass.ASSAULT_RIFLE] = MAX_ASSAULT_RIFLE_AMMO,
+        [GunClass.SHOTGUN] = MAX_SHOTGUN_AMMO,
+        [GunClass.SUBMACHINE_GUN] = MAX_SUBMACHINE_GUN_AMMO,
+        [GunClass.RIFLE] = MAX_RIFLE_AMMO,
+        [GunClass.PISTOL] = MAX_PISTOL_AMMO,
+        [GunClass.LIGHT_MACHINE_GUN] = MAX_LMG_AMMO,
+        [GunClass.EXPLOSIVE] = MAX_EXPLOSIVE_AMMO
+    };
     #endregion 
 
     public enum GunType
@@ -37,6 +48,7 @@ public class Gun : NetworkBehaviour
     public string Name;             // Name of the weapon.
     public float SwapTime;          // How long it takes to put this gun away or take it out.
     public bool OnGround;
+    public int AmmoInClip;          // How much ammo is in the clip of this gun.
 
     [Tooltip("If this is true, then you can specify an explicit speed modifier for the weapon. Otherwise it defaults to its class speed modifier.")]
     public bool UseCustomSpeedModifier;
@@ -46,18 +58,23 @@ public class Gun : NetworkBehaviour
     [Header("Weapon Audio")]
     public AudioClip ShootSound;    // Sound that gets played when shooting.
     public AudioClip ReloadSound;   // Sound that gets played when reloading.
+    public AudioClip PickupSound;   // Sound that gets played when the player picks up the weapon.
 
     void Alive()
     {
         // If this weapon isn't configured to use a particular speed modifier, then use the default class speed modifier.
         if (!UseCustomSpeedModifier)
             SpeedModifier = GameOptions.GunClassSpeedModifiers[GunClass];
+
+        AmmoInClip = ClipSize; // This will be changed by the player if necessary.
     }
 
     void Awake()
     {
         if (!UseCustomSpeedModifier)
             SpeedModifier = GameOptions.GunClassSpeedModifiers[GunClass];
+
+        AmmoInClip = ClipSize; // This will be changed by the player if necessary.
     }
 
     public override int GetHashCode()

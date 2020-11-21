@@ -104,7 +104,7 @@ public class CustomNetworkRoomPlayer : NetworkRoomPlayer
     public override void OnStartLocalPlayer()
     {
         // We actually only care about the ColorSelector on the MainMenu...
-        GameObject.FindGameObjectWithTag("ColorSelector").GetComponent<ColorSelector>().PopulateButtons(this);
+        // GameObject.FindGameObjectWithTag("ColorSelector").GetComponent<ColorSelector>().PopulateButtons(this);
     }
 
     public override void OnStartAuthority()
@@ -147,7 +147,7 @@ public class CustomNetworkRoomPlayer : NetworkRoomPlayer
         if (isLocalPlayer)
         {
             //DisplayName = PlayerPrefs.GetString("nickname");
-            Debug.Log("Player " + DisplayName + " joined the lobby.");
+            //Debug.Log("Player " + DisplayName + " joined the lobby.");
 
             //Debug.Log("RoomPlayer " + netId + " is a local player, so creating UI hooks now.");
             CreateUIHooks();
@@ -173,6 +173,8 @@ public class CustomNetworkRoomPlayer : NetworkRoomPlayer
             //Debug.Log("UI Hooks already created. Returning.");
             return;
         }
+
+        GameObject.FindGameObjectWithTag("ColorSelector").GetComponent<ColorSelector>().PopulateButtons(this);
 
         if (LobbyPlayerModel == null)
         {

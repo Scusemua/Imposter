@@ -71,8 +71,6 @@ public class Player : NetworkBehaviour
             Debug.Log("Player " + Nickname + " is now dead.");
             GetComponent<PlayerController>().Die();
         }
-        //else
-            //Debug.Log("Player " + Nickname + " is now alive.");
     }
 
     void OnNameChanged(string _Old, string _New)

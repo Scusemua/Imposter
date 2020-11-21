@@ -15,6 +15,10 @@ public class PlayerController : NetworkBehaviour
     public AudioClip ImpactSound;
     public AudioClip Gunshot;
     public AudioClip ReloadSound;
+    public AudioClip InvalidAction;
+    public AudioClip PickupAmmoSound;
+    public AudioClip PickupHealthSound;
+    public AudioClip PickupWeaponSound;
     public AudioSource AudioSource;
 
     [Header("Visual")]
@@ -52,12 +56,31 @@ public class PlayerController : NetworkBehaviour
         [GunClass.LIGHT_MACHINE_GUN] = 100,
         [GunClass.EXPLOSIVE] = 100
     };
-    
-    private List<Gun> primaryInventory = new List<Gun>();
-    private List<Gun> secondaryInventory = new List<Gun>();
-    private List<Gun> meleeInventory = new List<Gun>();
-    private List<Gun> explosiveInventory = new List<Gun>();
-    private List<Gun> grenadeInventory = new List<Gun>();
+
+    /// <summary>
+    /// The player's primary weapons.
+    /// </summary>
+    [SerializeField] private SyncList<InventoryGun> PrimaryInventory = new SyncList<InventoryGun>();
+
+    /// <summary>
+    /// The player's secondary weapons.
+    /// </summary>
+    [SerializeField] private SyncList<InventoryGun> SecondaryInventory = new SyncList<InventoryGun>();
+
+    /// <summary>
+    /// The player's melee weapons.
+    /// </summary>
+    [SerializeField] private SyncList<InventoryGun> MeleeInventory = new SyncList<InventoryGun>();
+
+    /// <summary>
+    /// The player's explosive weapons.
+    /// </summary>
+    [SerializeField] private SyncList<InventoryGun> ExplosiveInventory = new SyncList<InventoryGun>();
+
+    /// <summary>
+    /// The player's grenades.
+    /// </summary>
+    [SerializeField] private SyncList<InventoryGun> GrenadeInventory = new SyncList<InventoryGun>();
 
     private ItemDatabase itemDatabase;
 
@@ -104,6 +127,24 @@ public class PlayerController : NetworkBehaviour
 
         if (Input.GetKeyDown(KeyCode.R))
             ReloadButton();
+
+        if (Input.GetKeyDown(KeyCode.B))
+            DropButton();
+
+        if (Input.GetKeyDown(KeyCode.Alpha1))
+        {
+
+        }
+
+        if (Input.GetKeyDown(KeyCode.Alpha2))
+        {
+
+        }
+
+        if (Input.GetKeyDown(KeyCode.Alpha3))
+        {
+
+        }
     }
 
     internal void ShootWeapon()
@@ -114,8 +155,6 @@ public class PlayerController : NetworkBehaviour
             CmdTryShoot();
             curCooldown = CurrentWeapon.WeaponCooldown;
         }
-        //else if (AmmoCount <= 0)
-        //    ReloadButton();
     }
 
     void LateUpdate()
@@ -167,9 +206,32 @@ public class PlayerController : NetworkBehaviour
         //Destroy(bulletHolePrefab, 10);
     }
 
-    #endregion 
+    #endregion
 
     #region Target RPC
+    [TargetRpc]
+    public void TargetPlayPickupAmmoSound()
+    {
+        AudioSource.PlayOneShot(PickupAmmoSound);
+    }
+
+    [TargetRpc]
+    public void TargetPlayPickupHealthSound()
+    {
+        AudioSource.PlayOneShot(PickupHealthSound);
+    }
+
+    [TargetRpc]
+    public void TargetPlayPickupWeaponSound()
+    {
+        AudioSource.PlayOneShot(PickupWeaponSound);
+    }
+
+    [TargetRpc]
+    public void TargetUpdateAmmoCounts()
+    {
+        UpdateAmmoDisplay();
+    }
 
     [TargetRpc]
     void TargetShoot()
@@ -192,7 +254,61 @@ public class PlayerController : NetworkBehaviour
     #region Commands 
 
     [Command]
-    void CmdTryReload()
+    public void CmdPickupWeapon(GameObject weaponGameObject)
+    {
+        Gun gun = weaponGameObject.GetComponent<Gun>();
+        Gun.GunType gunType = gun._GunType;
+
+        // Used to check if the player already has this gun.
+        InventoryGun temp = new InventoryGun(-1, gun.Id);
+
+        if (gunType == Gun.GunType.PRIMARY && PrimaryInventory.Count < GameOptions.GunTypeInventoryLimits[gunType] && !PrimaryInventory.Contains(temp))
+        {
+            PrimaryInventory.Add(new InventoryGun(gun.AmmoInClip, gun.Id));
+            NetworkServer.Destroy(weaponGameObject);
+        }
+        else if (gunType == Gun.GunType.SECONDARY && SecondaryInventory.Count < GameOptions.GunTypeInventoryLimits[gunType] && !SecondaryInventory.Contains(temp))
+        {
+            SecondaryInventory.Add(new InventoryGun(gun.AmmoInClip, gun.Id));
+            NetworkServer.Destroy(weaponGameObject);
+        }
+        else if (gunType == Gun.GunType.EXPLOSIVE && ExplosiveInventory.Count < GameOptions.GunTypeInventoryLimits[gunType] && !ExplosiveInventory.Contains(temp))
+        {
+            ExplosiveInventory.Add(new InventoryGun(gun.AmmoInClip, gun.Id));
+            NetworkServer.Destroy(weaponGameObject);
+        }
+    }
+
+    [Command]
+    public void CmdPickupAmmoBox(GameObject ammoBoxGameObject)
+    {
+        AmmoBox ammoBox = ammoBoxGameObject.GetComponent<AmmoBox>();
+
+        if (ammoBox.IsAmmoBox)
+        {
+            GunClass associatedGunType = ammoBox.AssociatedGunClass;
+            Debug.Log("Ammo box is of type " + associatedGunType.ToString() + ". Current ammo: " + ammoCounts[associatedGunType] + ", Max: " + Gun.AmmoMaxCounts[associatedGunType] + ".");
+            if (ammoCounts[associatedGunType] < Gun.AmmoMaxCounts[associatedGunType])
+            {
+                ammoCounts[associatedGunType] = Mathf.Min(Gun.AmmoMaxCounts[associatedGunType], ammoCounts[associatedGunType] + ammoBox.NumberBullets);
+                NetworkServer.Destroy(ammoBoxGameObject);
+
+                TargetUpdateAmmoCounts();
+            }
+        }
+        else
+        {
+            Debug.Log("Current HP: " + Player.Health + ", Max Health: " + Player.HealthMax);
+            if (Player.Health < Player.HealthMax)
+            {
+                Player.Health = Mathf.Min(Player.HealthMax, Player.Health + ammoBox.NumberBullets);
+                NetworkServer.Destroy(ammoBoxGameObject);
+            }
+        }
+    }
+
+    [Command]
+    private void CmdTryReload()
     {
         if (CurrentWeapon == null || Reloading || AmmoInGun == CurrentWeapon.ClipSize)
             return;
@@ -201,7 +317,7 @@ public class PlayerController : NetworkBehaviour
     }
 
     [Command]
-    void CmdTryShoot()
+    private void CmdTryShoot()
     {
         // TODO: Play error sound indicating no weapon? Or just punch?
         if (CurrentWeapon == null)
@@ -237,16 +353,18 @@ public class PlayerController : NetworkBehaviour
     }
 
     [Command]
-    public void CmdDropWeapon()
+    public void CmdTryDropWeapon()
     {
         // Instantiate the scene object on the server
         Vector3 pos = weaponContainer.transform.position;
         Quaternion rot = weaponContainer.transform.rotation;
         Gun droppedWeapon = Instantiate(itemDatabase.GetGunByID(CurrentWeaponID), pos, rot);
-        droppedWeapon.OnGround = true;
 
         // Set the RigidBody as non-kinematic on the server only (isKinematic = true in prefab).
         droppedWeapon.GetComponent<Rigidbody>().isKinematic = false;
+        droppedWeapon.GetComponent<Collider>().enabled = true;
+        droppedWeapon.OnGround = true;
+        droppedWeapon.AmmoInClip = AmmoInGun;
 
         // Toss it out in front of us a bit.
         droppedWeapon.GetComponent<Rigidbody>().velocity = transform.forward * 5.0f;
@@ -286,7 +404,19 @@ public class PlayerController : NetworkBehaviour
 
         // The player could've put away all their weapons, meaning the new ID would be -1.
         if (_New >= 0)
-            AssignWeapon(_New);
+            AssignWeapon(_New, -1);
+    }
+
+    void OnTriggerEnter(Collider other)
+    {
+        if (other.gameObject.CompareTag("Ammo Box"))
+        {
+            CmdPickupAmmoBox(other.gameObject);
+        }   
+        else if (other.gameObject.CompareTag("Weapon"))
+        {
+            CmdPickupWeapon(other.gameObject);
+        }
     }
 
     [Client]
@@ -300,7 +430,7 @@ public class PlayerController : NetworkBehaviour
 
     public override void OnStartLocalPlayer()
     {
-        Debug.Log("OnStartLocalPlayer() called for Player " + netId);
+        //Debug.Log("OnStartLocalPlayer() called for Player " + netId);
         enabled = true;
         MovementEnabled = true;
         GetComponent<Rigidbody>().isKinematic = false;
@@ -339,7 +469,7 @@ public class PlayerController : NetworkBehaviour
             itemDatabase = GameObject.FindGameObjectWithTag("ItemDatabase").GetComponent<ItemDatabase>();
 
         if (CurrentWeaponID >= 0 && CurrentWeapon == null)
-            AssignWeapon(CurrentWeaponID);
+            AssignWeapon(CurrentWeaponID, -1);
 
     }
 
@@ -358,7 +488,7 @@ public class PlayerController : NetworkBehaviour
     }
 
     [Client]
-    public void AssignWeapon(int id)
+    public void AssignWeapon(int id, int ammoInClip)
     {
         if (itemDatabase == null)
             itemDatabase = GameObject.FindGameObjectWithTag("ItemDatabase").GetComponent<ItemDatabase>();
@@ -367,6 +497,9 @@ public class PlayerController : NetworkBehaviour
         CurrentWeapon = Instantiate(itemDatabase.GetGunByID(id), weaponContainer).GetComponent<Gun>();
         CurrentWeapon.GetComponent<Collider>().enabled = false; // Disable the collider.
         CurrentWeapon.OnGround = false;
+
+        if (ammoInClip >= 0)
+            AmmoInGun = ammoInClip;
 
         if (CurrentWeapon.UseCustomSpeedModifier)
             weaponSpeedModifier = CurrentWeapon.SpeedModifier;
@@ -382,6 +515,13 @@ public class PlayerController : NetworkBehaviour
             //Debug.Log("Attempting to reload...");
             CmdTryReload();
         }
+    }
+
+    [Client]
+    internal void DropButton()
+    {
+        if (CurrentWeapon != null && CurrentWeaponID > 0)
+            CmdTryDropWeapon();
     }
 
     /// <summary>
@@ -593,7 +733,7 @@ public class PlayerController : NetworkBehaviour
 
     public override void OnStartServer()
     {
-        print("Giving player gun id=0.");
+        //print("Giving player gun id=0.");
         CurrentWeaponID = 3;
     }
 
@@ -642,6 +782,38 @@ public class PlayerController : NetworkBehaviour
 
                 yield return null;
             }
+        }
+    }
+
+    /// <summary>
+    /// Used to keep track of how much ammo is in the clip of the gun when in the player's inventory.
+    /// </summary>
+    internal class InventoryGun
+    {
+        public int AmmoInClip;
+        public int Id;
+
+        public InventoryGun(int ammoInClip, int id)
+        {
+            AmmoInClip = ammoInClip;
+            Id = id;
+        }
+
+        public override bool Equals(object obj)
+        {
+            InventoryGun other = obj as InventoryGun;
+
+            if (other == null)
+                return false;
+
+            return other.Id == Id;
+        }
+
+        public override int GetHashCode()
+        {
+            int hash = 13;
+            hash = (hash * 7) + Id.GetHashCode();
+            return hash;
         }
     }
 

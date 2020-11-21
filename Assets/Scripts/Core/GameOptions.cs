@@ -79,6 +79,14 @@ public class GameOptions : NetworkBehaviour
 
     #region Static Properties (not user configurable)
 
+    // TODO: Make these modifiable.
+    public static Dictionary<Gun.GunType, int> GunTypeInventoryLimits = new Dictionary<Gun.GunType, int>()
+    {
+        [Gun.GunType.PRIMARY] = 2,
+        [Gun.GunType.SECONDARY] = 2,
+        [Gun.GunType.EXPLOSIVE] = 2
+    };
+
     // Holding a different weapon type impacts your speed.
     public static float PistolSpeedModifier = 0.98f;
     public static float ShotgunSpeedModifier = 0.95f;
@@ -119,18 +127,6 @@ public class GameOptions : NetworkBehaviour
         BULLET, // Regular bullets
         ROCKET  // AoE
     }
-
-    // Presets.
-    public enum GunType
-    {
-        PISTOL,
-        RIFLE,
-        SHOTGUN,
-        SMG,
-        ASSAULT_RIFLE,
-        LMG,
-        RPG
-    }
     
     /* Player Visuals */
     [SyncVar] public float playerScale;   // Multiplier for visual size of players.
@@ -154,7 +150,7 @@ public class GameOptions : NetworkBehaviour
             // Return false to not allow collision-destroyed second instance to continue.
             return false;
         }
-        Debug.Log("GameOptions created singleton (DontDestroyOnLoad)");
+        //Debug.Log("GameOptions created singleton (DontDestroyOnLoad)");
         singleton = this;
         if (Application.isPlaying) DontDestroyOnLoad(gameObject);
 

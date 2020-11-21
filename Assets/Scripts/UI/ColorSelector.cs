@@ -44,8 +44,8 @@ public class ColorSelector : NetworkBehaviour
     [Server]
     public bool AttemptClaimColor(Color oldColor, Color newColor)
     {
-        Debug.Log("CmdSelectColor(" + oldColor + ", " + newColor + ")");
-        Debug.Log("User is requesting color " + newColor + " (" + GameColors.COLOR_NAMES[newColor] + "). Old color = " + oldColor + " (" + GameColors.COLOR_NAMES[oldColor] + ")");
+        //Debug.Log("CmdSelectColor(" + oldColor + ", " + newColor + ")");
+        //Debug.Log("User is requesting color " + newColor + " (" + GameColors.COLOR_NAMES[newColor] + "). Old color = " + oldColor + " (" + GameColors.COLOR_NAMES[oldColor] + ")");
         logAvailableAndUnavailableColors();
 
         // If the color is available, then make it unavailable and inform the player.
@@ -69,7 +69,7 @@ public class ColorSelector : NetworkBehaviour
                 // Make sure the color that the user is claiming to have is considered unavailable.
                 if (!unavailableColors.Contains(oldColor))
                 {
-                    Debug.LogWarning("Player is attempting to switch from color " + oldColor + " (" + GameColors.COLOR_NAMES[oldColor] + "), but this color is currently available...");
+                    //Debug.LogWarning("Player is attempting to switch from color " + oldColor + " (" + GameColors.COLOR_NAMES[oldColor] + "), but this color is currently available...");
                     ColorToButtonMap[oldColor].enabled = true; // Just ensure it is interactable... 
                 }
                 else
@@ -136,7 +136,7 @@ public class ColorSelector : NetworkBehaviour
 
         ColorToButtonMap[randomColor].enabled = false;
 
-        Debug.Log("Assigning color " + randomColor + " (" + GameColors.COLOR_NAMES[randomColor] + ") to player " + netId + ".");
+        //Debug.Log("Assigning color " + randomColor + " (" + GameColors.COLOR_NAMES[randomColor] + ") to player " + netId + ".");
 
         return randomColor;
     }
@@ -154,7 +154,7 @@ public class ColorSelector : NetworkBehaviour
             colorButton.GetComponent<LeanButton>().OnClick.AddListener(() =>
             {
                 Color clickedColor = colorButton.GetComponentsInChildren<Image>()[1].color;
-                Debug.Log("Clicked button with color " + clickedColor + " (" + GameColors.COLOR_NAMES[clickedColor] + ")");
+                //Debug.Log("Clicked button with color " + clickedColor + " (" + GameColors.COLOR_NAMES[clickedColor] + ")");
 
                 //if (RoomPlayer.isLocalPlayer) CmdSelectColor(RoomPlayer.PlayerModelColor, clickedColor);
                 roomPlayer.OnClickColorButton(clickedColor);

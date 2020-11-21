@@ -47,6 +47,10 @@ public class RoundManager : NetworkBehaviour
     {
         if (Room.roomSlots.Count != Room.GamePlayers.Count) { return; }
 
+        Debug.Log("Round can now start. Performing pre-round tasks (e.g., spawning weapons, assigning roles, etc.).");
+
+        if (GameOptions.singleton.SpawnWeaponsAroundMap)
+            Room.SpawnItemsAroundMap();
         Room.AssignRoles();
     }
 

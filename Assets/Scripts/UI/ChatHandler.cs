@@ -20,7 +20,7 @@ public class ChatHandler : NetworkBehaviour
     
     public void CreateUIHooks()
     {
-        Debug.Log("ChatHandler.CreateUIHooks() called for player " + CustomNetworkRoomPlayer.netId + " CNP.isLocalPlayer = " + CustomNetworkRoomPlayer.isLocalPlayer + ", CNP.hasAuthority = " + CustomNetworkRoomPlayer.hasAuthority);
+        //Debug.Log("ChatHandler.CreateUIHooks() called for player " + CustomNetworkRoomPlayer.netId + " CNP.isLocalPlayer = " + CustomNetworkRoomPlayer.isLocalPlayer + ", CNP.hasAuthority = " + CustomNetworkRoomPlayer.hasAuthority);
         if (!CustomNetworkRoomPlayer.isLocalPlayer) return;
 
         chatContent = GameObject.FindGameObjectWithTag("ChatContent");
@@ -65,7 +65,7 @@ public class ChatHandler : NetworkBehaviour
     {
         if (!CustomNetworkRoomPlayer.isLocalPlayer) return;
 
-        Debug.Log("Handling new message: \"" + message + "\"");
+        //Debug.Log("Handling new message: \"" + message + "\"");
 
         GameObject TextMeshProUGUIGameObject = Instantiate(TextMeshProUGUIPrefab, chatContent.transform);
         TextMeshProUGUI textMeshProUGUI = TextMeshProUGUIGameObject.GetComponent<TextMeshProUGUI>();

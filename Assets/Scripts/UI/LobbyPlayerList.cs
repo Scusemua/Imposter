@@ -25,7 +25,7 @@ public class LobbyPlayerList : MonoBehaviour
 
     void Start()
     {
-        Debug.Log("Start() called for LobbyPlayerList.");
+        //Debug.Log("Start() called for LobbyPlayerList.");
         gameOptions = GameOptions.singleton;
 
         maxEntries = gameOptions.NumPlayers;
@@ -67,7 +67,7 @@ public class LobbyPlayerList : MonoBehaviour
 
     private void OnDestroy()
     {
-        Debug.Log("OnDestroy() called for LobbyPlayerList.");
+        //Debug.Log("OnDestroy() called for LobbyPlayerList.");
         
         Clear(false);
     }
@@ -90,7 +90,7 @@ public class LobbyPlayerList : MonoBehaviour
     /// <returns>False if we update an existing entry. True if we create a new entry.</returns>
     public bool AddOrUpdateEntry(uint netId, string playerName, bool readyStatus)
     {
-        Debug.Log("AddOrUpdateEntry() called. netId = " + netId + ", playerName = " + playerName + ", readyStatus = " + readyStatus + ".");
+        //Debug.Log("AddOrUpdateEntry() called. netId = " + netId + ", playerName = " + playerName + ", readyStatus = " + readyStatus + ".");
         if (UpdateEntry(netId, playerName, readyStatus))
             return false;
 
@@ -167,7 +167,7 @@ public class LobbyPlayerList : MonoBehaviour
             numPlaceholderEntries--;
         }
 
-        Debug.Log("Adding player lobby list entry for player \"" + playerName + "\" at index " + nextValidIndex);
+        //Debug.Log("Adding player lobby list entry for player \"" + playerName + "\" at index " + nextValidIndex);
 
         lobbyPlayerListEntry.transform.SetSiblingIndex(nextValidIndex); // Position the entry correctly.
         NetIDToIndexMap.Add(netId, nextValidIndex);

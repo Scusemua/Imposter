@@ -30,8 +30,8 @@ public class AmmoBox : NetworkBehaviour
     };
 
     [Header("Stats")]
-    public GunClass AssociatedGunType;   // What ammo (gun) type will this refill?
-    public int NumberBullets;           // How many bullets will the player get from picking up this ammo box?
+    public GunClass AssociatedGunClass;   // What ammo (gun) type will this refill?
+    public int NumberBullets;             // How many bullets will the player get from picking up this ammo box?
 
     [Tooltip("If True, then this gives ammo when picked up. If False, then this gives health when picked up.")]
     public bool IsAmmoBox;
@@ -44,10 +44,10 @@ public class AmmoBox : NetworkBehaviour
             GunClass[] gunTypes = Enum.GetValues(typeof(GunClass)).Cast<GunClass>().ToArray();
 
             // Randomly assign an associated ammo type for this ammo box.
-            AssociatedGunType = gunTypes[UnityEngine.Random.Range(0, gunTypes.Length)];
+            AssociatedGunClass = gunTypes[UnityEngine.Random.Range(0, gunTypes.Length)];
 
-            NumberBullets = ammoPickupAmounts[AssociatedGunType];
-            GetComponent<Outline>().OutlineColor = OutlineColors[AssociatedGunType];
+            NumberBullets = ammoPickupAmounts[AssociatedGunClass];
+            GetComponent<Outline>().OutlineColor = OutlineColors[AssociatedGunClass];
         }
         else
         {
