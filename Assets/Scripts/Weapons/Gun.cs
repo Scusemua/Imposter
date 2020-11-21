@@ -36,7 +36,7 @@ public class Gun : NetworkBehaviour
     [Header("Weapon Statistics")]
     public int Id;                  // Unique identifier of the weapon.
     public GunClass GunClass;       // Defines maximum ammo and other properties.
-    public GunType _GunType;        // We can only pick up a certian number of each type of weapon.
+    public GunType _GunType;        // We can only pick up a certian number of each type of weapon (primary, secondary, explosive, etc.).
     public int ClipSize;            // Number of times that the player can shoot before needing to reload.
     public float WeaponCooldown;    // Firerate.
     public float ReloadTime;        // How long it takes to reload.

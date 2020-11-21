@@ -84,13 +84,7 @@ public class PlayerController : NetworkBehaviour
     [SerializeField] private SyncList<InventoryGun> GrenadeInventory = new SyncList<InventoryGun>();
 
     private ItemDatabase itemDatabase;
-
-    /// <summary>
-    /// Refer to weapons by their ID.
-    /// </summary>
-    [SyncVar]
-    public int CurrrentGunID;
-
+    
     private LineRenderer lineRenderer;
 
     private float curCooldown;
@@ -165,7 +159,7 @@ public class PlayerController : NetworkBehaviour
 
     internal void ShootWeapon()
     {
-        if (AmmoInGun > 0 && !Player.IsDead && curCooldown <= 0.01)
+        if (AmmoInGun > 0 && !Player.IsDead && curCooldown <= 0.01 && CurrentWeaponID >= 0 && CurrentWeapon != null)
         {
             //Do command
             CmdTryShoot();
@@ -195,7 +189,7 @@ public class PlayerController : NetworkBehaviour
         Transform shooterTransform = NetworkIdentity.spawned[shooterID].GetComponent<Player>().GetComponent<Transform>();
 
         float volumeDistModifier = (1000f - GetDistanceSquaredToTarget(shooterTransform)) / 1000f;
-        Debug.Log("Playing gunshot with volume modifier: " + volumeDistModifier);
+        //Debug.Log("Playing gunshot with volume modifier: " + volumeDistModifier);
 
         AudioClip gunshotSound = Gunshot;
         if (itemDatabase.GetGunByID(gunId).ShootSound != null)
@@ -289,22 +283,34 @@ public class PlayerController : NetworkBehaviour
 
         if (gunType == Gun.GunType.PRIMARY && PrimaryInventory.Count < GameOptions.GunTypeInventoryLimits[gunType] && !PrimaryInventory.Contains(temp))
         {
+            Debug.Log("Adding weapon " + gun.Id + ", " + gun.Name + " to player's primary inventory.");
             PrimaryInventory.Add(new InventoryGun(gun.AmmoInClip, gun.Id));
             NetworkServer.Destroy(weaponGameObject);
+
+            Debug.Log("Added weapon " + gun.Id + ", " + gun.Name + " to player's primary inventory.");
+            Debug.Log("Primary inventory: " + PrimaryInventory.Select(g => g.Id).ToArray().ToString());
 
             TargetPlayPickupWeaponSound();
         }
         else if (gunType == Gun.GunType.SECONDARY && SecondaryInventory.Count < GameOptions.GunTypeInventoryLimits[gunType] && !SecondaryInventory.Contains(temp))
         {
+            Debug.Log("Adding weapon " + gun.Id + ", " + gun.Name + " to player's secondary inventory.");
             SecondaryInventory.Add(new InventoryGun(gun.AmmoInClip, gun.Id));
             NetworkServer.Destroy(weaponGameObject);
+
+            Debug.Log("Added weapon " + gun.Id + ", " + gun.Name + " to player's secondary inventory.");
+            Debug.Log("Secondary inventory: " + SecondaryInventory.Select(g => g.Id).ToArray().ToString());
 
             TargetPlayPickupWeaponSound();
         }
         else if (gunType == Gun.GunType.EXPLOSIVE && ExplosiveInventory.Count < GameOptions.GunTypeInventoryLimits[gunType] && !ExplosiveInventory.Contains(temp))
         {
+            Debug.Log("Adding weapon " + gun.Id + ", " + gun.Name + " to player's explosive inventory.");
             ExplosiveInventory.Add(new InventoryGun(gun.AmmoInClip, gun.Id));
             NetworkServer.Destroy(weaponGameObject);
+
+            Debug.Log("Added weapon " + gun.Id + ", " + gun.Name + " to player's explosive inventory.");
+            Debug.Log("Explosive inventory: " + ExplosiveInventory.Select(g => g.Id).ToArray().ToString());
 
             TargetPlayPickupWeaponSound();
         }
@@ -348,7 +354,7 @@ public class PlayerController : NetworkBehaviour
                 StoreCurrentGunAndSwitch(inventoryWeAreCyclingThrough[0].Id);
             }
         }
-        else
+        else if (inventoryWeAreCyclingThrough.Count == 1)
         {
             // There is only one weapon in the inventory that the player is cycling through,
             // and the cycling inventory is the same as the current gun's inventory. In this case,
@@ -600,6 +606,14 @@ public class PlayerController : NetworkBehaviour
     [Client]
     public void AssignWeaponClientSide(int id, int ammoInClip)
     {
+        if (id == -1)
+        {
+            if (CurrentWeapon != null)
+                Destroy(CurrentWeapon.gameObject);
+
+            return;
+        }
+
         if (itemDatabase == null)
             itemDatabase = GameObject.FindGameObjectWithTag("ItemDatabase").GetComponent<ItemDatabase>();
 
@@ -631,7 +645,7 @@ public class PlayerController : NetworkBehaviour
     [Client]
     internal void DropButton()
     {
-        if (CurrentWeapon != null && CurrentWeaponID > 0)
+        if (CurrentWeapon != null && CurrentWeaponID >= 0)
             CmdTryDropCurrentWeapon();
     }
 
@@ -643,8 +657,16 @@ public class PlayerController : NetworkBehaviour
     {
         if (!isLocalPlayer) return;
 
-        Player.PlayerUI.AmmoClipText.text = AmmoInGun.ToString();
-        Player.PlayerUI.AmmoReserveText.text = ammoCounts[CurrentWeapon.GunClass].ToString();
+        if (CurrentWeapon == null)
+        {
+            Player.PlayerUI.AmmoClipText.text = "N/A";
+            Player.PlayerUI.AmmoReserveText.text = "N/A";
+        }
+        else
+        {
+            Player.PlayerUI.AmmoClipText.text = AmmoInGun.ToString();
+            Player.PlayerUI.AmmoReserveText.text = ammoCounts[CurrentWeapon.GunClass].ToString();
+        }
     }
 
     [Client]
@@ -845,7 +867,36 @@ public class PlayerController : NetworkBehaviour
     public override void OnStartServer()
     {
         //print("Giving player gun id=0.");
-        CurrentWeaponID = 3;
+        GivePlayerWeapon(3, false, false);
+    }
+
+    /// <summary>
+    /// Add the specified weapon to the player's inventory. If the 'equip' flag is set to true,
+    /// then also equip the current weapon (put away whatever weapon the player may already be holding first).
+    /// 
+    /// This could also be used to force a player to equip a weapon in their inventory by specifiying a
+    /// gun that they already have while also passing true for 'equip'.
+    /// </summary>
+    [Server]
+    public void GivePlayerWeapon(int weaponId, bool overrideInventorySizeLimit, bool equip)
+    {
+        if (itemDatabase == null)
+            itemDatabase = GameObject.FindGameObjectWithTag("ItemDatabase").GetComponent<ItemDatabase>();
+
+        Gun gun = itemDatabase.GetGunByID(weaponId);
+        InventoryGun inventoryGun = new InventoryGun(gun.ClipSize, weaponId);
+
+        // Make sure that we're either ignoring inventory size limits or the player does have enough space.
+        if (overrideInventorySizeLimit || GetAssociatedInventoryByGunId(weaponId).Count < GameOptions.GunTypeInventoryLimits[gun._GunType])
+        {
+            if (GetAssociatedInventoryByGunId(weaponId).Contains(inventoryGun))
+                Debug.LogWarning("Player " + Player.Nickname + " (netId=" + Player.netId + ") already has weapon " + weaponId);
+            else
+                GetAssociatedInventoryByGunId(weaponId).Add(inventoryGun);
+        }
+
+        if (equip)
+            StoreCurrentGunAndSwitch(weaponId);
     }
 
     [Server]
