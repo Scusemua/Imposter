@@ -133,17 +133,17 @@ public class PlayerController : NetworkBehaviour
 
         if (Input.GetKeyDown(KeyCode.Alpha1))
         {
-
+            CmdTryCycleInventory(0);
         }
 
         if (Input.GetKeyDown(KeyCode.Alpha2))
         {
-
+            CmdTryCycleInventory(1);
         }
 
         if (Input.GetKeyDown(KeyCode.Alpha3))
         {
-
+            CmdTryCycleInventory(2);
         }
     }
 
@@ -276,6 +276,52 @@ public class PlayerController : NetworkBehaviour
         {
             ExplosiveInventory.Add(new InventoryGun(gun.AmmoInClip, gun.Id));
             NetworkServer.Destroy(weaponGameObject);
+        }
+    }
+
+    [Command]
+    public void CmdTryCycleInventory(int inventoryId)
+    {
+        InventoryGun temp = new InventoryGun(-1, inventoryId);
+        SyncList<InventoryGun> inventory = null;
+
+        if (inventoryId == 0)
+        {
+            inventory = PrimaryInventory;
+        }
+        else if (inventoryId == 1)
+        {
+            inventory = SecondaryInventory;
+        }
+        else if (inventoryId == 2)
+        {
+            inventory = ExplosiveInventory;
+        }
+
+        if (inventory != null && inventory.Count > 1)
+        {
+            int idx = inventory.IndexOf(temp);
+
+            // If this weapon is in the inventory that the player is trying to iterate through,
+            // then we'll try to cycle to whatever weapon comes after it, if one exists. Otherwise,
+            // just take the first gun in the given inventory.
+            if (idx != -1)
+            {
+                // We need to calculate the index of the next gun. If our current gun is the last gun
+                // in the inventory, then we'll have to cycle back to zero. Otherwise we can increment it 
+                // by one.
+                int nextIndex = 0;
+
+                // If the current index is NOT the last index, then increment it by one.
+                if (idx < inventory.Count - 1)
+                    nextIndex = idx + 1;
+
+                StoreCurrentWeaponInInventory(inventory[nextIndex].Id);
+            }
+            else
+            {
+                StoreCurrentWeaponInInventory(inventory[0].Id);
+            }
         }
     }
 
@@ -735,6 +781,21 @@ public class PlayerController : NetworkBehaviour
     {
         //print("Giving player gun id=0.");
         CurrentWeaponID = 3;
+    }
+
+    [Server]
+    public void StoreCurrentWeaponInInventory(int nextWeaponId)
+    {
+        InventoryGun inventoryGun = new InventoryGun(AmmoInGun, CurrentWeapon.Id);
+
+        if (CurrentWeapon._GunType == Gun.GunType.PRIMARY)
+            PrimaryInventory.Add(inventoryGun);
+        else if (CurrentWeapon._GunType == Gun.GunType.SECONDARY)
+            SecondaryInventory.Add(inventoryGun);
+        else if (CurrentWeapon._GunType == Gun.GunType.EXPLOSIVE)
+            ExplosiveInventory.Add(inventoryGun);
+
+        CurrentWeaponID = nextWeaponId;
     }
 
     [Server]
