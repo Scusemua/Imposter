@@ -342,6 +342,7 @@ public class NetworkGameManager : NetworkRoomManager
     /// </summary>
     void GameEnded()
     {
+        Debug.Log("Game ended. Resetting state.");
         GamePlayers.Clear();    // This effectively unregisters all players.
         NetIdMap.Clear();       // Clear this mapping as well, since we've unregistered all the players.
         numCrewmatesAlive = 0;  // The game is not active so reset these variables.
@@ -513,8 +514,8 @@ public class NetworkGameManager : NetworkRoomManager
                 else
                 {
                     // Instantiate the scene object on the server.
-                    int ammoBoxPrefabVariantIndex = rng.Next(0, itemDatabase.NumMedkitVariants);
-                    AmmoBox ammoBox = Instantiate(itemDatabase.GetMedkitByIndex(ammoBoxPrefabVariantIndex), position, rotation);
+                    int ammoBoxPrefabVariantIndex = rng.Next(0, itemDatabase.NumAmmoBoxVariants);
+                    AmmoBox ammoBox = Instantiate(itemDatabase.GetAmmoBoxByIndex(ammoBoxPrefabVariantIndex), position, rotation);
 
                     // set the RigidBody as non-kinematic on the server only (isKinematic = true in prefab).
                     ammoBox.GetComponent<Rigidbody>().isKinematic = false;

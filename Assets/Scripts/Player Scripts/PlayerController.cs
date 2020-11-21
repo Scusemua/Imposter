@@ -3,6 +3,7 @@ using Mirror;
 using System.Linq;
 using System.Collections;
 using System.Collections.Generic;
+using System;
 
 public class PlayerController : NetworkBehaviour
 {
@@ -99,6 +100,9 @@ public class PlayerController : NetworkBehaviour
     private float lastX;
     private float lastY;
 
+    // Reference to the reload coroutine so we can cancel the reload when necessary.
+    private Coroutine reloadCoroutine;
+
     private GameOptions GameOptions { get => GameOptions.singleton; }
 
     public Vector3 CameraOffset;
@@ -122,11 +126,9 @@ public class PlayerController : NetworkBehaviour
 
         if (Input.GetKeyDown(KeyCode.R))
             ReloadButton();
-
-        if (Input.GetKeyDown(KeyCode.V))
+        else if (Input.GetKeyDown(KeyCode.V))
             DropButton();
-
-        if (Input.GetKeyDown(KeyCode.Alpha1))
+        else if (Input.GetKeyDown(KeyCode.Alpha1))
         {
             string[] primaryWeaponNames = PrimaryInventory.Select(gun => itemDatabase.GetGunByID(gun.Id).Name).ToArray<string>();
             string[] secondaryWeaponNames = SecondaryInventory.Select(gun => itemDatabase.GetGunByID(gun.Id).Name).ToArray<string>();
@@ -135,8 +137,7 @@ public class PlayerController : NetworkBehaviour
             Player.PlayerUI.ShowWeaponUI(primaryWeaponNames, secondaryWeaponNames, explosiveWeaponNames);
             CmdTryCycleInventory(0);
         }
-
-        if (Input.GetKeyDown(KeyCode.Alpha2))
+        else if (Input.GetKeyDown(KeyCode.Alpha2))
         {
             string[] primaryWeaponNames = PrimaryInventory.Select(gun => itemDatabase.GetGunByID(gun.Id).Name).ToArray<string>();
             string[] secondaryWeaponNames = SecondaryInventory.Select(gun => itemDatabase.GetGunByID(gun.Id).Name).ToArray<string>();
@@ -145,8 +146,7 @@ public class PlayerController : NetworkBehaviour
             Player.PlayerUI.ShowWeaponUI(primaryWeaponNames, secondaryWeaponNames, explosiveWeaponNames);
             CmdTryCycleInventory(1);
         }
-
-        if (Input.GetKeyDown(KeyCode.Alpha3))
+        else if (Input.GetKeyDown(KeyCode.Alpha3))
         {
             string[] primaryWeaponNames = PrimaryInventory.Select(gun => itemDatabase.GetGunByID(gun.Id).Name).ToArray<string>();
             string[] secondaryWeaponNames = SecondaryInventory.Select(gun => itemDatabase.GetGunByID(gun.Id).Name).ToArray<string>();
@@ -159,7 +159,7 @@ public class PlayerController : NetworkBehaviour
 
     internal void ShootWeapon()
     {
-        if (AmmoInGun > 0 && !Player.IsDead && curCooldown <= 0.01 && CurrentWeaponID >= 0 && CurrentWeapon != null)
+        if (AmmoInGun > 0 && !Reloading && !Player.IsDead && curCooldown <= 0.01 && CurrentWeaponID >= 0 && CurrentWeapon != null)
         {
             //Do command
             CmdTryShoot();
@@ -260,12 +260,21 @@ public class PlayerController : NetworkBehaviour
     }
 
     [TargetRpc]
+    void ShowReloadBar(float reloadTime)
+    {
+        Player.PlayerUI.ReloadingProgressBar.health = 0;
+        Player.PlayerUI.ReloadingProgressBar.healthPerSecond = 100f / reloadTime;
+        Player.PlayerUI.ReloadingProgressBar.gameObject.SetActive(true);
+    }
+
+    [TargetRpc]
     void TargetReload()
     {
         //We reloaded successfully.
         //Update UI
         Player.PlayerUI.AmmoClipText.text = AmmoInGun.ToString();
         Player.PlayerUI.AmmoReserveText.text = ammoCounts[CurrentWeapon.GunClass].ToString();
+        Player.PlayerUI.ReloadingProgressBar.gameObject.SetActive(false);
     }
 
     #endregion
@@ -407,10 +416,11 @@ public class PlayerController : NetworkBehaviour
     [Command]
     private void CmdTryReload()
     {
-        if (CurrentWeapon == null || Reloading || AmmoInGun == CurrentWeapon.ClipSize)
+        Debug.Log(GetPlayerDebugString() + " [server side] is trying to reload. Current Weapon ID = " + CurrentWeaponID + ", CurrentWeapon != null: " + (CurrentWeapon != null) + ", Ammo In Gun: " + AmmoInGun + "Current Weapon Clip Size: " + (CurrentWeapon != null ? CurrentWeapon.ClipSize.ToString() : "N/A"));
+        if (CurrentWeaponID < 0 || Reloading || AmmoInGun == itemDatabase.GetGunByID(CurrentWeaponID).ClipSize)
             return;
 
-        StartCoroutine(reloadingWeapon());
+        reloadCoroutine = StartCoroutine(reloadingWeapon());
     }
 
     [Command]
@@ -462,25 +472,35 @@ public class PlayerController : NetworkBehaviour
         else
         {
             Debug.LogError("Player " + Player.Nickname + " (netId=" + Player.netId + ") attempting to drop gun " + CurrentWeaponID + " which is not in player's inventory...");
+            AmmoInGun = 0;
             CurrentWeaponID = -1; // Remove the weapon as the player definitely shouldn't have it.
+
+            // Set this to false in-case we were reloading when we dropped the gun.
+            CancelReload();
+
             return;
         }
 
-        // Instantiate the scene object on the server
-        Vector3 pos = weaponContainer.transform.position;
+        // Instantiate the scene object on the server a bit in front of the player so they don't instantly pick it up.
+        Vector3 pos = transform.position + (transform.forward * 2.0f) ;
         Quaternion rot = weaponContainer.transform.rotation;
         Gun droppedWeapon = Instantiate(itemDatabase.GetGunByID(CurrentWeaponID), pos, rot);
 
+        // Set this to false in-case we were reloading when we dropped the gun.
+        CancelReload();
+
         // Set the RigidBody as non-kinematic on the server only (isKinematic = true in prefab).
+        Array.ForEach(droppedWeapon.GetComponents<Collider>(), c => c.enabled = true); // Disable the colliders.
         droppedWeapon.GetComponent<Rigidbody>().isKinematic = false;
-        droppedWeapon.GetComponent<Collider>().enabled = true;
+        droppedWeapon.GetComponent<Rigidbody>().detectCollisions = true;
         droppedWeapon.OnGround = true;
         droppedWeapon.AmmoInClip = AmmoInGun;
 
         // Toss it out in front of us a bit.
-        droppedWeapon.GetComponent<Rigidbody>().velocity = transform.forward * 5.0f;
+        droppedWeapon.GetComponent<Rigidbody>().velocity = transform.forward * 7.0f + transform.up * 5.0f;
 
         // Set the player's SyncVar to nothing so clients will destroy the equipped child item.
+        AmmoInGun = 0;
         CurrentWeaponID = -1;
 
         // Spawn the scene object on the network for all to see
@@ -515,7 +535,14 @@ public class PlayerController : NetworkBehaviour
 
         // The player could've put away all their weapons, meaning the new ID would be -1.
         if (_New >= 0)
-            AssignWeaponClientSide(_New, -1);
+        {
+            AssignWeaponClientSide(_New);
+            Player.PlayerUI.AmmoUI.SetActive(true);
+        }
+        else
+        {
+            Player.PlayerUI.AmmoUI.SetActive(false);
+        }
     }
 
     void OnTriggerEnter(Collider other)
@@ -583,10 +610,6 @@ public class PlayerController : NetworkBehaviour
 
         if (itemDatabase == null)
             itemDatabase = GameObject.FindGameObjectWithTag("ItemDatabase").GetComponent<ItemDatabase>();
-
-        if (CurrentWeaponID >= 0 && CurrentWeapon == null)
-            AssignWeaponClientSide(CurrentWeaponID, -1);
-
     }
 
     /// <summary>
@@ -604,13 +627,15 @@ public class PlayerController : NetworkBehaviour
     }
 
     [Client]
-    public void AssignWeaponClientSide(int id, int ammoInClip)
+    public void AssignWeaponClientSide(int id)
     {
         if (id == -1)
         {
             if (CurrentWeapon != null)
                 Destroy(CurrentWeapon.gameObject);
 
+            // Make sure to update the ammo display.
+            UpdateAmmoDisplay();
             return;
         }
 
@@ -619,25 +644,27 @@ public class PlayerController : NetworkBehaviour
 
         Debug.Log("Assigning weapon " + id + " to player now.");
         CurrentWeapon = Instantiate(itemDatabase.GetGunByID(id), weaponContainer).GetComponent<Gun>();
-        CurrentWeapon.GetComponent<Collider>().enabled = false; // Disable the collider.
-        CurrentWeapon.GetComponent<Rigidbody>().isKinematic = false;
+        Array.ForEach(CurrentWeapon.GetComponents<Collider>(), c => c.enabled = false); // Disable the colliders.
+        CurrentWeapon.GetComponent<Rigidbody>().isKinematic = true;
+        CurrentWeapon.GetComponent<Rigidbody>().detectCollisions= false;
         CurrentWeapon.OnGround = false;
-
-        if (ammoInClip >= 0)
-            AmmoInGun = ammoInClip;
 
         if (CurrentWeapon.UseCustomSpeedModifier)
             weaponSpeedModifier = CurrentWeapon.SpeedModifier;
         else
             weaponSpeedModifier = GameOptions.GunClassSpeedModifiers[CurrentWeapon.GunClass];
+
+        // Make sure to update the ammo display.
+        UpdateAmmoDisplay();
     }
 
     [Client]
     internal void ReloadButton()
     {
-        if (!Reloading || AmmoInGun != CurrentWeapon.ClipSize)
+        Debug.Log(GetPlayerDebugString() + " [client side] is trying to reload. Current Weapon ID = " + CurrentWeaponID + ", CurrentWeapon != null: " + (CurrentWeapon != null) + ", Ammo In Gun: " + AmmoInGun + "Current Weapon Clip Size: " + (CurrentWeapon != null ? CurrentWeapon.ClipSize.ToString() : "N/A"));
+        if (CurrentWeaponID >= 0 && CurrentWeapon != null && AmmoInGun != CurrentWeapon.ClipSize && !Reloading && !Player.IsDead)
         {
-            //Debug.Log("Attempting to reload...");
+            Debug.Log("Attempting to reload...");
             CmdTryReload();
         }
     }
@@ -645,7 +672,7 @@ public class PlayerController : NetworkBehaviour
     [Client]
     internal void DropButton()
     {
-        if (CurrentWeapon != null && CurrentWeaponID >= 0)
+        if (CurrentWeapon != null && CurrentWeaponID >= 0 && !Player.IsDead)
             CmdTryDropCurrentWeapon();
     }
 
@@ -710,6 +737,7 @@ public class PlayerController : NetworkBehaviour
             Debug.LogError("Player is null for PlayerController!");
 
         Identified = false;
+        PlayerOutline.OutlineColor = Player.PlayerColor;
 
         if (!isLocalPlayer)
         {
@@ -761,9 +789,6 @@ public class PlayerController : NetworkBehaviour
             transform.LookAt(lookAt);
         }
 
-        //Vector3 rightMovement = Vector3.right * movement;
-        //Vector3 upMovement = Vector3.up * movement;
-        //Vector3 heading = Vector3.Normalize(upMovement + rightMovement);
         UpdateAnimation(movement.normalized);
     }
 
@@ -795,7 +820,7 @@ public class PlayerController : NetworkBehaviour
         setRigidbodyState(false);
         setColliderState(true);
 
-        this.PlayerOutline.enabled = true;
+        this.PlayerOutline.OutlineColor = new Color32(245, 233, 66, 0);
 
         if (isLocalPlayer)
             AudioSource.PlayOneShot(ImpactSound);
@@ -867,7 +892,21 @@ public class PlayerController : NetworkBehaviour
     public override void OnStartServer()
     {
         //print("Giving player gun id=0.");
-        GivePlayerWeapon(3, false, false);
+        //GivePlayerWeapon(3, false, false);
+    }
+
+    /// <summary>
+    /// Stop the reload coroutine. Useful if we drop or switch guns during a reload.
+    /// </summary>
+    [Server]
+    private void CancelReload()
+    {
+        if (Reloading)
+        {
+            StopCoroutine(reloadCoroutine);
+            TargetReload();
+            Reloading = false;
+        }
     }
 
     /// <summary>
@@ -959,6 +998,10 @@ public class PlayerController : NetworkBehaviour
             GetAssociatedInventoryByGunId(CurrentWeaponID)[idx] = inventoryGun;
             //GetAssociatedInventoryByGunId(CurrentWeaponID).Add(inventoryGun);
         }
+
+        // Stop the reload in case we switched during a reload.
+        CancelReload();
+
         // If we're also switching weapons, then make sure we indeed have the weapon that we're trying to switch to.
         // This will handle the case where we aren't switching to a gun and instead are just putting are gun away.
         AssignWeaponServerSide(nextWeaponID);
@@ -976,9 +1019,9 @@ public class PlayerController : NetworkBehaviour
 
         InventoryGun temp = new InventoryGun(-1, nextWeaponID);
         SyncList<InventoryGun> associatedInventory = GetAssociatedInventoryByGunId(nextWeaponID);
-
+        int indexOfGunInInventory = associatedInventory.IndexOf(temp);
         // Make sure we have the specified weapon before equipping it.
-        if (!associatedInventory.Contains(temp))
+        if (indexOfGunInInventory == -1)
         {
             Debug.LogError("ERROR: Player " + Player.Nickname + " (netId=" + Player.netId + ") attempting to switch to weapon (id=" + nextWeaponID + "), which they do not have.");
             return;
@@ -986,6 +1029,7 @@ public class PlayerController : NetworkBehaviour
         else
         {
             //associatedInventory.Remove(temp);   // Remove the weapon from the player's inventory.
+            AmmoInGun = GetAssociatedInventoryByGunId(nextWeaponID)[indexOfGunInInventory].AmmoInClip;
             CurrentWeaponID = nextWeaponID;       // Switch to the weapon.
         }
     }
@@ -1004,11 +1048,16 @@ public class PlayerController : NetworkBehaviour
         {
             int currentWeaponId = CurrentWeapon.Id;
             Reloading = true;
+            ShowReloadBar(CurrentWeapon.ReloadTime);
             yield return new WaitForSeconds(CurrentWeapon.ReloadTime);
 
             // Make sure player hasn't switched guns to get away with any funny business.
             if (CurrentWeapon == null || CurrentWeapon.Id != currentWeaponId)
+            {
+                Reloading = false;
+                TargetReload();
                 yield return null;
+            }
             else
             {
                 // Determine how much ammo the player is missing.
@@ -1074,6 +1123,15 @@ public class PlayerController : NetworkBehaviour
             hash = (hash * 7) + Id.GetHashCode();
             return hash;
         }
+    }
+
+    #endregion
+
+    #region Utility 
+
+    public string GetPlayerDebugString()
+    {
+        return "Player " + Player.Nickname + " (netId=" + Player.netId + ")";
     }
 
     #endregion 

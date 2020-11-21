@@ -28,6 +28,8 @@ public class PlayerUI : MonoBehaviour
     public GameObject PlayerUICanvas;
     public Healthbar HpBar;
     public Healthbar StaminaBar;
+    public Healthbar ReloadingProgressBar;
+    public GameObject AmmoUI;
     public GameObject WeaponUI;
     public GameObject PrimaryInventoryPanel;
     public GameObject SecondaryInventoryPanel;
@@ -54,6 +56,9 @@ public class PlayerUI : MonoBehaviour
     {
         gameOptions = GameOptions.singleton;
         networkGameManager = NetworkManager.singleton as NetworkGameManager;
+
+        // Make sure the debug image is disabled.
+        GetComponentInChildren<Canvas>().GetComponent<Image>().enabled = false;
     }
 
     // Start is called before the first frame update.
@@ -67,6 +72,9 @@ public class PlayerUI : MonoBehaviour
 
         gameOptions = GameOptions.singleton;
         networkGameManager = NetworkManager.singleton as NetworkGameManager;
+
+        // Make sure the debug image is disabled.
+        GetComponentInChildren<Canvas>().GetComponent<Image>().enabled = false;
     }
 
     // Update is called once per frame.

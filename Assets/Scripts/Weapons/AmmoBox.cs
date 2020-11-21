@@ -7,6 +7,9 @@ using Mirror;
 
 public class AmmoBox : NetworkBehaviour
 {
+    public Outline BodyOutline;
+    public Outline LidOutline;
+
     private static Dictionary<GunClass, int> ammoPickupAmounts = new Dictionary<GunClass, int>
     {
         [GunClass.ASSAULT_RIFLE] = 60,
@@ -47,12 +50,14 @@ public class AmmoBox : NetworkBehaviour
             AssociatedGunClass = gunTypes[UnityEngine.Random.Range(0, gunTypes.Length)];
 
             NumberBullets = ammoPickupAmounts[AssociatedGunClass];
-            GetComponent<Outline>().OutlineColor = OutlineColors[AssociatedGunClass];
+            BodyOutline.OutlineColor = OutlineColors[AssociatedGunClass];
+            LidOutline.OutlineColor = OutlineColors[AssociatedGunClass];
         }
         else
         {
             NumberBullets = 25; // In this case, NumberBullets functions has the health restored on pickup.
-            GetComponent<Outline>().OutlineColor = new Color32(0, 120, 28, 0);  // Dark green.
+            BodyOutline.OutlineColor = new Color32(0, 120, 28, 0);  // Dark green.
+            LidOutline.OutlineColor = new Color32(0, 120, 28, 0);  // Dark green.
         }
     }
 }
