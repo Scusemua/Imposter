@@ -212,7 +212,7 @@ public class PlayerUI : MonoBehaviour
         foreach (string name in secondaryWeapons)
         {
             GameObject entry = Instantiate(WeaponUiEntryPrefab, SecondaryInventoryPanel.transform);
-            TextMeshProUGUI weaponName = entry.GetComponentInChildren<TextMeshProUGUI>(); weaponName.text = name;
+            TextMeshProUGUI weaponName = entry.GetComponentInChildren<TextMeshProUGUI>(); 
             weaponName.text = name;
             weaponUiEntries.Add(entry);
         }
@@ -232,10 +232,10 @@ public class PlayerUI : MonoBehaviour
     [Client]
     public void InitWeaponUIFade()
     {
+        CanvasGroup canvasGroup = WeaponUI.GetComponent<CanvasGroup>();
+        canvasGroup.alpha = 1.0f;
         if (WeaponUiFadeRoutine != null)
         {
-            CanvasGroup canvasGroup = WeaponUI.GetComponent<CanvasGroup>();
-            canvasGroup.alpha = 1.0f;
             StopCoroutine(WeaponUiFadeRoutine);
         }
         WeaponUiFadeRoutine = StartCoroutine(DoFade());

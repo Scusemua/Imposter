@@ -313,45 +313,57 @@ public class PlayerController : NetworkBehaviour
     [Command]
     public void CmdTryCycleInventory(int inventoryId)
     {
-        InventoryGun temp = new InventoryGun(-1, inventoryId);
-        SyncList<InventoryGun> inventory = null;
+        SyncList<InventoryGun> inventoryWeAreCyclingThrough = GetInventoryByInventoryId(inventoryId);
+        SyncList<InventoryGun> currentWeaponAssociatedInventory = GetAssociatedInventoryByGunId(CurrentWeaponID);
 
-        if (inventoryId == 0)
-        {
-            inventory = PrimaryInventory;
-        }
-        else if (inventoryId == 1)
-        {
-            inventory = SecondaryInventory;
-        }
-        else if (inventoryId == 2)
-        {
-            inventory = ExplosiveInventory;
-        }
+        if (inventoryWeAreCyclingThrough == null)
+            return;
 
-        if (inventory != null && inventory.Count > 1)
+        // There are multiple weapons in the inventory we're cycling through.
+        if (inventoryWeAreCyclingThrough.Count > 1)
         {
-            int idx = inventory.IndexOf(temp);
-
-            // If this weapon is in the inventory that the player is trying to iterate through,
-            // then we'll try to cycle to whatever weapon comes after it, if one exists. Otherwise,
-            // just take the first gun in the given inventory.
-            if (idx != -1)
+            // There are two main cases.
+            // (1a) The cycling inventory and current gun's inventory are the same. We move to the next gun
+            //      in the inventory in this case.
+            // (2a) They are different. We put our gun away. Then, we equip the first gun from the other inventory.
+            if (inventoryWeAreCyclingThrough == currentWeaponAssociatedInventory)
             {
-                // We need to calculate the index of the next gun. If our current gun is the last gun
-                // in the inventory, then we'll have to cycle back to zero. Otherwise we can increment it 
-                // by one.
-                int nextIndex = 0;
+                // Case (1a)
+                InventoryGun temp = new InventoryGun(-1, CurrentWeaponID);
+                int currentGunIndexInInventory = currentWeaponAssociatedInventory.IndexOf(temp);
+                int nextGunIndex = -1;
 
-                // If the current index is NOT the last index, then increment it by one.
-                if (idx < inventory.Count - 1)
-                    nextIndex = idx + 1;
+                // Either increment the index or loop it back around to zero if current gun is last in the inventory.
+                if (currentGunIndexInInventory == currentWeaponAssociatedInventory.Count - 1)
+                    nextGunIndex = 0;
+                else
+                    nextGunIndex = currentGunIndexInInventory + 1;
 
-                StoreCurrentWeaponInInventory(inventory[nextIndex].Id);
+                StoreCurrentGunAndSwitch(inventoryWeAreCyclingThrough[nextGunIndex].Id);
             }
             else
             {
-                StoreCurrentWeaponInInventory(inventory[0].Id);
+                // Case (2a)
+                // This function call handles equipping the new gun in addition to putting our current gun away.
+                StoreCurrentGunAndSwitch(inventoryWeAreCyclingThrough[0].Id);
+            }
+        }
+        else
+        {
+            // There is only one weapon in the inventory that the player is cycling through,
+            // and the cycling inventory is the same as the current gun's inventory. In this case,
+            // we have no weapons to switch to, so we're done.
+            if (inventoryWeAreCyclingThrough == currentWeaponAssociatedInventory)
+                return;
+            else
+            {
+                // There is only one weapon in the inventory that the player is cycling through, and
+                // the two inventories are different. There are now two cases:
+                // (1b) We are holding a weapon already and need to put it away first. 
+                // (2b) We are not holding a weapon and can just equip the specified weapon.
+                // This function call handles both. If we have a gun already, we'll put it away.
+                // Then, we'll equip the new gun.
+                StoreCurrentGunAndSwitch(inventoryWeAreCyclingThrough[0].Id);
             }
         }
     }
@@ -432,8 +444,22 @@ public class PlayerController : NetworkBehaviour
     }
 
     [Command]
-    public void CmdTryDropWeapon()
+    public void CmdTryDropCurrentWeapon()
     {
+        if (CurrentWeaponID < 0)
+            return;
+
+        // Remove the gun from the player's inventory.
+        InventoryGun temp = new InventoryGun(-1, CurrentWeaponID);
+        if (GetAssociatedInventoryByGunId(CurrentWeaponID).Contains(temp))
+            GetAssociatedInventoryByGunId(CurrentWeaponID).Remove(temp);
+        else
+        {
+            Debug.LogError("Player " + Player.Nickname + " (netId=" + Player.netId + ") attempting to drop gun " + CurrentWeaponID + " which is not in player's inventory...");
+            CurrentWeaponID = -1; // Remove the weapon as the player definitely shouldn't have it.
+            return;
+        }
+
         // Instantiate the scene object on the server
         Vector3 pos = weaponContainer.transform.position;
         Quaternion rot = weaponContainer.transform.rotation;
@@ -483,7 +509,7 @@ public class PlayerController : NetworkBehaviour
 
         // The player could've put away all their weapons, meaning the new ID would be -1.
         if (_New >= 0)
-            AssignWeapon(_New, -1);
+            AssignWeaponClientSide(_New, -1);
     }
 
     void OnTriggerEnter(Collider other)
@@ -553,7 +579,7 @@ public class PlayerController : NetworkBehaviour
             itemDatabase = GameObject.FindGameObjectWithTag("ItemDatabase").GetComponent<ItemDatabase>();
 
         if (CurrentWeaponID >= 0 && CurrentWeapon == null)
-            AssignWeapon(CurrentWeaponID, -1);
+            AssignWeaponClientSide(CurrentWeaponID, -1);
 
     }
 
@@ -572,7 +598,7 @@ public class PlayerController : NetworkBehaviour
     }
 
     [Client]
-    public void AssignWeapon(int id, int ammoInClip)
+    public void AssignWeaponClientSide(int id, int ammoInClip)
     {
         if (itemDatabase == null)
             itemDatabase = GameObject.FindGameObjectWithTag("ItemDatabase").GetComponent<ItemDatabase>();
@@ -606,7 +632,7 @@ public class PlayerController : NetworkBehaviour
     internal void DropButton()
     {
         if (CurrentWeapon != null && CurrentWeaponID > 0)
-            CmdTryDropWeapon();
+            CmdTryDropCurrentWeapon();
     }
 
     /// <summary>
@@ -823,18 +849,94 @@ public class PlayerController : NetworkBehaviour
     }
 
     [Server]
-    public void StoreCurrentWeaponInInventory(int nextWeaponId)
+    private SyncList<InventoryGun> GetInventoryByInventoryId(int inventoryId)
     {
-        InventoryGun inventoryGun = new InventoryGun(AmmoInGun, CurrentWeapon.Id);
+        switch (inventoryId)
+        {
+            case 0:
+                return PrimaryInventory;
+            case 1:
+                return SecondaryInventory;
+            case 2:
+                return ExplosiveInventory;
+            default:
+                return null;
+        }
+    }
 
-        if (CurrentWeapon._GunType == Gun.GunType.PRIMARY)
-            PrimaryInventory.Add(inventoryGun);
-        else if (CurrentWeapon._GunType == Gun.GunType.SECONDARY)
-            SecondaryInventory.Add(inventoryGun);
-        else if (CurrentWeapon._GunType == Gun.GunType.EXPLOSIVE)
-            ExplosiveInventory.Add(inventoryGun);
 
-        CurrentWeaponID = nextWeaponId;
+    [Server]
+    private SyncList<InventoryGun> GetAssociatedInventoryByGunId(int weaponId)
+    {
+        Gun gun = itemDatabase.GetGunByID(weaponId);
+
+        return GetAssociatedInventoryByGun(gun);
+    }
+
+    [Server]
+    private SyncList<InventoryGun> GetAssociatedInventoryByGun(Gun gun)
+    {
+        if (gun == null)
+            return null;
+
+        if (gun._GunType == Gun.GunType.PRIMARY)
+            return PrimaryInventory;
+        else if (gun._GunType == Gun.GunType.SECONDARY)
+            return SecondaryInventory;
+        else if (gun._GunType == Gun.GunType.EXPLOSIVE)
+            return ExplosiveInventory;
+        else
+            return null;
+    }
+
+    /// <summary>
+    /// Store the player's current weapon in their inventory. Then, attempt to switch
+    /// guns to the one specified by the parameter. Check to make sure they have the gun first.
+    /// </summary>
+    /// <param name="nextWeaponID">The gun to switch to.</param>
+    [Server]
+    public void StoreCurrentGunAndSwitch(int nextWeaponID)
+    {
+        // If the player has a gun equipped, put it away first.
+        if (CurrentWeaponID >= 0)
+        {
+            InventoryGun inventoryGun = new InventoryGun(AmmoInGun, CurrentWeaponID);
+
+            // IndexOf only checks against the Id. So we find the gun in the list, then replace
+            // it with this updated object which has a up-to-date AmmoInGun value.
+            int idx = GetAssociatedInventoryByGunId(CurrentWeaponID).IndexOf(inventoryGun);
+            GetAssociatedInventoryByGunId(CurrentWeaponID)[idx] = inventoryGun;
+            //GetAssociatedInventoryByGunId(CurrentWeaponID).Add(inventoryGun);
+        }
+        // If we're also switching weapons, then make sure we indeed have the weapon that we're trying to switch to.
+        // This will handle the case where we aren't switching to a gun and instead are just putting are gun away.
+        AssignWeaponServerSide(nextWeaponID);
+    }
+
+    /// <summary>
+    /// Check to make sure we have the specified gun in the associated inventory. If so, remove it
+    /// from the player's inventory and equip it. Otherwise, return (while possibly logging an error).
+    /// </summary>
+    [Server]
+    public void AssignWeaponServerSide(int nextWeaponID)
+    {
+        if (nextWeaponID < 0)
+            return;
+
+        InventoryGun temp = new InventoryGun(-1, nextWeaponID);
+        SyncList<InventoryGun> associatedInventory = GetAssociatedInventoryByGunId(nextWeaponID);
+
+        // Make sure we have the specified weapon before equipping it.
+        if (!associatedInventory.Contains(temp))
+        {
+            Debug.LogError("ERROR: Player " + Player.Nickname + " (netId=" + Player.netId + ") attempting to switch to weapon (id=" + nextWeaponID + "), which they do not have.");
+            return;
+        }
+        else
+        {
+            //associatedInventory.Remove(temp);   // Remove the weapon from the player's inventory.
+            CurrentWeaponID = nextWeaponID;       // Switch to the weapon.
+        }
     }
 
     [Server]
