@@ -470,6 +470,8 @@ public class NetworkGameManager : NetworkRoomManager
     {
         if (sceneName == GameplayScene)
             itemDatabase = GameObject.FindGameObjectWithTag("ItemDatabase").GetComponent<ItemDatabase>();
+        else if (sceneName == RoomScene)
+            GameEnded();
     }
 
     /// <summary>

@@ -45,7 +45,7 @@ public class PlayerController : NetworkBehaviour
 
     //private float weaponSpeedModifier = 1.0f;
 
-    [SyncVar(hook = nameof(OnCurrentWeaponIdChanged))]
+    //[SyncVar(hook = nameof(OnCurrentWeaponIdChanged))]
     public int CurrentWeaponID = -1;
     public Gun CurrentWeapon;
     
@@ -178,6 +178,20 @@ public class PlayerController : NetworkBehaviour
     }
 
     #region Client RPC
+    [ClientRpc]
+    public void RpcAssignCurrentWeapon(int weaponId, int ammoInClip)
+    {
+        AssignWeaponClientSide(weaponId, ammoInClip);
+
+        if (isLocalPlayer)
+        {
+            if (weaponId >= 0)
+                Player.PlayerUI.AmmoUI.SetActive(true);
+            else
+                Player.PlayerUI.AmmoUI.SetActive(false);
+        }
+    }
+
     [ClientRpc]
     public void RpcPlayerFiredProjectile(uint shooterID, int gunId)
     {
@@ -521,7 +535,7 @@ public class PlayerController : NetworkBehaviour
         }
         else
         {
-            ammoInClip = GetAssociatedInventoryByGunId(CurrentWeaponID)[index].AmmoInClip;
+            ammoInClip = CurrentWeapon.AmmoInClip;
             GetAssociatedInventoryByGunId(CurrentWeaponID).RemoveAt(index);
         }
 
@@ -565,30 +579,30 @@ public class PlayerController : NetworkBehaviour
 
     }
 
-    [Client]
-    public void OnCurrentWeaponIdChanged(int _Old, int _New)
-    {
-        Debug.Log("Current weapon ID changed. Old value: " + _Old + ", New value: " + _New);
-        if (CurrentWeapon != null)
-        {
-            CurrentWeapon.OnReloadCompleted -= TargetReload;
-            CurrentWeapon.OnReloadStarted -= ShowReloadBar;
-            Destroy(CurrentWeapon.gameObject);
-            CurrentWeapon = null;
-        }
+    //[Client]
+    //public void OnCurrentWeaponIdChanged(int _Old, int _New)
+    //{
+    //    Debug.Log("Current weapon ID changed. Old value: " + _Old + ", New value: " + _New);
+    //    if (CurrentWeapon != null)
+    //    {
+    //        CurrentWeapon.OnReloadCompleted -= TargetReload;
+    //        CurrentWeapon.OnReloadStarted -= ShowReloadBar;
+    //        Destroy(CurrentWeapon.gameObject);
+    //        CurrentWeapon = null;
+    //    }
 
-        // The player could've put away all their weapons, meaning the new ID would be -1.
-        if (_New >= 0)
-        {
-            AssignWeaponClientSide(_New);
+    //    // The player could've put away all their weapons, meaning the new ID would be -1.
+    //    if (_New >= 0)
+    //    {
+    //        AssignWeaponClientSide(_New);
 
-            if (isLocalPlayer) Player.PlayerUI.AmmoUI.SetActive(true);
-        }
-        else
-        {
-            if (isLocalPlayer) Player.PlayerUI.AmmoUI.SetActive(false);
-        }
-    }
+    //        if (isLocalPlayer) Player.PlayerUI.AmmoUI.SetActive(true);
+    //    }
+    //    else
+    //    {
+    //        if (isLocalPlayer) Player.PlayerUI.AmmoUI.SetActive(false);
+    //    }
+    //}
 
     void OnTriggerEnter(Collider other)
     {
@@ -664,7 +678,7 @@ public class PlayerController : NetworkBehaviour
     }
 
     [Client]
-    public void AssignWeaponClientSide(int id)
+    public void AssignWeaponClientSide(int id, int ammoInClip)
     {
         if (id == -1)
         {
@@ -678,7 +692,6 @@ public class PlayerController : NetworkBehaviour
 
             // Make sure to update the ammo display.
             UpdateAmmoDisplay();
-            //weaponSpeedModifier = 1.0f; // Reset this.
             return;
         }
 
@@ -696,7 +709,7 @@ public class PlayerController : NetworkBehaviour
         CurrentWeapon.OnReloadStarted += ShowReloadBar;
         CurrentWeapon.OnReloadCompleted += TargetReload;
 
-        CurrentWeapon.AmmoInClip = GetAssociatedInventoryByGunId(id).Find(x => x.Id == id).AmmoInClip;
+        CurrentWeapon.AmmoInClip = ammoInClip; // GetAssociatedInventoryByGunId(id).Find(x => x.Id == id).AmmoInClip;
 
         // Make sure to update the ammo display.
         UpdateAmmoDisplay();
@@ -1035,18 +1048,24 @@ public class PlayerController : NetworkBehaviour
     public void StoreCurrentGunAndSwitch(int nextWeaponID)
     {
         // If the player has a gun equipped, put it away first.
+        int idx = -1;
         if (CurrentWeaponID >= 0)
         {
             InventoryGun inventoryGun = new InventoryGun(CurrentWeapon.AmmoInClip, CurrentWeaponID);
 
+            Debug.Log("Storing current weapon in inventory with ammo in clip " + CurrentWeapon.AmmoInClip);
+
             // IndexOf only checks against the Id. So we find the gun in the list, then replace
             // it with this updated object which has a up-to-date AmmoInGun value.
-            int idx = GetAssociatedInventoryByGunId(CurrentWeaponID).IndexOf(inventoryGun);
+            idx = GetAssociatedInventoryByGunId(CurrentWeaponID).IndexOf(inventoryGun);
             GetAssociatedInventoryByGunId(CurrentWeaponID)[idx] = inventoryGun;
         }
 
         // Stop the reload in case we switched during a reload.
         CancelReload();
+
+        if (idx >= 0)
+            Debug.Log("Before assigning server side weapon, the value of current gun in inventory is -- id=" + GetAssociatedInventoryByGunId(CurrentWeaponID)[idx].Id + ", AmmoInClip=" + GetAssociatedInventoryByGunId(CurrentWeaponID)[idx].AmmoInClip);
 
         // If we're also switching weapons, then make sure we indeed have the weapon that we're trying to switch to.
         // This will handle the case where we aren't switching to a gun and instead are just putting are gun away.
@@ -1074,7 +1093,10 @@ public class PlayerController : NetworkBehaviour
         }
         else
         {
+            InventoryGun inventoryGun = GetAssociatedInventoryByGunId(nextWeaponID)[indexOfGunInInventory];
+            Debug.Log("Server assigned " + GetPlayerDebugString() + " weapon " + nextWeaponID + " with ammo in clip " + inventoryGun.AmmoInClip);
             CurrentWeaponID = nextWeaponID;       // Switch to the weapon.
+            RpcAssignCurrentWeapon(nextWeaponID, inventoryGun.AmmoInClip);
         }
     }
 

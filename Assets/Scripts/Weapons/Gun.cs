@@ -67,6 +67,8 @@ public class Gun : NetworkBehaviour
     [SyncVar] public bool Reloading;          // Currently reloading?
     public WeaponType _WeaponType = WeaponType.Raycast;
     public FiringMode _FiringMode = FiringMode.Automatic;
+    [Tooltip("This affects how commonly this weapon spawns around the map.")]
+    public float Rarity = 1.0f;
 
     public GameObject ProjectilePrefab;
 
@@ -149,6 +151,7 @@ public class Gun : NetworkBehaviour
     [Server]
     IEnumerator DoReload()
     {
+        Reloading = true;
         HoldingPlayer.TargetPlayReloadSound();
         yield return new WaitForSeconds(ReloadTime);
 
