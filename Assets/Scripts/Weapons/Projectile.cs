@@ -55,8 +55,6 @@ namespace Imposters
 
         void Update()
         {
-            if (!isLocalPlayer) return;
-
             // Update the timer
             lifeTimer += Time.deltaTime;
 

@@ -41,6 +41,7 @@ public class PlayerController : NetworkBehaviour
     [SerializeField] GameObject bulletHolePrefab;
     [SerializeField] GameObject bulletFXPrefab;
     [SerializeField] GameObject bulletBloodFXPrefab;
+    public int StartingWeaponId = -1;
 
     //private float weaponSpeedModifier = 1.0f;
 
@@ -323,6 +324,7 @@ public class PlayerController : NetworkBehaviour
     public void CmdPickupWeapon(GameObject weaponGameObject)
     {
         Gun gun = weaponGameObject.GetComponent<Gun>();
+        Debug.Log("Weapon on ground has " + gun.AmmoInClip + " bullets in its clip.");
         Gun.GunType gunType = gun._GunType;
 
         // Used to check if the player already has this gun.
@@ -445,6 +447,9 @@ public class PlayerController : NetworkBehaviour
             if (Player.Health < Player.HealthMax)
             {
                 Player.Health = Mathf.Min(Player.HealthMax, Player.Health + ammoBox.NumberBullets);
+                Player.FloatingHealthBar.health = Player.Health;
+                Player.FloatingHealthBar.UpdateHealth();
+                Player.PlayerUI.UpdateHealth(Player.Health);
                 NetworkServer.Destroy(ammoBoxGameObject);
                 TargetPlayPickupHealthSound();
             }
@@ -534,6 +539,7 @@ public class PlayerController : NetworkBehaviour
         droppedWeapon.GetComponent<Rigidbody>().detectCollisions = true;
         droppedWeapon.OnGround = true;
         droppedWeapon.HoldingPlayer = null;
+        Debug.Log("Dropped weapon should have " + ammoInClip + " bullets in the clip.");
         droppedWeapon.AmmoInClip = ammoInClip;
 
         // Toss it out in front of us a bit.
@@ -544,12 +550,6 @@ public class PlayerController : NetworkBehaviour
 
         // Spawn the scene object on the network for all to see
         NetworkServer.Spawn(droppedWeapon.gameObject);
-    }
-
-    [Command]
-    public void CmdPickupItem(GameObject item)
-    {
-
     }
 
     #endregion
@@ -938,7 +938,8 @@ public class PlayerController : NetworkBehaviour
     public override void OnStartServer()
     {
         inventory = GetComponent<PlayerInventory>();
-        GivePlayerWeapon(3, false, false);
+        if (StartingWeaponId >= 0)
+            GivePlayerWeapon(StartingWeaponId, false, false);
     }
 
     /// <summary>

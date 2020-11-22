@@ -195,7 +195,8 @@ public class Gun : NetworkBehaviour
 
         if (AmmoInClip <= 0)
         {
-            TargetPlayDryFire();
+            HoldingPlayer.TargetPlayDryFire();
+            return;
         }
 
         if (_WeaponType == WeaponType.Raycast)
