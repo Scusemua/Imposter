@@ -9,14 +9,16 @@ public class PlayerController : NetworkBehaviour
 {
     public Player Player;
     private Rigidbody rigidbody;
+    private PlayerInventory inventory;
 
     [Header("Audio")]
     public AudioClip DeathSound;
     public AudioClip ImposterStart;
     public AudioClip CrewmateStart;
     public AudioClip ImpactSound;
-    public AudioClip Gunshot;
-    public AudioClip ReloadSound;
+    public AudioClip DefaultGunshotSound;
+    public AudioClip DefaultReloadSound;
+    public AudioClip DefaultDryfireSound;
     public AudioClip InvalidAction;
     public AudioClip PickupAmmoSound;
     public AudioClip PickupHealthSound;
@@ -36,8 +38,6 @@ public class PlayerController : NetworkBehaviour
 
     [Header("Weapon")]
     [SerializeField] Transform weaponContainer; // This is where the weapon goes.
-    [SyncVar] public int AmmoInGun = 20;
-    [SyncVar(hook = nameof(OnReloadingStateChanged))] bool Reloading;
     [SerializeField] GameObject bulletHolePrefab;
     [SerializeField] GameObject bulletFXPrefab;
     [SerializeField] GameObject bulletBloodFXPrefab;
@@ -48,7 +48,7 @@ public class PlayerController : NetworkBehaviour
     public int CurrentWeaponID = -1;
     public Gun CurrentWeapon;
     
-    private Dictionary<GunClass, int> ammoCounts = new Dictionary<GunClass, int>
+    public Dictionary<GunClass, int> AmmoCounts = new Dictionary<GunClass, int>
     {
         [GunClass.ASSAULT_RIFLE] = 100,
         [GunClass.SHOTGUN] = 100,
@@ -62,12 +62,12 @@ public class PlayerController : NetworkBehaviour
     /// <summary>
     /// The player's primary weapons.
     /// </summary>
-    [SerializeField] private SyncList<InventoryGun> PrimaryInventory = new SyncList<InventoryGun>();
+    //[SerializeField] private SyncList<InventoryGun> PrimaryInventory = new SyncList<InventoryGun>();
 
     /// <summary>
     /// The player's secondary weapons.
     /// </summary>
-    [SerializeField] private SyncList<InventoryGun> SecondaryInventory = new SyncList<InventoryGun>();
+    //[SerializeField] private SyncList<InventoryGun> SecondaryInventory = new SyncList<InventoryGun>();
 
     /// <summary>
     /// The player's melee weapons.
@@ -77,7 +77,7 @@ public class PlayerController : NetworkBehaviour
     /// <summary>
     /// The player's explosive weapons.
     /// </summary>
-    [SerializeField] private SyncList<InventoryGun> ExplosiveInventory = new SyncList<InventoryGun>();
+    //[SerializeField] private SyncList<InventoryGun> ExplosiveInventory = new SyncList<InventoryGun>();
 
     /// <summary>
     /// The player's grenades.
@@ -87,8 +87,6 @@ public class PlayerController : NetworkBehaviour
     private ItemDatabase itemDatabase;
     
     private LineRenderer lineRenderer;
-
-    private float curCooldown;
 
     private float movementSpeed;
     private float runBoost;
@@ -119,10 +117,13 @@ public class PlayerController : NetworkBehaviour
     {
         if (!isLocalPlayer) return;
 
-        curCooldown -= Time.deltaTime;
+        //curCooldown -= Time.deltaTime;
 
-        if (Input.GetMouseButton(0))
+        if (CurrentWeapon != null && CurrentWeapon.DoShootTest())
             ShootWeapon();
+
+        //if (Input.GetMouseButton(0))
+        //    ShootWeapon();
 
         if (Input.GetKeyDown(KeyCode.R))
             ReloadButton();
@@ -132,27 +133,27 @@ public class PlayerController : NetworkBehaviour
             CmdTakeDamage(10.0f);
         else if (Input.GetKeyDown(KeyCode.Alpha1))
         {
-            string[] primaryWeaponNames = PrimaryInventory.Select(gun => itemDatabase.GetGunByID(gun.Id).Name).ToArray<string>();
-            string[] secondaryWeaponNames = SecondaryInventory.Select(gun => itemDatabase.GetGunByID(gun.Id).Name).ToArray<string>();
-            string[] explosiveWeaponNames = ExplosiveInventory.Select(gun => itemDatabase.GetGunByID(gun.Id).Name).ToArray<string>();
+            string[] primaryWeaponNames = inventory.PrimaryInventory.Select(gun => itemDatabase.GetGunByID(gun.Id).Name).ToArray<string>();
+            string[] secondaryWeaponNames = inventory.SecondaryInventory.Select(gun => itemDatabase.GetGunByID(gun.Id).Name).ToArray<string>();
+            string[] explosiveWeaponNames = inventory.ExplosiveInventory.Select(gun => itemDatabase.GetGunByID(gun.Id).Name).ToArray<string>();
 
             Player.PlayerUI.ShowWeaponUI(primaryWeaponNames, secondaryWeaponNames, explosiveWeaponNames);
             CmdTryCycleInventory(0);
         }
         else if (Input.GetKeyDown(KeyCode.Alpha2))
         {
-            string[] primaryWeaponNames = PrimaryInventory.Select(gun => itemDatabase.GetGunByID(gun.Id).Name).ToArray<string>();
-            string[] secondaryWeaponNames = SecondaryInventory.Select(gun => itemDatabase.GetGunByID(gun.Id).Name).ToArray<string>();
-            string[] explosiveWeaponNames = ExplosiveInventory.Select(gun => itemDatabase.GetGunByID(gun.Id).Name).ToArray<string>();
+            string[] primaryWeaponNames = inventory.PrimaryInventory.Select(gun => itemDatabase.GetGunByID(gun.Id).Name).ToArray<string>();
+            string[] secondaryWeaponNames = inventory.SecondaryInventory.Select(gun => itemDatabase.GetGunByID(gun.Id).Name).ToArray<string>();
+            string[] explosiveWeaponNames = inventory.ExplosiveInventory.Select(gun => itemDatabase.GetGunByID(gun.Id).Name).ToArray<string>();
 
             Player.PlayerUI.ShowWeaponUI(primaryWeaponNames, secondaryWeaponNames, explosiveWeaponNames);
             CmdTryCycleInventory(1);
         }
         else if (Input.GetKeyDown(KeyCode.Alpha3))
         {
-            string[] primaryWeaponNames = PrimaryInventory.Select(gun => itemDatabase.GetGunByID(gun.Id).Name).ToArray<string>();
-            string[] secondaryWeaponNames = SecondaryInventory.Select(gun => itemDatabase.GetGunByID(gun.Id).Name).ToArray<string>();
-            string[] explosiveWeaponNames = ExplosiveInventory.Select(gun => itemDatabase.GetGunByID(gun.Id).Name).ToArray<string>();
+            string[] primaryWeaponNames = inventory.PrimaryInventory.Select(gun => itemDatabase.GetGunByID(gun.Id).Name).ToArray<string>();
+            string[] secondaryWeaponNames = inventory.SecondaryInventory.Select(gun => itemDatabase.GetGunByID(gun.Id).Name).ToArray<string>();
+            string[] explosiveWeaponNames = inventory.ExplosiveInventory.Select(gun => itemDatabase.GetGunByID(gun.Id).Name).ToArray<string>();
 
             Player.PlayerUI.ShowWeaponUI(primaryWeaponNames, secondaryWeaponNames, explosiveWeaponNames);
             CmdTryCycleInventory(2);
@@ -161,12 +162,8 @@ public class PlayerController : NetworkBehaviour
 
     internal void ShootWeapon()
     {
-        if (AmmoInGun > 0 && !Reloading && !Player.IsDead && curCooldown <= 0.01 && CurrentWeaponID >= 0 && CurrentWeapon != null)
-        {
-            //Do command
+        if (!Player.IsDead && CurrentWeaponID >= 0 && CurrentWeapon != null)
             CmdTryShoot();
-            curCooldown = CurrentWeapon.WeaponCooldown;
-        }
     }
 
     void LateUpdate()
@@ -180,9 +177,24 @@ public class PlayerController : NetworkBehaviour
     }
 
     #region Client RPC
+    [ClientRpc]
+    public void RpcPlayerFiredProjectile(uint shooterID, int gunId)
+    {
+        Transform shooterTransform = NetworkIdentity.spawned[shooterID].GetComponent<Player>().GetComponent<Transform>();
+
+        float volumeDistModifier = (1000f - GetDistanceSquaredToTarget(shooterTransform)) / 1000f;
+        //Debug.Log("Playing gunshot with volume modifier: " + volumeDistModifier);
+
+        AudioClip gunshotSound = DefaultGunshotSound;
+        if (itemDatabase.GetGunByID(gunId).ShootSound != null)
+            gunshotSound = itemDatabase.GetGunByID(gunId).ShootSound;
+
+        // Adjust volume of gunshot based on distance.
+        this.AudioSource.PlayOneShot(gunshotSound, volumeDistModifier);
+    }
 
     [ClientRpc]
-    void RpcPlayerFiredEntity(uint shooterID, uint targetID, int gunId, Vector3 impactPos, Vector3 impactRot)
+    public void RpcPlayerFiredEntity(uint shooterID, int gunId)
     {
         //Instantiate(bulletHolePrefab, impactPos + impactRot * 0.1f, Quaternion.LookRotation(impactRot), NetworkIdentity.spawned[targetID].transform);
         //Instantiate(bulletBloodFXPrefab, impactPos, Quaternion.LookRotation(impactRot));
@@ -193,7 +205,7 @@ public class PlayerController : NetworkBehaviour
         float volumeDistModifier = (1000f - GetDistanceSquaredToTarget(shooterTransform)) / 1000f;
         //Debug.Log("Playing gunshot with volume modifier: " + volumeDistModifier);
 
-        AudioClip gunshotSound = Gunshot;
+        AudioClip gunshotSound = DefaultGunshotSound;
         if (itemDatabase.GetGunByID(gunId).ShootSound != null)
             gunshotSound = itemDatabase.GetGunByID(gunId).ShootSound;
 
@@ -205,7 +217,7 @@ public class PlayerController : NetworkBehaviour
     }
 
     [ClientRpc]
-    void RpcPlayerFired(uint shooterID, int gunId, Vector3 impactPos, Vector3 impactRot)
+    public void RpcPlayerFired(uint shooterID, int gunId, Vector3 impactPos, Vector3 impactRot)
     {
         //Instantiate(bulletHolePrefab, impactPos + impactRot * 0.1f, Quaternion.LookRotation(impactRot));
         Instantiate(bulletFXPrefab, impactPos, Quaternion.LookRotation(impactRot));
@@ -216,7 +228,7 @@ public class PlayerController : NetworkBehaviour
         float volumeDistModifier = (1000f - GetDistanceSquaredToTarget(shooterTransform)) / 1000f;
         //Debug.Log("Playing gunshot with volume modifier: " + volumeDistModifier);
 
-        AudioClip gunshotSound = Gunshot;
+        AudioClip gunshotSound = DefaultGunshotSound;
         if (itemDatabase.GetGunByID(gunId).ShootSound != null)
             gunshotSound = itemDatabase.GetGunByID(gunId).ShootSound;
 
@@ -234,6 +246,16 @@ public class PlayerController : NetworkBehaviour
     public void TargetPlayPickupAmmoSound()
     {
         AudioSource.PlayOneShot(PickupAmmoSound);
+    }
+
+    [TargetRpc]
+    public void TargetPlayDryFire()
+    {
+        AudioClip dryfireSound = DefaultDryfireSound;
+        if (CurrentWeapon != null && CurrentWeapon.DryfireSound != null)
+            dryfireSound = CurrentWeapon.DryfireSound;
+
+        AudioSource.PlayOneShot(dryfireSound);
     }
 
     [TargetRpc]
@@ -258,7 +280,7 @@ public class PlayerController : NetworkBehaviour
     void TargetShoot()
     {
         // Update the ammo count on the player's screen.
-        Player.PlayerUI.AmmoClipText.text = AmmoInGun.ToString();
+        Player.PlayerUI.AmmoClipText.text = CurrentWeapon.AmmoInClip.ToString();
     }
 
     [TargetRpc]
@@ -274,8 +296,9 @@ public class PlayerController : NetworkBehaviour
     {
         //We reloaded successfully.
         //Update UI
-        Player.PlayerUI.AmmoClipText.text = AmmoInGun.ToString();
-        Player.PlayerUI.AmmoReserveText.text = ammoCounts[CurrentWeapon.GunClass].ToString();
+        Player.PlayerUI.AmmoClipText.text = (CurrentWeapon != null) ? CurrentWeapon.AmmoInClip.ToString() : "N/A";
+        Player.PlayerUI.AmmoReserveText.text = (CurrentWeapon != null) ? AmmoCounts[CurrentWeapon.GunClass].ToString() : "N/A";
+        Player.PlayerUI.ReloadingProgressBar.health = 100.0f; // Max out the reload bar, then turn it off.
         Player.PlayerUI.ReloadingProgressBar.gameObject.SetActive(false);
     }
 
@@ -286,7 +309,7 @@ public class PlayerController : NetworkBehaviour
     [Command]
     public void CmdTakeDamage(float damage)
     {
-        Player.Damage(damage, Player.netId);
+        Player.Damage(damage);
     }
 
     [Command]
@@ -298,36 +321,36 @@ public class PlayerController : NetworkBehaviour
         // Used to check if the player already has this gun.
         InventoryGun temp = new InventoryGun(-1, gun.Id);
 
-        if (gunType == Gun.GunType.PRIMARY && PrimaryInventory.Count < GameOptions.GunTypeInventoryLimits[gunType] && !PrimaryInventory.Contains(temp))
+        if (gunType == Gun.GunType.PRIMARY && inventory.PrimaryInventory.Count < GameOptions.GunTypeInventoryLimits[gunType] && !inventory.PrimaryInventory.Contains(temp))
         {
             Debug.Log("Adding weapon " + gun.Id + ", " + gun.Name + " to player's primary inventory.");
-            PrimaryInventory.Add(new InventoryGun(gun.AmmoInClip, gun.Id));
+            inventory.PrimaryInventory.Add(new InventoryGun(gun.AmmoInClip, gun.Id));
             NetworkServer.Destroy(weaponGameObject);
 
             Debug.Log("Added weapon " + gun.Id + ", " + gun.Name + " to player's primary inventory.");
-            Debug.Log("Primary inventory: " + PrimaryInventory.Select(g => g.Id).ToArray().ToString());
+            Debug.Log("Primary inventory: " + inventory.PrimaryInventory.Select(g => g.Id).ToArray().ToString());
 
             TargetPlayPickupWeaponSound();
         }
-        else if (gunType == Gun.GunType.SECONDARY && SecondaryInventory.Count < GameOptions.GunTypeInventoryLimits[gunType] && !SecondaryInventory.Contains(temp))
+        else if (gunType == Gun.GunType.SECONDARY && inventory.SecondaryInventory.Count < GameOptions.GunTypeInventoryLimits[gunType] && !inventory.SecondaryInventory.Contains(temp))
         {
             Debug.Log("Adding weapon " + gun.Id + ", " + gun.Name + " to player's secondary inventory.");
-            SecondaryInventory.Add(new InventoryGun(gun.AmmoInClip, gun.Id));
+            inventory.SecondaryInventory.Add(new InventoryGun(gun.AmmoInClip, gun.Id));
             NetworkServer.Destroy(weaponGameObject);
 
             Debug.Log("Added weapon " + gun.Id + ", " + gun.Name + " to player's secondary inventory.");
-            Debug.Log("Secondary inventory: " + SecondaryInventory.Select(g => g.Id).ToArray().ToString());
+            Debug.Log("Secondary inventory: " + inventory.SecondaryInventory.Select(g => g.Id).ToArray().ToString());
 
             TargetPlayPickupWeaponSound();
         }
-        else if (gunType == Gun.GunType.EXPLOSIVE && ExplosiveInventory.Count < GameOptions.GunTypeInventoryLimits[gunType] && !ExplosiveInventory.Contains(temp))
+        else if (gunType == Gun.GunType.EXPLOSIVE && inventory.ExplosiveInventory.Count < GameOptions.GunTypeInventoryLimits[gunType] && !inventory.ExplosiveInventory.Contains(temp))
         {
             Debug.Log("Adding weapon " + gun.Id + ", " + gun.Name + " to player's explosive inventory.");
-            ExplosiveInventory.Add(new InventoryGun(gun.AmmoInClip, gun.Id));
+            inventory.ExplosiveInventory.Add(new InventoryGun(gun.AmmoInClip, gun.Id));
             NetworkServer.Destroy(weaponGameObject);
 
             Debug.Log("Added weapon " + gun.Id + ", " + gun.Name + " to player's explosive inventory.");
-            Debug.Log("Explosive inventory: " + ExplosiveInventory.Select(g => g.Id).ToArray().ToString());
+            Debug.Log("Explosive inventory: " + inventory.ExplosiveInventory.Select(g => g.Id).ToArray().ToString());
 
             TargetPlayPickupWeaponSound();
         }
@@ -354,7 +377,7 @@ public class PlayerController : NetworkBehaviour
                 // Case (1a)
                 InventoryGun temp = new InventoryGun(-1, CurrentWeaponID);
                 int currentGunIndexInInventory = currentWeaponAssociatedInventory.IndexOf(temp);
-                int nextGunIndex = -1;
+                int nextGunIndex;
 
                 // Either increment the index or loop it back around to zero if current gun is last in the inventory.
                 if (currentGunIndexInInventory == currentWeaponAssociatedInventory.Count - 1)
@@ -399,10 +422,10 @@ public class PlayerController : NetworkBehaviour
         if (ammoBox.IsAmmoBox)
         {
             GunClass associatedGunType = ammoBox.AssociatedGunClass;
-            Debug.Log("Ammo box is of type " + associatedGunType.ToString() + ". Current ammo: " + ammoCounts[associatedGunType] + ", Max: " + Gun.AmmoMaxCounts[associatedGunType] + ".");
-            if (ammoCounts[associatedGunType] < Gun.AmmoMaxCounts[associatedGunType])
+            Debug.Log("Ammo box is of type " + associatedGunType.ToString() + ". Current ammo: " + AmmoCounts[associatedGunType] + ", Max: " + Gun.AmmoMaxCounts[associatedGunType] + ".");
+            if (AmmoCounts[associatedGunType] < Gun.AmmoMaxCounts[associatedGunType])
             {
-                ammoCounts[associatedGunType] = Mathf.Min(Gun.AmmoMaxCounts[associatedGunType], ammoCounts[associatedGunType] + ammoBox.NumberBullets);
+                AmmoCounts[associatedGunType] = Mathf.Min(Gun.AmmoMaxCounts[associatedGunType], AmmoCounts[associatedGunType] + ammoBox.NumberBullets);
                 NetworkServer.Destroy(ammoBoxGameObject);
 
                 TargetUpdateAmmoCounts();
@@ -424,11 +447,11 @@ public class PlayerController : NetworkBehaviour
     [Command]
     private void CmdTryReload()
     {
-        Debug.Log(GetPlayerDebugString() + " [server side] is trying to reload. Current Weapon ID = " + CurrentWeaponID + ", CurrentWeapon != null: " + (CurrentWeapon != null) + ", Ammo In Gun: " + AmmoInGun + "Current Weapon Clip Size: " + (CurrentWeapon != null ? CurrentWeapon.ClipSize.ToString() : "N/A"));
-        if (CurrentWeaponID < 0 || Reloading || AmmoInGun == itemDatabase.GetGunByID(CurrentWeaponID).ClipSize)
+        if (CurrentWeaponID < 0 || CurrentWeapon == null || CurrentWeapon.AmmoInClip == CurrentWeapon.ClipSize)
             return;
 
-        reloadCoroutine = StartCoroutine(reloadingWeapon());
+
+        CurrentWeapon.InitReload();
     }
 
     [Command]
@@ -440,31 +463,28 @@ public class PlayerController : NetworkBehaviour
 
         //Server side check
         //if ammoCount > 0 && isAlive
-        if (AmmoInGun > 0 && !Player.IsDead)
+        if (!Player.IsDead)
         {
-            AmmoInGun--;
             TargetShoot();
-            
-            // TODO: Projectile count, accuracy, etc.
-            Ray ray = new Ray(Player.WeaponMuzzle.transform.position, Player.WeaponMuzzle.transform.forward);
-            RaycastHit hit;
-            if (Physics.Raycast(ray, out hit, 100f))
-            {
-                Debug.DrawRay(ray.origin, ray.direction * hit.distance, Color.red, 1);
-                //Debug.Log("SERVER: Player shot: " + hit.collider.name);
-                if (hit.collider.CompareTag("Player"))
-                {
-                    RpcPlayerFiredEntity(GetComponent<NetworkIdentity>().netId, hit.collider.GetComponent<NetworkIdentity>().netId, CurrentWeaponID, hit.point, hit.normal);
-                    if (hit.collider.GetComponent<NetworkIdentity>().netId != GetComponent<NetworkIdentity>().netId)
-                        hit.collider.GetComponent<Player>().Damage(itemDatabase.GetGunByID(CurrentWeaponID).Damage, GetComponent<NetworkIdentity>().netId);
-                }
-                else if (hit.collider.CompareTag("Enemy"))
-                    RpcPlayerFiredEntity(GetComponent<NetworkIdentity>().netId, hit.collider.GetComponent<NetworkIdentity>().netId, CurrentWeaponID, hit.point, hit.normal);
-                else
-                    RpcPlayerFired(GetComponent<NetworkIdentity>().netId, itemDatabase.GetGunByID(CurrentWeaponID).Id, hit.point, hit.normal);
-            }
-        }
 
+            CurrentWeapon.Shoot(this, Player.WeaponMuzzle.transform);
+            // TODO: Projectile count, accuracy, etc.
+            //Ray ray = new Ray(Player.WeaponMuzzle.transform.position, Player.WeaponMuzzle.transform.forward);
+            //RaycastHit hit;
+            //if (Physics.Raycast(ray, out hit, 100f))
+            //{
+            //    if (hit.collider.CompareTag("Player"))
+            //    {
+            //        RpcPlayerFiredEntity(GetComponent<NetworkIdentity>().netId, hit.collider.GetComponent<NetworkIdentity>().netId, CurrentWeaponID, hit.point, hit.normal);
+            //        if (hit.collider.GetComponent<NetworkIdentity>().netId != GetComponent<NetworkIdentity>().netId)
+            //            hit.collider.GetComponent<Player>().Damage(itemDatabase.GetGunByID(CurrentWeaponID).Damage);
+            //    }
+            //    else if (hit.collider.CompareTag("Enemy"))
+            //        RpcPlayerFiredEntity(GetComponent<NetworkIdentity>().netId, hit.collider.GetComponent<NetworkIdentity>().netId, CurrentWeaponID, hit.point, hit.normal);
+            //    else
+            //        RpcPlayerFired(GetComponent<NetworkIdentity>().netId, itemDatabase.GetGunByID(CurrentWeaponID).Id, hit.point, hit.normal);
+            //}
+        }
     }
 
     [Command]
@@ -474,19 +494,23 @@ public class PlayerController : NetworkBehaviour
             return;
 
         // Remove the gun from the player's inventory.
+        int ammoInClip = 0;
         InventoryGun temp = new InventoryGun(-1, CurrentWeaponID);
-        if (GetAssociatedInventoryByGunId(CurrentWeaponID).Contains(temp))
-            GetAssociatedInventoryByGunId(CurrentWeaponID).Remove(temp);
-        else
+        int index = GetAssociatedInventoryByGunId(CurrentWeaponID).IndexOf(temp);
+        if (index == -1)
         {
             Debug.LogError("Player " + Player.Nickname + " (netId=" + Player.netId + ") attempting to drop gun " + CurrentWeaponID + " which is not in player's inventory...");
-            AmmoInGun = 0;
             CurrentWeaponID = -1; // Remove the weapon as the player definitely shouldn't have it.
 
             // Set this to false in-case we were reloading when we dropped the gun.
             CancelReload();
 
             return;
+        }
+        else
+        {
+            ammoInClip = GetAssociatedInventoryByGunId(CurrentWeaponID)[index].AmmoInClip;
+            GetAssociatedInventoryByGunId(CurrentWeaponID).RemoveAt(index);
         }
 
         // Instantiate the scene object on the server a bit in front of the player so they don't instantly pick it up.
@@ -502,13 +526,13 @@ public class PlayerController : NetworkBehaviour
         droppedWeapon.GetComponent<Rigidbody>().isKinematic = false;
         droppedWeapon.GetComponent<Rigidbody>().detectCollisions = true;
         droppedWeapon.OnGround = true;
-        droppedWeapon.AmmoInClip = AmmoInGun;
+        droppedWeapon.HoldingPlayer = null;
+        droppedWeapon.AmmoInClip = ammoInClip;
 
         // Toss it out in front of us a bit.
         droppedWeapon.GetComponent<Rigidbody>().velocity = transform.forward * 7.0f + transform.up * 5.0f;
 
         // Set the player's SyncVar to nothing so clients will destroy the equipped child item.
-        AmmoInGun = 0;
         CurrentWeaponID = -1;
 
         // Spawn the scene object on the network for all to see
@@ -540,6 +564,8 @@ public class PlayerController : NetworkBehaviour
         Debug.Log("Current weapon ID changed. Old value: " + _Old + ", New value: " + _New);
         if (CurrentWeapon != null)
         {
+            CurrentWeapon.OnReloadCompleted -= TargetReload;
+            CurrentWeapon.OnReloadStarted -= ShowReloadBar;
             Destroy(CurrentWeapon.gameObject);
             CurrentWeapon = null;
         }
@@ -566,20 +592,6 @@ public class PlayerController : NetworkBehaviour
         else if (other.gameObject.CompareTag("Weapon"))
         {
             CmdPickupWeapon(other.gameObject);
-        }
-    }
-
-    [Client]
-    public void OnReloadingStateChanged(bool _Old, bool _New)
-    {
-        if (!isLocalPlayer) return;
-
-        if (_New)
-        {
-            if (CurrentWeapon.ReloadSound != null)
-                AudioSource.PlayOneShot(CurrentWeapon.ReloadSound);
-            else
-                AudioSource.PlayOneShot(ReloadSound);
         }
     }
 
@@ -613,6 +625,8 @@ public class PlayerController : NetworkBehaviour
         lineRenderer.startColor = Color.red;
         lineRenderer.endColor = Color.red;
         lineRenderer.positionCount = 2;
+
+        inventory = GetComponent<PlayerInventory>();
 
         Material whiteDiffuseMat = new Material(Shader.Find("Unlit/Texture"))
         {
@@ -649,6 +663,8 @@ public class PlayerController : NetworkBehaviour
         {
             if (CurrentWeapon != null)
             {
+                CurrentWeapon.OnReloadCompleted -= TargetReload;
+                CurrentWeapon.OnReloadStarted -= ShowReloadBar;
                 Destroy(CurrentWeapon.gameObject);
                 CurrentWeapon = null;
             }
@@ -668,6 +684,12 @@ public class PlayerController : NetworkBehaviour
         CurrentWeapon.GetComponent<Rigidbody>().isKinematic = true;
         CurrentWeapon.GetComponent<Rigidbody>().detectCollisions= false;
         CurrentWeapon.OnGround = false;
+        CurrentWeapon.HoldingPlayer = this;
+
+        CurrentWeapon.OnReloadStarted += ShowReloadBar;
+        CurrentWeapon.OnReloadCompleted += TargetReload;
+
+        CurrentWeapon.AmmoInClip = GetAssociatedInventoryByGunId(id).Find(x => x.Id == id).AmmoInClip;
 
         // Make sure to update the ammo display.
         UpdateAmmoDisplay();
@@ -676,8 +698,7 @@ public class PlayerController : NetworkBehaviour
     [Client]
     internal void ReloadButton()
     {
-        Debug.Log(GetPlayerDebugString() + " [client side] is trying to reload. Current Weapon ID = " + CurrentWeaponID + ", CurrentWeapon != null: " + (CurrentWeapon != null) + ", Ammo In Gun: " + AmmoInGun + "Current Weapon Clip Size: " + (CurrentWeapon != null ? CurrentWeapon.ClipSize.ToString() : "N/A"));
-        if (CurrentWeaponID >= 0 && CurrentWeapon != null && AmmoInGun != CurrentWeapon.ClipSize && !Reloading && !Player.IsDead)
+        if (CurrentWeaponID >= 0 && CurrentWeapon != null && !Player.IsDead)
         {
             Debug.Log("Attempting to reload...");
             CmdTryReload();
@@ -706,8 +727,8 @@ public class PlayerController : NetworkBehaviour
         }
         else
         {
-            Player.PlayerUI.AmmoClipText.text = AmmoInGun.ToString();
-            Player.PlayerUI.AmmoReserveText.text = ammoCounts[CurrentWeapon.GunClass].ToString();
+            Player.PlayerUI.AmmoClipText.text = CurrentWeapon.AmmoInClip.ToString();
+            Player.PlayerUI.AmmoReserveText.text = AmmoCounts[CurrentWeapon.GunClass].ToString();
         }
     }
 
@@ -909,6 +930,7 @@ public class PlayerController : NetworkBehaviour
 
     public override void OnStartServer()
     {
+        inventory = GetComponent<PlayerInventory>();
         GivePlayerWeapon(3, false, false);
     }
 
@@ -918,12 +940,8 @@ public class PlayerController : NetworkBehaviour
     [Server]
     private void CancelReload()
     {
-        if (Reloading)
-        {
-            StopCoroutine(reloadCoroutine);
-            TargetReload();
-            Reloading = false;
-        }
+        Debug.Log("Cancelling reload.");
+        TargetReload();
     }
 
     /// <summary>
@@ -948,7 +966,11 @@ public class PlayerController : NetworkBehaviour
             if (GetAssociatedInventoryByGunId(weaponId).Contains(inventoryGun))
                 Debug.LogWarning("Player " + Player.Nickname + " (netId=" + Player.netId + ") already has weapon " + weaponId);
             else
+            {
                 GetAssociatedInventoryByGunId(weaponId).Add(inventoryGun);
+                Debug.Log("Gave " + GetPlayerDebugString() + " weapon " + gun.Id + " -- " + gun.Name + ".");
+                Debug.Log("Player's inventory: " + GetAssociatedInventoryByGunId(weaponId).Select(ig => ig.Id).ToArray().ToString());
+            }
         }
 
         if (equip)
@@ -961,11 +983,11 @@ public class PlayerController : NetworkBehaviour
         switch (inventoryId)
         {
             case 0:
-                return PrimaryInventory;
+                return inventory.PrimaryInventory;
             case 1:
-                return SecondaryInventory;
+                return inventory.SecondaryInventory;
             case 2:
-                return ExplosiveInventory;
+                return inventory.ExplosiveInventory;
             default:
                 return null;
         }
@@ -987,11 +1009,11 @@ public class PlayerController : NetworkBehaviour
             return null;
 
         if (gun._GunType == Gun.GunType.PRIMARY)
-            return PrimaryInventory;
+            return inventory.PrimaryInventory;
         else if (gun._GunType == Gun.GunType.SECONDARY)
-            return SecondaryInventory;
+            return inventory.SecondaryInventory;
         else if (gun._GunType == Gun.GunType.EXPLOSIVE)
-            return ExplosiveInventory;
+            return inventory.ExplosiveInventory;
         else
             return null;
     }
@@ -1007,13 +1029,12 @@ public class PlayerController : NetworkBehaviour
         // If the player has a gun equipped, put it away first.
         if (CurrentWeaponID >= 0)
         {
-            InventoryGun inventoryGun = new InventoryGun(AmmoInGun, CurrentWeaponID);
+            InventoryGun inventoryGun = new InventoryGun(CurrentWeapon.AmmoInClip, CurrentWeaponID);
 
             // IndexOf only checks against the Id. So we find the gun in the list, then replace
             // it with this updated object which has a up-to-date AmmoInGun value.
             int idx = GetAssociatedInventoryByGunId(CurrentWeaponID).IndexOf(inventoryGun);
             GetAssociatedInventoryByGunId(CurrentWeaponID)[idx] = inventoryGun;
-            //GetAssociatedInventoryByGunId(CurrentWeaponID).Add(inventoryGun);
         }
 
         // Stop the reload in case we switched during a reload.
@@ -1045,101 +1066,7 @@ public class PlayerController : NetworkBehaviour
         }
         else
         {
-            //associatedInventory.Remove(temp);   // Remove the weapon from the player's inventory.
-            AmmoInGun = GetAssociatedInventoryByGunId(nextWeaponID)[indexOfGunInInventory].AmmoInClip;
             CurrentWeaponID = nextWeaponID;       // Switch to the weapon.
-        }
-    }
-
-    [Server]
-    IEnumerator reloadingWeapon()
-    {
-        if (CurrentWeaponID < 0)
-            yield return null;
-        else if (ammoCounts[itemDatabase.GetGunByID(CurrentWeaponID).GunClass] <= 0)
-        {
-            ammoCounts[itemDatabase.GetGunByID(CurrentWeaponID).GunClass] = 0;
-            yield return null;
-        }
-        else
-        {
-            int currentWeaponId = CurrentWeaponID;
-            Gun currentGun = itemDatabase.GetGunByID(currentWeaponId);
-            Reloading = true;
-            ShowReloadBar(itemDatabase.GetGunByID(CurrentWeaponID).ReloadTime);
-            yield return new WaitForSeconds(currentGun.ReloadTime);
-
-            // Make sure player hasn't switched guns to get away with any funny business.
-            if (currentGun == null || currentGun.Id != currentWeaponId)
-            {
-                Reloading = false;
-                TargetReload();
-                yield return null;
-            }
-            else
-            {
-                // Determine how much ammo the player is missing.
-                // If we have enough ammo in reserve to top off the clip/magazine,
-                // then do so. Otherwise, put back however much ammo we have left.
-                int ammoMissing = currentGun.ClipSize - AmmoInGun;
-
-                // Remove from our reserve ammo whatever we loaded into the weapon.
-                if (ammoCounts[currentGun.GunClass] - ammoMissing >= 0)
-                {
-                    AmmoInGun += ammoMissing;
-                    ammoCounts[currentGun.GunClass] -= ammoMissing;
-                }
-                else
-                {
-                    // We do not have enough ammo to completely top off the magazine.
-                    // Just add what we have.
-                    AmmoInGun += ammoCounts[currentGun.GunClass];
-                    ammoCounts[currentGun.GunClass] = 0;
-                }
-
-                TargetReload();
-                Reloading = false;
-
-                yield return null;
-            }
-        }
-    }
-
-    /// <summary>
-    /// Used to keep track of how much ammo is in the clip of the gun when in the player's inventory.
-    /// </summary>
-    internal class InventoryGun
-    {
-        public int AmmoInClip;
-        public int Id;
-
-        public InventoryGun()
-        {
-            AmmoInClip = 0;
-            Id = -1;
-        }
-
-        public InventoryGun(int ammoInClip, int id)
-        {
-            AmmoInClip = ammoInClip;
-            Id = id;
-        }
-
-        public override bool Equals(object obj)
-        {
-            InventoryGun other = obj as InventoryGun;
-
-            if (other == null)
-                return false;
-
-            return other.Id == Id;
-        }
-
-        public override int GetHashCode()
-        {
-            int hash = 13;
-            hash = (hash * 7) + Id.GetHashCode();
-            return hash;
         }
     }
 

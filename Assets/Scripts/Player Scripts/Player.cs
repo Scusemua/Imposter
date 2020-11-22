@@ -128,6 +128,12 @@ public class Player : NetworkBehaviour
         RpcKill("SUICIDE", false);
     }
 
+    [Command(ignoreAuthority = true)]
+    public void CmdDoDamage(float amount)
+    {
+        Damage(amount);
+    }
+
     #endregion
 
     #region ClientRPC
@@ -279,9 +285,15 @@ public class Player : NetworkBehaviour
     #region TargetRPC
 
     [TargetRpc]
-    public void TargetGotDamage()
+    public void TargetGotDamaged()
     {
         PlayerUI.UpdateHealth(Health);
+    }
+
+    [TargetRpc]
+    public void TargetDoCameraShake(float shakeAmount)
+    {
+        GetComponent<PlayerController>().Camera.GetComponent<Vibration>().StartShakingRandom(-shakeAmount, shakeAmount, -shakeAmount, shakeAmount);
     }
 
     #endregion
@@ -289,25 +301,20 @@ public class Player : NetworkBehaviour
     #region Server Functions 
 
     [Server]
-    public void Damage(float amount, uint shoooterID)
+    public void Damage(float amount)
     {
         Health -= amount;
-        TargetGotDamage();
+        TargetGotDamaged();
 
         if (Health <= 0)
         {
-            Kill(networkGameManager.NetIdMap[shoooterID].Nickname, false);
+            Kill();
         }
     }
 
     [Server]
-    public void Kill(string killerNickname, bool serverKilled)
+    public void Kill()
     {
-        if (serverKilled)
-            Debug.Log("The server has killed player " + this.Nickname);
-        else
-            Debug.Log("Player " + Nickname + " has been killed by player " + killerNickname + ".");
-
         _isDead = true;
         GetComponent<PlayerController>().Die();
     }

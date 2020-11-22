@@ -395,7 +395,7 @@ public class NetworkGameManager : NetworkRoomManager
             foreach (Player p in GamePlayers)
             {
                 if (!p.IsDead)
-                    p.Kill("Server", serverKilled: true);
+                    p.Kill();
 
                 p.DisplayEndOfGameUI(crewmateVictory);
             }
