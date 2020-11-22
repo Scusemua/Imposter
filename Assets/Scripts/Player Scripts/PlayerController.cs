@@ -249,6 +249,13 @@ public class PlayerController : NetworkBehaviour
     }
 
     [TargetRpc]
+    public void TargetPlayReloadSound()
+    {
+        if (CurrentWeapon != null)
+            AudioSource.PlayOneShot(CurrentWeapon.ReloadSound);
+    }
+
+    [TargetRpc]
     public void TargetPlayDryFire()
     {
         AudioClip dryfireSound = DefaultDryfireSound;

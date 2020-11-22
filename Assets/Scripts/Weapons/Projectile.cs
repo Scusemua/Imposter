@@ -20,10 +20,7 @@ namespace Imposters
         public DamageType DamageType = DamageType.DirectHit;
 
         [Tooltip("Damage applied if damage type is direct hit (rather than explosion).")]
-        public float Damage = 50.0f; 
-
-        [Tooltip("The speed at which the projectile will move.")]
-        public float Speed = 10.0f;
+        public float Damage = 50.0f;
 
         [Tooltip("The initial force applied to this projectile.")]
         public float InitialForce = 1000.0f;
@@ -33,6 +30,21 @@ namespace Imposters
 
         [Tooltip("The explosion created by this projectile, if any.")]
         public GameObject ExplosionPrefab;
+
+        [Tooltip("If true, this projectile explodes upon hitting something. Otherwise, it exists until its life timer goes off.")]
+        public bool ExplodeOnImpact = true;
+
+        [Tooltip("If true, this will speed up as it travels.")]
+        public bool Speedup = false;
+
+        [Tooltip("The factor by which this project is propelled if Speedup is true.")]
+        public float SpeedupFactor = 2.0f;
+
+        /// <summary>
+        /// We only do direct hit damage the first time this hits something. That way, running  
+        /// into a stationary grenade that hasn't gone off yet won't do damage to the player.
+        /// </summary>
+        private bool firstHit = false;
 
         private float lifeTimer = 0.0f; // How long this projectile has been alive.
 
@@ -47,6 +59,9 @@ namespace Imposters
 
             // Update the timer
             lifeTimer += Time.deltaTime;
+
+            if (Speedup)
+                GetComponent<Rigidbody>().AddRelativeForce(transform.forward * SpeedupFactor);
 
             // Destroy the projectile if the time is up
             if (lifeTimer >= Lifetime)
@@ -63,16 +78,22 @@ namespace Imposters
 
         void Hit(Collision col)
         {
-            // Make the projectile explode
-            CmdExplode(col.contacts[0].point);
+            if (ExplodeOnImpact)
+                // Make the projectile explode
+                CmdExplode(col.contacts[0].point);
 
-            // Apply damage to the hit object if damageType is set to Direct
-            if (DamageType == DamageType.DirectHit)
+            if (!firstHit)
             {
-                if (col.collider.gameObject.CompareTag("Player"))
+                // Apply damage to the hit object if damageType is set to Direct
+                if (DamageType == DamageType.DirectHit)
                 {
-                    col.collider.GetComponent<Player>().CmdDoDamage(Damage);
+                    if (col.collider.gameObject.CompareTag("Player"))
+                    {
+                        col.collider.GetComponent<Player>().CmdDoDamage(Damage);
+                    }
                 }
+
+                firstHit = true;
             }
         }
 

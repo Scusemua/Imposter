@@ -101,30 +101,6 @@ public class Gun : NetworkBehaviour
 
     private float curCooldown;
 
-    #region Target RPC
-
-    [TargetRpc]
-    public void TargetPlayDryFire()
-    {
-        HoldingPlayer.AudioSource.PlayOneShot(DryfireSound);
-    }
-
-    [TargetRpc]
-    public void TargetReloadInit()
-    {
-        HoldingPlayer.AudioSource.PlayOneShot(ReloadSound);
-        OnReloadStarted?.Invoke(ReloadTime);
-    }
-
-    [TargetRpc]
-    public void TargetReloadComplete()
-    {
-        HoldingPlayer.AudioSource.PlayOneShot(ReloadSound);
-        OnReloadCompleted?.Invoke();
-    }
-
-    #endregion 
-
     #region Client Functions 
 
     public void OnGroundStatusChanged(bool _, bool _New)
@@ -173,7 +149,7 @@ public class Gun : NetworkBehaviour
     [Server]
     IEnumerator DoReload()
     {
-        TargetReloadInit();
+        HoldingPlayer.TargetPlayReloadSound();
         yield return new WaitForSeconds(ReloadTime);
 
         // Make sure we're being held for this part.
@@ -256,7 +232,7 @@ public class Gun : NetworkBehaviour
     {
         for (int i = 0; i < ProjectileCount; i++)
         {
-            GameObject projectileGameObject = Instantiate(ProjectilePrefab, init.position, init.rotation);
+            GameObject projectileGameObject = Instantiate(ProjectilePrefab, init.position + (init.forward * 3), init.rotation);
             NetworkServer.Spawn(projectileGameObject, shooter.Player.gameObject);
 
             shooter.RpcPlayerFiredProjectile(shooter.GetComponent<NetworkIdentity>().netId, Id);
