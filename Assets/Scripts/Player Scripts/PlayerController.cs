@@ -29,6 +29,7 @@ public class PlayerController : NetworkBehaviour
     public GameObject DeathEffectPrefab;
     public GameObject BloodPoolPrefab;
     public GameObject CameraPrefab;
+    public GameObject CameraContainer;
     public Camera Camera;
     public Animator Animator;
 
@@ -84,7 +85,7 @@ public class PlayerController : NetworkBehaviour
 
     private ItemDatabase itemDatabase;
     
-    private LineRenderer lineRenderer;
+    //private LineRenderer lineRenderer;
 
     private float movementSpeed;
     private float runBoost;
@@ -114,6 +115,9 @@ public class PlayerController : NetworkBehaviour
     void Update()
     {
         if (!isLocalPlayer) return;
+
+        if (Input.GetKey(KeyCode.B) && !Player.IsDead)
+            Player.CmdSuicide();
 
         if (CurrentWeapon != null && CurrentWeapon.DoShootTest())
             ShootWeapon();
@@ -157,9 +161,9 @@ public class PlayerController : NetworkBehaviour
     {
         if (!isLocalPlayer) return;
 
-        if (Camera != null && Camera.enabled)
+        if (CameraContainer != null && Camera != null && Camera.enabled)
         {
-            Camera.transform.position = transform.position + CameraOffset;
+            CameraContainer.transform.position = transform.position + CameraOffset;
         }
     }
 
@@ -200,7 +204,7 @@ public class PlayerController : NetworkBehaviour
     {
         //Instantiate(bulletHolePrefab, impactPos + impactRot * 0.1f, Quaternion.LookRotation(impactRot), NetworkIdentity.spawned[targetID].transform);
         //Instantiate(bulletBloodFXPrefab, impactPos, Quaternion.LookRotation(impactRot));
-        NetworkIdentity.spawned[shooterID].GetComponent<Player>().MuzzleFlash();
+        NetworkIdentity.spawned[shooterID].GetComponent<PlayerController>().MuzzleFlash();
 
         Transform shooterTransform = NetworkIdentity.spawned[shooterID].GetComponent<Player>().GetComponent<Transform>();
 
@@ -223,7 +227,7 @@ public class PlayerController : NetworkBehaviour
     {
         //Instantiate(bulletHolePrefab, impactPos + impactRot * 0.1f, Quaternion.LookRotation(impactRot));
         Instantiate(bulletFXPrefab, impactPos, Quaternion.LookRotation(impactRot));
-        NetworkIdentity.spawned[shooterID].GetComponent<Player>().MuzzleFlash();
+        NetworkIdentity.spawned[shooterID].GetComponent<PlayerController>().MuzzleFlash();
 
         Transform shooterTransform = NetworkIdentity.spawned[shooterID].GetComponent<Player>().GetComponent<Transform>();
 
@@ -286,7 +290,7 @@ public class PlayerController : NetworkBehaviour
     }
 
     [TargetRpc]
-    void TargetShoot()
+    public void TargetShoot()
     {
         // Update the ammo count on the player's screen.
         Player.PlayerUI.AmmoClipText.text = CurrentWeapon.AmmoInClip.ToString();
@@ -423,25 +427,7 @@ public class PlayerController : NetworkBehaviour
         //if ammoCount > 0 && isAlive
         if (!Player.IsDead)
         {
-            TargetShoot();
-
             CurrentWeapon.Shoot(this, Player.WeaponMuzzle.transform);
-            // TODO: Projectile count, accuracy, etc.
-            //Ray ray = new Ray(Player.WeaponMuzzle.transform.position, Player.WeaponMuzzle.transform.forward);
-            //RaycastHit hit;
-            //if (Physics.Raycast(ray, out hit, 100f))
-            //{
-            //    if (hit.collider.CompareTag("Player"))
-            //    {
-            //        RpcPlayerFiredEntity(GetComponent<NetworkIdentity>().netId, hit.collider.GetComponent<NetworkIdentity>().netId, CurrentWeaponID, hit.point, hit.normal);
-            //        if (hit.collider.GetComponent<NetworkIdentity>().netId != GetComponent<NetworkIdentity>().netId)
-            //            hit.collider.GetComponent<Player>().Damage(itemDatabase.GetGunByID(CurrentWeaponID).Damage);
-            //    }
-            //    else if (hit.collider.CompareTag("Enemy"))
-            //        RpcPlayerFiredEntity(GetComponent<NetworkIdentity>().netId, hit.collider.GetComponent<NetworkIdentity>().netId, CurrentWeaponID, hit.point, hit.normal);
-            //    else
-            //        RpcPlayerFired(GetComponent<NetworkIdentity>().netId, itemDatabase.GetGunByID(CurrentWeaponID).Id, hit.point, hit.normal);
-            //}
         }
     }
 
@@ -482,6 +468,13 @@ public class PlayerController : NetworkBehaviour
     #endregion
 
     #region Client 
+
+    [Client]
+    public void MuzzleFlash()
+    {
+        // Random rotation.
+        Instantiate(CurrentWeapon.MuzzleFlashPrefab, CurrentWeapon.WeaponMuzzle.position, Quaternion.Euler(UnityEngine.Random.Range(0, 360), 0, 0), CurrentWeapon.WeaponMuzzle);
+    }
 
     [Client]
     public void OnDropWeaponButtonPressed()
@@ -539,33 +532,33 @@ public class PlayerController : NetworkBehaviour
         runBoost = GameOptions.SprintBoost;
         sprintEnabled = GameOptions.SprintEnabled;
 
-        GameObject cameraObject = Instantiate(CameraPrefab);
-        AudioSource = GetComponent<AudioSource>();
+        CameraContainer = Instantiate(CameraPrefab);
+        AudioSource = GetComponentInChildren<AudioSource>();
         AudioSource.enabled = true;
         AudioSource.volume = 1.0f;
-        Camera = cameraObject.GetComponent<Camera>();
+        Camera = CameraContainer.GetComponentInChildren<Camera>();
 
-        cameraObject.GetComponent<AudioListener>().enabled = true;
+        CameraContainer.GetComponentInChildren<AudioListener>().enabled = true;
         Camera.enabled = true;
 
-        Camera.transform.position += transform.position;
+        CameraContainer.transform.position += transform.position;
 
         EmergencyButton = GameObject.FindGameObjectWithTag("EmergencyButton");
 
-        lineRenderer = gameObject.AddComponent<LineRenderer>();
-        lineRenderer.startWidth = 0.025f;
-        lineRenderer.endWidth = 0.025f;
-        lineRenderer.startColor = Color.red;
-        lineRenderer.endColor = Color.red;
-        lineRenderer.positionCount = 2;
+        //lineRenderer = gameObject.AddComponent<LineRenderer>();
+        //lineRenderer.startWidth = 0.025f;
+        //lineRenderer.endWidth = 0.025f;
+        //lineRenderer.startColor = Color.red;
+        //lineRenderer.endColor = Color.red;
+        //lineRenderer.positionCount = 2;
 
         inventory = GetComponent<PlayerInventory>();
 
-        Material whiteDiffuseMat = new Material(Shader.Find("Unlit/Texture"))
-        {
-            color = Color.red
-        };
-        lineRenderer.material = whiteDiffuseMat;
+        //Material whiteDiffuseMat = new Material(Shader.Find("Unlit/Texture"))
+        //{
+        //    color = Color.red
+        //};
+        //lineRenderer.material = whiteDiffuseMat;
 
         if (itemDatabase == null)
             itemDatabase = GameObject.FindGameObjectWithTag("ItemDatabase").GetComponent<ItemDatabase>();
@@ -685,11 +678,6 @@ public class PlayerController : NetworkBehaviour
         float h = Input.GetAxisRaw("Horizontal");
         float v = Input.GetAxisRaw("Vertical");
 
-        if (Input.GetKey(KeyCode.B) && !Player.IsDead)
-        {
-            Player.CmdSuicide();
-        }
-
         Vector3 movement = new Vector3(h, 0, v);
 
         float weaponSpeedModifier = CurrentWeapon == null ? 1.0f : CurrentWeapon.SpeedModifier;
@@ -698,9 +686,6 @@ public class PlayerController : NetworkBehaviour
             movement = movement.normalized * movementSpeed * runBoost * weaponSpeedModifier * Time.deltaTime;
         else
             movement = movement.normalized * movementSpeed * weaponSpeedModifier * Time.deltaTime;
-
-        if (Input.GetKey(KeyCode.P))
-            PlayImpactSound();
 
         rigidbody.MovePosition(transform.position + movement);
 
@@ -715,8 +700,8 @@ public class PlayerController : NetworkBehaviour
 
             Vector3 lookAt = new Vector3(pointToLook.x, transform.position.y, pointToLook.z);
 
-            lineRenderer.SetPosition(0, Player.WeaponMuzzle.transform.position);
-            lineRenderer.SetPosition(1, transform.position + transform.forward * 10);
+            //lineRenderer.SetPosition(0, Player.WeaponMuzzle.transform.position);
+            //lineRenderer.SetPosition(1, transform.position + transform.forward * 10);
 
             transform.LookAt(lookAt);
         }
@@ -760,7 +745,7 @@ public class PlayerController : NetworkBehaviour
 
         float _raycastDistance = 10f;
         Vector3 dir = new Vector3(0, -1, 0);
-        Debug.DrawRay(Player.transform.position, dir * _raycastDistance, Color.green);
+        //Debug.DrawRay(Player.transform.position, dir * _raycastDistance, Color.green);
 
         int mask = 1 << 13;    // Ground on layer 10 in the inspector
 

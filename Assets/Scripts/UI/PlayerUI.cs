@@ -37,6 +37,7 @@ public class PlayerUI : MonoBehaviour
     public GameObject SecondaryInventoryPanel;
     public GameObject ExplosiveInventoryPanel;
     public GameObject WeaponUiEntryPrefab;
+    public Crosshair PlayerCrosshair;
 
     private List<GameObject> weaponUiEntries = new List<GameObject>();
 
@@ -107,7 +108,7 @@ public class PlayerUI : MonoBehaviour
 
     #region UI Handlers 
 
-    [Client]
+    
     /// <summary>
     /// This function corresponds to the generic Inspect/Interact/Use button on the player's UI overlay.
     /// </summary>
@@ -131,7 +132,7 @@ public class PlayerUI : MonoBehaviour
         networkGameManager.ServerChangeScene(networkGameManager.RoomScene);
     }
 
-    [Client]
+    
     public void OnInteractWithBody()
     {
         if (!player.isLocalPlayer) return;
@@ -139,7 +140,7 @@ public class PlayerUI : MonoBehaviour
         Debug.Log("Player interacted with body.");
     }
 
-    [Client]
+    
     public void OnInteractWithEmergencyButton()
     {
         if (!player.isLocalPlayer) return;
@@ -153,7 +154,7 @@ public class PlayerUI : MonoBehaviour
 
     #region Display UI
 
-    [Client]
+    
     public void DisplayEndOfGameUI(bool crewmateVictory)
     {
         if (crewmateVictory)
@@ -167,14 +168,15 @@ public class PlayerUI : MonoBehaviour
             ReturnToLobbyButton.SetActive(true);
     }
 
-    [Client]
+    
     public void CreateAndDisplayVotingUI()
     {
         PlayerUICanvas.SetActive(false);
+        PlayerCrosshair.DisableCrosshair();
 
         GameObject votingUIGameObject = Instantiate(VotingUIPrefab, transform);
         VotingUI votingUI = votingUIGameObject.GetComponent<VotingUI>();
-        votingUI.PlayerUI = PlayerUICanvas;
+        votingUI.PlayerUIGameObject = PlayerUICanvas;
         votingUI.PlayerController = playerController;
 
         OnPlayerVoted += votingUI.PlayerVoted;
@@ -182,7 +184,7 @@ public class PlayerUI : MonoBehaviour
 
     /// <summary>
     /// This will cause the I VOTED icon to display on the VotingUI, if it exists.
-    [Client]
+    
     public void PlayerVoted(uint voterId)
     {
         try
@@ -197,7 +199,7 @@ public class PlayerUI : MonoBehaviour
         }
     }
 
-    [Client]
+    
     public void UpdateHealth(float health)
     {
         //HpBar.TakeDamage((int)health);
@@ -206,7 +208,7 @@ public class PlayerUI : MonoBehaviour
         HealthText.text = ((int)health).ToString();
     }
 
-    [Client]
+    
     public void ShowWeaponUI(IEnumerable<string> primaryWeapons, IEnumerable<string> secondaryWeapons, IEnumerable<string> explosiveWeapons)
     {
         foreach (GameObject gameObject in weaponUiEntries)
@@ -242,7 +244,7 @@ public class PlayerUI : MonoBehaviour
         InitWeaponUIFade();
     }
 
-    [Client]
+    
     public void InitWeaponUIFade()
     {
         CanvasGroup canvasGroup = WeaponUI.GetComponent<CanvasGroup>();
@@ -270,7 +272,7 @@ public class PlayerUI : MonoBehaviour
         yield return null;
     }
 
-    [Client]
+    
     public void SetUpHpBar(float maxHealth)
     {
         HpBar.maximumHealth = maxHealth;
@@ -279,12 +281,15 @@ public class PlayerUI : MonoBehaviour
     #endregion
 
     #region Player Management 
+
+    
     public void AnimateRole()
     {
         RoleAnimator.SetActive(true);
         RoleAnimator.GetComponent<Animator>().Play("Expand");
     }
 
+    
     public void SetPlayer(Player player)
     {
         this.player = player;
@@ -294,11 +299,13 @@ public class PlayerUI : MonoBehaviour
         SetNickname(player.Nickname);
     }
 
+    
     public void SetNickname(string nickname)
     {
         NicknameText.text = nickname;
     }
 
+    
     public void SetRole(string roleName)
     {
         RoleText.text = roleName.ToUpper();

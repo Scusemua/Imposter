@@ -48,31 +48,61 @@ public class Gun : NetworkBehaviour
         Automatic
     }
 
-    [Header("Weapon Statistics")]
-    public int Id;                  // Unique identifier of the weapon.
+    [Header("Prefabs")]
+    public GameObject MuzzleFlashPrefab;
+    [Tooltip("Where the bullets get instantiated.")]
+    public Transform WeaponMuzzle;  // Where the bullets get instantiated.
+
+    [Header("Weapon Classification")]
     public GunClass GunClass;       // Defines maximum ammo and other properties.
     public GunType _GunType;        // We can only pick up a certian number of each type of weapon (primary, secondary, explosive, etc.).
+    public WeaponType _WeaponType = WeaponType.Raycast;
+    public FiringMode _FiringMode = FiringMode.Automatic;
+
+    [Header("Weapon Statistics")]
+    public int Id;                  // Unique identifier of the weapon.
+    [Tooltip("Number of times that the player can shoot before needing to reload.")]
     public int ClipSize;            // Number of times that the player can shoot before needing to reload.
+    [Tooltip("Firerate.")]
     public float WeaponCooldown;    // Firerate.
+    [Tooltip("How long it takes to reload.")]
     public float ReloadTime;        // How long it takes to reload.
-    public float ScreenShakeAmount = 0.1f; // How much shooting the weapon shakes the screen.
+    [Tooltip("How many projectiles are created?")]
     public int ProjectileCount;     // How many projectiles are created?
+    [Tooltip("How much ammo is consumed per shot?")]
     public int AmmoPerShot = 1;     // How much ammo is consumed per shot?
     [Tooltip("How much the bullet pushes things when it shoots them.")]
     public int BulletForce;         
+    [Tooltip("Uses hitscan for hit detection (as opposed to projectiles).")]
     public bool UsesHitscan;        // Uses hitscan for hit detection (as opposed to projectiles).
+    [Tooltip("How much damage weapon does.")]
     public float Damage;            // How much damage weapon does.
+    [Tooltip("Name of the weapon.")]
     public string Name;             // Name of the weapon.
+    [Tooltip("How long it takes to put this gun away or take it out.")]
     public float SwapTime;          // How long it takes to put this gun away or take it out.
+
     [SyncVar(hook = nameof(OnGroundStatusChanged))] public bool OnGround;
+    [Tooltip("How much ammo is in the clip of this gun.")] [HideInInspector]
     [SyncVar] public int AmmoInClip;          // How much ammo is in the clip of this gun.
+    [Tooltip("Currently reloading?")] [HideInInspector]
     [SyncVar] public bool Reloading;          // Currently reloading?
-    public WeaponType _WeaponType = WeaponType.Raycast;
-    public FiringMode _FiringMode = FiringMode.Automatic;
     [Tooltip("This affects how commonly this weapon spawns around the map.")]
     public float Rarity = 1.0f;
 
     public GameObject ProjectilePrefab;
+
+    [Header("Camera Shake")]
+    [Tooltip("Give camera shaking effects to nearby cameras that have the vibration component")]
+    public bool ShakeCamera = true;             // Should this explosion shake the camera?
+    [Tooltip("Affects the smoothness and speed of the shake. Lower roughness values are slower and smoother. Higher values are faster and noisier.")]
+    public float ShakeRoughness = 0.1f;         // Lower roughness values are slower and smoother. Higher values are faster and noisier.
+    [Tooltip("The intensity / magnitude of the shake.")]
+    public float ShakeMagnitude = 0.1f;         // The intensity / magnitude of the shake.
+    [Tooltip("The time, in seconds, for the shake to fade in.")]
+    public float ShakeFadeIn = 0.05f;           // The time, in seconds, for the shake to fade in.
+    [Tooltip("The time, in seconds, for the shake to fade out.")]
+    public float ShakeFadeOut = 0.2f;           // The time, in seconds, for the shake to fade out.
 
     /// <summary>
     /// The player who is holding this weapon.
@@ -103,7 +133,9 @@ public class Gun : NetworkBehaviour
     public event Action<float> OnReloadStarted;
     public event Action OnReloadCompleted;
 
-    private float curCooldown;
+    private float curCooldown = 0f;
+    private float dryFireCooldown = 0f; // Prevents us from spamming the dry fire sound on automatic weapons.
+    private float dryFireInterval = 0.25f; // How often we can play the dry fire sound effect.
 
     #region Client Functions 
 
@@ -200,9 +232,10 @@ public class Gun : NetworkBehaviour
     {
         if (curCooldown > 0) return;
 
-        if (AmmoInClip <= 0)
+        if (AmmoInClip <= 0 && dryFireCooldown <= 0)
         {
             HoldingPlayer.TargetPlayDryFire();
+            dryFireCooldown = dryFireInterval;
             return;
         }
 
@@ -210,6 +243,8 @@ public class Gun : NetworkBehaviour
             RaycastShoot(shooter, init);
         else if (_WeaponType == WeaponType.Projectile)
             ProjectileShoot(shooter, init);
+
+        HoldingPlayer.TargetShoot();
 
         curCooldown = WeaponCooldown;
         AmmoInClip -= AmmoPerShot;
@@ -247,7 +282,7 @@ public class Gun : NetworkBehaviour
                 shooter.RpcPlayerFired(shooter.GetComponent<NetworkIdentity>().netId, Id, hit.point, hit.normal);
         }
 
-        HoldingPlayer.Player.TargetDoCameraShake(ScreenShakeAmount);
+        HoldingPlayer.Player.TargetDoCameraShake(ShakeMagnitude, ShakeRoughness, ShakeFadeIn, ShakeFadeOut);
     }
 
     [Server]
@@ -265,7 +300,7 @@ public class Gun : NetworkBehaviour
             shooter.RpcPlayerFiredProjectile(shooter.GetComponent<NetworkIdentity>().netId, Id);
         }
 
-        HoldingPlayer.Player.TargetDoCameraShake(ScreenShakeAmount);
+        HoldingPlayer.Player.TargetDoCameraShake(ShakeMagnitude, ShakeRoughness, ShakeFadeIn, ShakeFadeOut);
     }
 
     #endregion 
@@ -293,6 +328,7 @@ public class Gun : NetworkBehaviour
 
         CurrentAccuracy = Mathf.Lerp(CurrentAccuracy, Accuracy, AccuracyRecoverRate * Time.deltaTime);
         curCooldown -= Time.deltaTime;
+        dryFireCooldown -= Time.deltaTime;
     }
 
     public override int GetHashCode()

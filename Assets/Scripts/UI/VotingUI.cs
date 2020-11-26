@@ -9,7 +9,7 @@ public class VotingUI : MonoBehaviour
 {
     public Timer CountdownTimer;
     public PlayerController PlayerController;
-    public GameObject PlayerUI;
+    public GameObject PlayerUIGameObject;
     public GameObject VotingEntryPrefab;
     public GridLayoutGroup ScrollViewContent;
     public LeanPulse AlreadyVotedNotification;
@@ -151,7 +151,8 @@ public class VotingUI : MonoBehaviour
     {
         Debug.Log("Timer has completed.");
 
-        PlayerUI.SetActive(true);
+        PlayerUIGameObject.SetActive(true);
+        PlayerUIGameObject.GetComponent<PlayerUI>().PlayerCrosshair.EnableCrosshair();
         PlayerController.MovementEnabled = true;
         
         // Make all buttons NOT interactable. 
@@ -187,9 +188,9 @@ public class VotingUI : MonoBehaviour
     {
         CountdownTimer.OnTimerCompleted -= OnTimerCompleted;
 
-        if (PlayerUI != null)
+        if (PlayerUIGameObject != null)
         {
-            PlayerUI playerUI = PlayerUI.GetComponent<PlayerUI>();
+            PlayerUI playerUI = PlayerUIGameObject.GetComponent<PlayerUI>();
             
             if (playerUI != null)
             {

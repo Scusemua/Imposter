@@ -3,6 +3,7 @@ using UnityEngine.UI;
 using Mirror;
 using System.Collections;
 using System;
+using MilkShake;
 
 [RequireComponent(typeof(PlayerController))]
 public class Player : NetworkBehaviour 
@@ -56,11 +57,6 @@ public class Player : NetworkBehaviour
                 networkGameManager = NetworkManager.singleton as NetworkGameManager;
             return networkGameManager;
         }
-    }
-
-    public void MuzzleFlash()
-    {
-        Instantiate(muzzleFlashPrefab, WeaponMuzzle.transform);
     }
 
     #region SyncVar Hooks
@@ -291,9 +287,18 @@ public class Player : NetworkBehaviour
     }
 
     [TargetRpc]
-    public void TargetDoCameraShake(float shakeAmount)
+    public void TargetDoCameraShake(float magnitude, float roughness, float fadeIn, float fadeOut)
     {
-        GetComponent<PlayerController>().Camera.GetComponent<Vibration>().StartShakingRandom(-shakeAmount, shakeAmount, -shakeAmount, shakeAmount);
+        ShakeParameters parameters = new ShakeParameters
+        {
+            Strength = magnitude,
+            Roughness = roughness,
+            FadeIn = fadeIn,
+            FadeOut = fadeOut,
+            ShakeType = ShakeType.OneShot
+        };
+        Debug.Log("Shaking.");
+        GetComponent<PlayerController>().Camera.GetComponent<Shaker>().Shake(parameters);
     }
 
     #endregion

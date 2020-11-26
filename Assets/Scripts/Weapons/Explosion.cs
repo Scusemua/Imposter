@@ -7,14 +7,12 @@ namespace Imposters
 {
     public class Explosion : NetworkBehaviour
     {
+        [Header("Explosion Properties")]
         [Tooltip("The force with which nearby objects will be blasted outwards")]
         public float ExplosionForce = 5.0f;
 
         [Tooltip("The radius of the explosion")]
         public float ExplosionRadius = 10.0f;
-
-        [Tooltip("Give camera shaking effects to nearby cameras that have the vibration component")]
-        public bool ShakeCamera = true;
 
         [Tooltip("The amount of the camera shake effect")]
         public float CameraShakeAmount = 0.5f;
@@ -24,6 +22,18 @@ namespace Imposters
 
         [Tooltip("The multiplier by which the ammount of damage to be applied is determined")]
         public float Damage = 10.0f;
+
+        [Header("Camera Shake")]
+        [Tooltip("Give camera shaking effects to nearby cameras that have the vibration component")]
+        public bool ShakeCamera = true;             // Should this explosion shake the camera?
+        [Tooltip("Affects the smoothness and speed of the shake. Lower roughness values are slower and smoother. Higher values are faster and noisier.")]
+        public float ShakeRoughness = 20f;          // Lower roughness values are slower and smoother. Higher values are faster and noisier.
+        [Tooltip("The intensity / magnitude of the shake.")]
+        public float ShakeMagnitude = 0.5f;         // The intensity / magnitude of the shake.
+        [Tooltip("The time, in seconds, for the shake to fade in.")]
+        public float ShakeFadeIn = 0.05f;           // The time, in seconds, for the shake to fade in.
+        [Tooltip("The time, in seconds, for the shake to fade out.")]
+        public float ShakeFadeOut = 0.5f;           // The time, in seconds, for the shake to fade out.
 
         // Start is called before the first frame update
         public override void OnStartClient()
@@ -55,7 +65,7 @@ namespace Imposters
                         if (ShakeCamera)
                         {
                             float shakeAmount = 1 / (Vector3.Distance(transform.position, col.transform.position) * CameraShakeAmount);
-                            col.GetComponent<Player>().TargetDoCameraShake(shakeAmount);
+                            col.GetComponent<Player>().TargetDoCameraShake(ShakeMagnitude, ShakeRoughness, ShakeFadeIn, ShakeFadeOut);
                         }
                     }
                 }
@@ -77,7 +87,7 @@ namespace Imposters
                 {
                     Player player = col.GetComponent<Player>();
                     float shakeAmount = 1 / (Vector3.Distance(transform.position, col.transform.position) * CameraShakeAmount);
-                    player.TargetDoCameraShake(shakeAmount);
+                    player.TargetDoCameraShake(ShakeMagnitude, ShakeRoughness, ShakeFadeIn, ShakeFadeOut);
                 }
             }
 
