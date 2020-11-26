@@ -16,6 +16,9 @@ namespace Imposters
 
     public class Projectile : NetworkBehaviour
     {
+        [Tooltip("Unqiue identifier for this projectile.")]
+        public int Id;
+
         [Tooltip("The type of damage inflicted by this projectile.")]
         public DamageType DamageType = DamageType.DirectHit;
 
@@ -91,6 +94,11 @@ namespace Imposters
             // Disable all our stuff so we stay where we landed.
             if (StickOnHit)
             {
+                // Don't get stuck to other projectiles of the same type (e.g., needles don't get stuck to needles).
+                if (col.transform.CompareTag("Projectile"))
+                    if (col.transform.GetComponent<Projectile>().Id == this.Id)
+                        return;
+
                 transform.SetParent(col.transform);
                 GetComponent<Rigidbody>().detectCollisions = false;
                 GetComponent<Rigidbody>().isKinematic = true;

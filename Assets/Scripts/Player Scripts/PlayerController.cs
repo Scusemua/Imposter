@@ -116,6 +116,12 @@ public class PlayerController : NetworkBehaviour
     {
         if (!isLocalPlayer) return;
 
+        // Disable movement when typing into console.
+        if (Input.GetKey(KeyCode.Tilde) && !Player.IsDead)
+        {
+            MovementEnabled = !MovementEnabled;
+        }
+
         if (Input.GetKey(KeyCode.B) && !Player.IsDead)
             Player.CmdSuicide();
 
@@ -334,7 +340,7 @@ public class PlayerController : NetworkBehaviour
     [Command(ignoreAuthority = true)]
     public void CmdInfiniteAmmo()
     {
-        foreach (GunClass gunClass in AmmoCounts.Keys)
+        foreach (GunClass gunClass in Enum.GetValues(typeof(GunClass)))
         {
             AmmoCounts[gunClass] = 999999;
         }
@@ -441,6 +447,7 @@ public class PlayerController : NetworkBehaviour
         if (CurrentWeaponID < 0 || CurrentWeapon == null || CurrentWeapon.AmmoInClip == CurrentWeapon.ClipSize)
             return;
 
+        Debug.Log("Reloading.");
         CurrentWeapon.InitReload();
     }
 

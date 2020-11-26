@@ -339,11 +339,22 @@ public class PlayerUI : MonoBehaviour
         }
     }
 
-    private void GiveWeapon(int weaponId, int playerId)
+    private void GiveWeapon(int playerId, int weaponId)
     {
         uint netId = (uint)playerId;
 
         networkGameManager.NetIdMap[netId].GetComponent<PlayerController>().CmdGivePlayerWeapon(weaponId, false);
+    }
+
+    private void ListWeapons()
+    {
+        ItemDatabase itemDatabase = FindObjectOfType<ItemDatabase>();
+        int maxId = itemDatabase.MaxWeaponId;
+        Debug.Log("== Listing Weapons ==");
+        for (int i = 0; i <= maxId; i++)
+        {
+            Debug.Log(String.Format("{0}\t{1}", i, itemDatabase.GetGunByID(i).Name));
+        }
     }
 
     private void InfiniteAmmo(int playerId)
@@ -383,6 +394,7 @@ public class PlayerUI : MonoBehaviour
         if (!hasAuthority()) return;
 
         DebugLogConsole.AddCommand("listplayers", "listplayers, Lists the players in the game.", ListPlayers);
+        DebugLogConsole.AddCommand("listguns", "listguns, Lists all guns and their IDs.", ListWeapons);
         DebugLogConsole.AddCommand<int>("ammo", "ammo <netId> - gives the specified player 999999 of each ammo type.", InfiniteAmmo);
         DebugLogConsole.AddCommand<int, int>("give", "give <netId> <gunId>", GiveWeapon);
         DebugLogConsole.AddCommand<int, Vector3>("tppos", "tppos <netId> [<x> <y> <z>]", TeleportPosition);
