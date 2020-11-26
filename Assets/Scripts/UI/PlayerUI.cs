@@ -6,6 +6,7 @@ using Mirror;
 using TMPro;
 using Lean.Gui;
 using System;
+using IngameDebugConsole;
 
 public class PlayerUI : MonoBehaviour
 {
@@ -314,4 +315,72 @@ public class PlayerUI : MonoBehaviour
         AnimateRole();
     }
     #endregion
+
+    #region Console Commands
+
+    /// <summary>
+    /// Returns True if the player associated with this UI has the authority to execute console commands.
+    /// 
+    /// This is based on whether or not the player is the host.
+    /// </summary>
+    private bool hasAuthority()
+    {
+        return !this.player.isClientOnly;
+    }
+
+    private void ListPlayers()
+    {
+        Player[] players = networkGameManager.GamePlayers.ToArray();
+        Array.Sort(players, (x, y) => x.netId.CompareTo(y.netId));
+        Debug.Log("== Listing Players ==");
+        foreach (Player player in players)
+        {
+            Debug.Log(String.Format("{0}\t{1}", player.netId, player.Nickname));
+        }
+    }
+
+    private void GiveWeapon(int weaponId, int playerId)
+    {
+        uint netId = (uint)playerId;
+
+        networkGameManager.NetIdMap[netId].GetComponent<PlayerController>().CmdGivePlayerWeapon(weaponId, false);
+    }
+
+    private void InfiniteAmmo(int playerId)
+    {
+        uint netId = (uint)playerId;
+
+        networkGameManager.NetIdMap[netId].GetComponent<PlayerController>().CmdInfiniteAmmo();
+    }
+
+    private void TeleportPosition(int playerId, Vector3 newPosition)
+    {
+        uint netId = (uint)playerId;
+
+        networkGameManager.NetIdMap[netId].GetComponent<PlayerController>().CmdSetPosition(newPosition);
+    }
+
+    private void TeleportToOtherPlayer(int playerIdSrc, int playerIdDst)
+    {
+        uint netIdSrc = (uint)playerIdSrc;
+        uint netIdDst = (uint)playerIdDst;
+
+        networkGameManager.NetIdMap[netIdSrc].GetComponent<PlayerController>().CmdMoveToPlayer(netIdDst);
+    }
+
+    /// <summary>
+    /// Register all of our console commands with the debug console.
+    /// </summary>
+    public void RegisterConsoleCommands()
+    {
+        if (!hasAuthority()) return;
+
+        DebugLogConsole.AddCommand("listplayers", "listplayers, Lists the players in the game.", ListPlayers);
+        DebugLogConsole.AddCommand<int>("ammo", "ammo <netId> - gives the specified player 999999 of each ammo type.", InfiniteAmmo);
+        DebugLogConsole.AddCommand<int, int>("give", "give <netId> <gunId>", GiveWeapon);
+        DebugLogConsole.AddCommand<int, Vector3>("tppos", "tppos <netId> [<x> <y> <z>]", TeleportPosition);
+        DebugLogConsole.AddCommand<int, int>("tp", "tp <netIdSrc> <netIdDst>", TeleportToOtherPlayer);
+    }
+
+    #endregion 
 }

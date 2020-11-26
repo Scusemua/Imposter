@@ -317,6 +317,41 @@ public class PlayerController : NetworkBehaviour
     #endregion
 
     #region Commands 
+    [Command]
+    public void CmdSetPosition(Vector3 newPosition)
+    {
+        transform.SetPositionAndRotation(newPosition, transform.rotation);
+    }
+
+    [Command]
+    public void CmdMoveToPlayer(uint netId)
+    {
+        Player otherPlayer = (NetworkManager.singleton as NetworkGameManager).NetIdMap[netId];
+
+        if (otherPlayer != null)
+        {
+            Debug.Log("Teleporting " + GetPlayerDebugString() + " to " + otherPlayer.GetComponent<PlayerController>().GetPlayerDebugString());
+            Vector3 pos = new Vector3(otherPlayer.transform.position.x,
+                                      otherPlayer.transform.position.y,
+                                      otherPlayer.transform.position.z);
+            transform.SetPositionAndRotation(pos, transform.rotation);
+        }
+    }
+
+    [Command]
+    public void CmdInfiniteAmmo()
+    {
+        foreach (GunClass gunClass in AmmoCounts.Keys)
+        {
+            AmmoCounts[gunClass] = 999999;
+        }
+    }
+
+    [Command(ignoreAuthority = true)]
+    public void CmdGivePlayerWeapon(int weaponId, bool equip)
+    {
+        GivePlayerWeapon(weaponId, false);
+    }
 
     [Command]
     public void CmdTakeDamage(float damage)
