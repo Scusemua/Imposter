@@ -207,7 +207,7 @@ public class PlayerUI : MonoBehaviour
     }
 
     [Client]
-    public void ShowWeaponUI(string[] primaryWeapons, string[] secondaryWeapons, string[] explosiveWeapons)
+    public void ShowWeaponUI(IEnumerable<string> primaryWeapons, IEnumerable<string> secondaryWeapons, IEnumerable<string> explosiveWeapons)
     {
         foreach (GameObject gameObject in weaponUiEntries)
         {
