@@ -130,6 +130,16 @@ public class Player : NetworkBehaviour
         Damage(amount);
     }
 
+    [Command(ignoreAuthority = true)]
+    public void CmdSetHealth(float newHealthValue)
+    {
+        Health = newHealthValue;
+        TargetGotDamaged(); // Just updates UI.
+
+        if (Health <= 0)
+            Die();
+    }
+
     #endregion
 
     #region ClientRPC
@@ -261,7 +271,6 @@ public class Player : NetworkBehaviour
     [Client]
     public void OnHealthChanged(float _Old, float _New)
     {
-        //FloatingHealthBar.TakeDamage(Mathf.Abs(_Old - _New);
         FloatingHealthBar.health = _New;
         FloatingHealthBar.UpdateHealth();
     }
@@ -313,12 +322,12 @@ public class Player : NetworkBehaviour
 
         if (Health <= 0)
         {
-            Kill();
+            Die();
         }
     }
 
     [Server]
-    public void Kill()
+    public void Die()
     {
         _isDead = true;
         GetComponent<PlayerController>().Die();

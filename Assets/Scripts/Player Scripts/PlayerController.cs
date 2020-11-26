@@ -317,13 +317,13 @@ public class PlayerController : NetworkBehaviour
     #endregion
 
     #region Commands 
-    [Command]
+    [Command(ignoreAuthority = true)]
     public void CmdSetPosition(Vector3 newPosition)
     {
         transform.SetPositionAndRotation(newPosition, transform.rotation);
     }
 
-    [Command]
+    [Command(ignoreAuthority = true)]
     public void CmdMoveToPlayer(uint netId)
     {
         Player otherPlayer = (NetworkManager.singleton as NetworkGameManager).NetIdMap[netId];
@@ -338,7 +338,7 @@ public class PlayerController : NetworkBehaviour
         }
     }
 
-    [Command]
+    [Command(ignoreAuthority = true)]
     public void CmdInfiniteAmmo()
     {
         foreach (GunClass gunClass in AmmoCounts.Keys)

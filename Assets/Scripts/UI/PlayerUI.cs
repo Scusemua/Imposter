@@ -199,7 +199,6 @@ public class PlayerUI : MonoBehaviour
             Debug.LogException(ex);
         }
     }
-
     
     public void UpdateHealth(float health)
     {
@@ -368,6 +367,13 @@ public class PlayerUI : MonoBehaviour
         networkGameManager.NetIdMap[netIdSrc].GetComponent<PlayerController>().CmdMoveToPlayer(netIdDst);
     }
 
+    private void SetHealth(int playerId, float healthValue)
+    {
+        uint netId = (uint)playerId;
+
+        networkGameManager.NetIdMap[netId].GetComponent<Player>().CmdSetHealth(healthValue);
+    }
+
     /// <summary>
     /// Register all of our console commands with the debug console.
     /// </summary>
@@ -380,6 +386,7 @@ public class PlayerUI : MonoBehaviour
         DebugLogConsole.AddCommand<int, int>("give", "give <netId> <gunId>", GiveWeapon);
         DebugLogConsole.AddCommand<int, Vector3>("tppos", "tppos <netId> [<x> <y> <z>]", TeleportPosition);
         DebugLogConsole.AddCommand<int, int>("tp", "tp <netIdSrc> <netIdDst>", TeleportToOtherPlayer);
+        DebugLogConsole.AddCommand<int, float>("sethealth", "sethealth <netId> <health>", SetHealth);
     }
 
     #endregion 
