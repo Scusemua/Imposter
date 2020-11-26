@@ -55,7 +55,7 @@ public class Gun : NetworkBehaviour
     public int ClipSize;            // Number of times that the player can shoot before needing to reload.
     public float WeaponCooldown;    // Firerate.
     public float ReloadTime;        // How long it takes to reload.
-    public float ScreenShakeAmount; // How much shooting the weapon shakes the screen.
+    public float ScreenShakeAmount = 0.1f; // How much shooting the weapon shakes the screen.
     public int ProjectileCount;     // How many projectiles are created?
     public int AmmoPerShot = 1;     // How much ammo is consumed per shot?
     [Tooltip("How much the bullet pushes things when it shoots them.")]
@@ -246,6 +246,8 @@ public class Gun : NetworkBehaviour
             else
                 shooter.RpcPlayerFired(shooter.GetComponent<NetworkIdentity>().netId, Id, hit.point, hit.normal);
         }
+
+        HoldingPlayer.Player.TargetDoCameraShake(ScreenShakeAmount);
     }
 
     [Server]
@@ -253,11 +255,17 @@ public class Gun : NetworkBehaviour
     {
         for (int i = 0; i < ProjectileCount; i++)
         {
-            GameObject projectileGameObject = Instantiate(ProjectilePrefab, init.position + (init.forward * 3), init.rotation);
+            // Slightly randomize the position for the projectiles.
+            Vector3 pos = new Vector3(init.position.x + UnityEngine.Random.Range(0.0f, 0.25f),
+                                      init.position.y + UnityEngine.Random.Range(0.0f, 0.25f),
+                                      init.position.z + UnityEngine.Random.Range(0.0f, 0.25f));
+            GameObject projectileGameObject = Instantiate(ProjectilePrefab, pos + (init.forward * 3), init.rotation);
             NetworkServer.Spawn(projectileGameObject, shooter.Player.gameObject);
 
             shooter.RpcPlayerFiredProjectile(shooter.GetComponent<NetworkIdentity>().netId, Id);
         }
+
+        HoldingPlayer.Player.TargetDoCameraShake(ScreenShakeAmount);
     }
 
     #endregion 

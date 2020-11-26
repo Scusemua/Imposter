@@ -52,8 +52,11 @@ namespace Imposters
                         // The Easy Weapons health system
                         col.GetComponent<Player>().Damage(damageAmount);
 
-                        float shakeAmount = 1 / (Vector3.Distance(transform.position, col.transform.position) * CameraShakeAmount);
-                        col.GetComponent<Player>().TargetDoCameraShake(shakeAmount);
+                        if (ShakeCamera)
+                        {
+                            float shakeAmount = 1 / (Vector3.Distance(transform.position, col.transform.position) * CameraShakeAmount);
+                            col.GetComponent<Player>().TargetDoCameraShake(shakeAmount);
+                        }
                     }
                 }
             }
@@ -67,6 +70,14 @@ namespace Imposters
                 if (col.attachedRigidbody != null && !rigidbodies.Contains(col.attachedRigidbody))
                 {
                     rigidbodies.Add(col.attachedRigidbody);
+                }
+
+                // Shake the camera if it has a vibration component
+                if (ShakeCamera && col.GetComponent<Player>() != null)
+                {
+                    Player player = col.GetComponent<Player>();
+                    float shakeAmount = 1 / (Vector3.Distance(transform.position, col.transform.position) * CameraShakeAmount);
+                    player.TargetDoCameraShake(shakeAmount);
                 }
             }
 
