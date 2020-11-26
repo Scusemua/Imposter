@@ -53,7 +53,7 @@ public class AmmoBox : NetworkBehaviour
         }
         else
         {
-            NumberBullets = 25; // In this case, NumberBullets functions has the health restored on pickup.
+            // In this case, NumberBullets functions has the health restored on pickup.
             BoxOutline.OutlineWidth = 3;
             BoxOutline.OutlineColor = new Color32(0, 120, 28, 255);  // Dark green.
         }

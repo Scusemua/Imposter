@@ -170,7 +170,10 @@ public class PlayerController : NetworkBehaviour
         if (isLocalPlayer)
         {
             if (weaponId >= 0)
+            {
                 Player.PlayerUI.AmmoUI.SetActive(true);
+                UpdateAmmoDisplay();
+            }
             else
                 Player.PlayerUI.AmmoUI.SetActive(false);
         }
@@ -290,7 +293,7 @@ public class PlayerController : NetworkBehaviour
     }
 
     [TargetRpc]
-    void ShowReloadBar(float reloadTime)
+    public void TargetShowReloadBar(float reloadTime)
     {
         Player.PlayerUI.ReloadingProgressBar.health = 0;
         Player.PlayerUI.ReloadingProgressBar.healthPerSecond = 100f / reloadTime;
@@ -298,7 +301,7 @@ public class PlayerController : NetworkBehaviour
     }
 
     [TargetRpc]
-    void TargetReload()
+    public void TargetReload()
     {
         // We reloaded successfully. Update our UI.
         Player.PlayerUI.AmmoClipText.text = (CurrentWeapon != null) ? CurrentWeapon.AmmoInClip.ToString() : "N/A";
@@ -405,7 +408,6 @@ public class PlayerController : NetworkBehaviour
     {
         if (CurrentWeaponID < 0 || CurrentWeapon == null || CurrentWeapon.AmmoInClip == CurrentWeapon.ClipSize)
             return;
-
 
         CurrentWeapon.InitReload();
     }

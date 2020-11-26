@@ -58,6 +58,8 @@ public class Gun : NetworkBehaviour
     public float ScreenShakeAmount; // How much shooting the weapon shakes the screen.
     public int ProjectileCount;     // How many projectiles are created?
     public int AmmoPerShot = 1;     // How much ammo is consumed per shot?
+    [Tooltip("How much the bullet pushes things when it shoots them.")]
+    public int BulletForce;         
     public bool UsesHitscan;        // Uses hitscan for hit detection (as opposed to projectiles).
     public float Damage;            // How much damage weapon does.
     public string Name;             // Name of the weapon.
@@ -152,6 +154,7 @@ public class Gun : NetworkBehaviour
     IEnumerator DoReload()
     {
         Reloading = true;
+        HoldingPlayer.TargetShowReloadBar(ReloadTime);
         HoldingPlayer.TargetPlayReloadSound();
         yield return new WaitForSeconds(ReloadTime);
 
@@ -185,6 +188,7 @@ public class Gun : NetworkBehaviour
             }
 
             Reloading = false;
+            HoldingPlayer.TargetReload();
             OnReloadCompleted?.Invoke();
 
             yield return null;
@@ -218,6 +222,19 @@ public class Gun : NetworkBehaviour
         RaycastHit hit;
         if (Physics.Raycast(ray, out hit, 100f))
         {
+            Rigidbody rigidbody = hit.collider.GetComponent<Rigidbody>();
+            if (rigidbody != null)
+            {
+                // Calculate Angle Between the collision point and the player
+                Vector3 dir = hit.point - shooter.transform.position;
+
+                // We then get the opposite (-Vector3) and normalize it
+                dir = -dir.normalized;
+
+                // And finally we add force in the direction of dir and multiply it by force. 
+                rigidbody.AddForce(dir * BulletForce);
+            }
+
             if (hit.collider.CompareTag("Player"))
             {
                 shooter.RpcPlayerFiredEntity(shooter.GetComponent<NetworkIdentity>().netId, Id);
