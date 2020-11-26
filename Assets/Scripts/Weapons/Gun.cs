@@ -135,7 +135,7 @@ public class Gun : NetworkBehaviour
 
     private float curCooldown = 0f;
     private float dryFireCooldown = 0f; // Prevents us from spamming the dry fire sound on automatic weapons.
-    private float dryFireInterval = 0.25f; // How often we can play the dry fire sound effect.
+    private float dryFireInterval = 0.3f; // How often we can play the dry fire sound effect.
 
     #region Client Functions 
 
@@ -172,8 +172,19 @@ public class Gun : NetworkBehaviour
 
     #endregion
 
+    #region Client Functions 
+
+    [Client]
+    public void MuzzleFlash()
+    {
+        // Random rotation.
+        Instantiate(MuzzleFlashPrefab, WeaponMuzzle.position, Quaternion.Euler(UnityEngine.Random.Range(0, 360), -transform.rotation.eulerAngles.y, transform.rotation.eulerAngles.z), WeaponMuzzle);
+    }
+
+    #endregion 
+
     #region Server Functions 
-    
+
     [Server]
     public void InitReload()
     {
@@ -232,10 +243,14 @@ public class Gun : NetworkBehaviour
     {
         if (curCooldown > 0) return;
 
-        if (AmmoInClip <= 0 && dryFireCooldown <= 0)
+        if (AmmoInClip <= 0)
         {
-            HoldingPlayer.TargetPlayDryFire();
-            dryFireCooldown = dryFireInterval;
+            // If it's been long enough that we can play the dry fire sound effect again, then do so.
+            if (dryFireCooldown <= 0)
+            {
+                HoldingPlayer.TargetPlayDryFire();
+                dryFireCooldown = dryFireInterval;
+            }
             return;
         }
 

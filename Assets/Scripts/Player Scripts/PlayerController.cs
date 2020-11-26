@@ -507,8 +507,8 @@ public class PlayerController : NetworkBehaviour
     [Client]
     public void MuzzleFlash()
     {
-        // Random rotation.
-        Instantiate(CurrentWeapon.MuzzleFlashPrefab, CurrentWeapon.WeaponMuzzle.position, Quaternion.Euler(UnityEngine.Random.Range(0, 360), 0, 0), CurrentWeapon.WeaponMuzzle);
+        if (CurrentWeapon != null)
+            CurrentWeapon.MuzzleFlash();
     }
 
     [Client]
@@ -863,7 +863,7 @@ public class PlayerController : NetworkBehaviour
 
         // Get the gun prefab and instantiate it.
         Gun gunPrefab = itemDatabase.GetGunByID(weaponId);
-        Gun instantiatedGun = Instantiate(gunPrefab, weaponContainer.position, Quaternion.identity, weaponContainer);
+        Gun instantiatedGun = Instantiate(gunPrefab, weaponContainer.position, gunPrefab.transform.rotation, weaponContainer);
 
         ModifyWeaponCollidersAndRigidbodyOnPickup(instantiatedGun.gameObject);
         instantiatedGun.OnGround = false;
