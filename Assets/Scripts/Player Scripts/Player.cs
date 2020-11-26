@@ -8,6 +8,9 @@ using MilkShake;
 [RequireComponent(typeof(PlayerController))]
 public class Player : NetworkBehaviour 
 {
+    public ShakePreset ExplosionShakePreset;
+    public ShakePreset GunshotShakePreset;
+
     [Header("UI Related")]
     public GameObject PlayerUIPrefab;
 
@@ -296,18 +299,20 @@ public class Player : NetworkBehaviour
     }
 
     [TargetRpc]
-    public void TargetDoCameraShake(float magnitude, float roughness, float fadeIn, float fadeOut)
+    public void TargetDoCameraShake(bool explosion)
     {
-        ShakeParameters parameters = new ShakeParameters
-        {
-            Strength = magnitude,
-            Roughness = roughness,
-            FadeIn = fadeIn,
-            FadeOut = fadeOut,
-            ShakeType = ShakeType.OneShot
-        };
-        Debug.Log("Shaking.");
-        GetComponent<PlayerController>().Camera.GetComponent<Shaker>().Shake(parameters);
+        //ShakeParameters parameters = new ShakeParameters
+        //{
+        //    Strength = magnitude,
+        //    Roughness = roughness,
+        //    FadeIn = fadeIn,
+        //    FadeOut = fadeOut,
+        //    ShakeType = ShakeType.OneShot
+        //};
+        if (explosion)
+            GetComponent<PlayerController>().Camera.GetComponent<Shaker>().Shake(ExplosionShakePreset);
+        else
+            GetComponent<PlayerController>().Camera.GetComponent<Shaker>().Shake(GunshotShakePreset);
     }
 
     #endregion

@@ -72,7 +72,7 @@ public class Gun : NetworkBehaviour
     [Tooltip("How much ammo is consumed per shot?")]
     public int AmmoPerShot = 1;     // How much ammo is consumed per shot?
     [Tooltip("How much the bullet pushes things when it shoots them.")]
-    public int BulletForce;         
+    public float BulletForce = 5.0f;
     [Tooltip("Uses hitscan for hit detection (as opposed to projectiles).")]
     public bool UsesHitscan;        // Uses hitscan for hit detection (as opposed to projectiles).
     [Tooltip("How much damage weapon does.")]
@@ -178,7 +178,7 @@ public class Gun : NetworkBehaviour
     public void MuzzleFlash()
     {
         // Random rotation.
-        Instantiate(MuzzleFlashPrefab, WeaponMuzzle.position, Quaternion.Euler(UnityEngine.Random.Range(0, 360), -transform.rotation.eulerAngles.y, transform.rotation.eulerAngles.z), WeaponMuzzle);
+        Instantiate(MuzzleFlashPrefab, WeaponMuzzle.position, Quaternion.Euler(UnityEngine.Random.Range(0, 360), transform.rotation.eulerAngles.y, transform.rotation.eulerAngles.z), WeaponMuzzle);
     }
 
     #endregion 
@@ -254,12 +254,15 @@ public class Gun : NetworkBehaviour
             return;
         }
 
+        shooter.RpcPlayerShotGun(shooter.GetComponent<NetworkIdentity>().netId, Id);
         if (_WeaponType == WeaponType.Raycast)
             RaycastShoot(shooter, init);
         else if (_WeaponType == WeaponType.Projectile)
             ProjectileShoot(shooter, init);
 
         HoldingPlayer.TargetShoot();
+        //HoldingPlayer.Player.TargetDoCameraShake(ShakeMagnitude, ShakeRoughness, ShakeFadeIn, ShakeFadeOut);
+        HoldingPlayer.Player.TargetDoCameraShake(false);
 
         curCooldown = WeaponCooldown;
         AmmoInClip -= AmmoPerShot;
@@ -272,8 +275,7 @@ public class Gun : NetworkBehaviour
         RaycastHit hit;
         if (Physics.Raycast(ray, out hit, 100f))
         {
-            Rigidbody rigidbody = hit.collider.GetComponent<Rigidbody>();
-            if (rigidbody != null)
+            if (hit.rigidbody != null)
             {
                 // Calculate Angle Between the collision point and the player
                 Vector3 dir = hit.point - shooter.transform.position;
@@ -282,22 +284,21 @@ public class Gun : NetworkBehaviour
                 dir = -dir.normalized;
 
                 // And finally we add force in the direction of dir and multiply it by force. 
-                rigidbody.AddForce(dir * BulletForce);
+                hit.rigidbody.AddForce(dir * BulletForce);
             }
 
-            if (hit.collider.CompareTag("Player"))
+            // Did we hit another player?
+            if (hit.collider.CompareTag("Player") && hit.collider.GetComponent<NetworkIdentity>().netId != GetComponent<NetworkIdentity>().netId)
             {
-                shooter.RpcPlayerFiredEntity(shooter.GetComponent<NetworkIdentity>().netId, Id);
-                if (hit.collider.GetComponent<NetworkIdentity>().netId != GetComponent<NetworkIdentity>().netId)
-                    hit.collider.GetComponent<Player>().Damage(Damage);
+                hit.collider.GetComponent<Player>().Damage(Damage);
+                shooter.RpcGunshotHitEntity(hit.point, hit.normal);
             }
+            // Did we hit an enemy? (Used for debugging)
             else if (hit.collider.CompareTag("Enemy"))
-                shooter.RpcPlayerFiredEntity(shooter.GetComponent<NetworkIdentity>().netId, Id);
-            else
-                shooter.RpcPlayerFired(shooter.GetComponent<NetworkIdentity>().netId, Id, hit.point, hit.normal);
+                shooter.RpcGunshotHitEntity(hit.point, hit.normal);
+            else // We just hit the environment.
+                shooter.RpcGunshotHitEnvironment(shooter.GetComponent<NetworkIdentity>().netId, Id, hit.point, hit.normal);
         }
-
-        HoldingPlayer.Player.TargetDoCameraShake(ShakeMagnitude, ShakeRoughness, ShakeFadeIn, ShakeFadeOut);
     }
 
     [Server]
@@ -314,8 +315,6 @@ public class Gun : NetworkBehaviour
 
             shooter.RpcPlayerFiredProjectile(shooter.GetComponent<NetworkIdentity>().netId, Id);
         }
-
-        HoldingPlayer.Player.TargetDoCameraShake(ShakeMagnitude, ShakeRoughness, ShakeFadeIn, ShakeFadeOut);
     }
 
     #endregion 

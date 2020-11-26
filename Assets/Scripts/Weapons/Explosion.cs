@@ -65,7 +65,8 @@ namespace Imposters
                         if (ShakeCamera)
                         {
                             float shakeAmount = 1 / (Vector3.Distance(transform.position, col.transform.position) * CameraShakeAmount);
-                            col.GetComponent<Player>().TargetDoCameraShake(ShakeMagnitude, ShakeRoughness, ShakeFadeIn, ShakeFadeOut);
+                            //col.GetComponent<Player>().TargetDoCameraShake(ShakeMagnitude, ShakeRoughness, ShakeFadeIn, ShakeFadeOut);
+                            col.GetComponent<Player>().TargetDoCameraShake(true);
                         }
                     }
                 }
@@ -87,7 +88,8 @@ namespace Imposters
                 {
                     Player player = col.GetComponent<Player>();
                     float shakeAmount = 1 / (Vector3.Distance(transform.position, col.transform.position) * CameraShakeAmount);
-                    player.TargetDoCameraShake(ShakeMagnitude, ShakeRoughness, ShakeFadeIn, ShakeFadeOut);
+                    //player.TargetDoCameraShake(ShakeMagnitude, ShakeRoughness, ShakeFadeIn, ShakeFadeOut);
+                    player.TargetDoCameraShake(true);
                 }
             }
 

@@ -199,40 +199,36 @@ public class PlayerController : NetworkBehaviour
         this.AudioSource.PlayOneShot(gunshotSound, volumeDistModifier);
     }
 
+    /// <summary>
+    /// Instantiate blood fx at the entity which was hit by the player.
+    /// </summary>
     [ClientRpc]
-    public void RpcPlayerFiredEntity(uint shooterID, int gunId)
+    public void RpcGunshotHitEntity(Vector3 impactPos, Vector3 impactRot)
     {
-        //Instantiate(bulletHolePrefab, impactPos + impactRot * 0.1f, Quaternion.LookRotation(impactRot), NetworkIdentity.spawned[targetID].transform);
-        //Instantiate(bulletBloodFXPrefab, impactPos, Quaternion.LookRotation(impactRot));
-        NetworkIdentity.spawned[shooterID].GetComponent<PlayerController>().MuzzleFlash();
-
-        Transform shooterTransform = NetworkIdentity.spawned[shooterID].GetComponent<Player>().GetComponent<Transform>();
-
-        float volumeDistModifier = (1000f - GetDistanceSquaredToTarget(shooterTransform)) / 1000f;
-        //Debug.Log("Playing gunshot with volume modifier: " + volumeDistModifier);
-
-        AudioClip gunshotSound = DefaultGunshotSound;
-        if (itemDatabase.GetGunByID(gunId).ShootSound != null)
-            gunshotSound = itemDatabase.GetGunByID(gunId).ShootSound;
-
-        // Adjust volume of gunshot based on distance.
-        this.AudioSource.PlayOneShot(gunshotSound, volumeDistModifier);
-
-        //Destroy(bulletBloodGO, 2);
-        //Destroy(bulletHolePrefab, 10);
+        Instantiate(bulletBloodFXPrefab, impactPos, Quaternion.LookRotation(impactRot));
     }
 
+    /// <summary>
+    /// Instantiate bullet-hit FX at the location where the bullet hit.
+    /// </summary>
     [ClientRpc]
-    public void RpcPlayerFired(uint shooterID, int gunId, Vector3 impactPos, Vector3 impactRot)
+    public void RpcGunshotHitEnvironment(uint shooterID, int gunId, Vector3 impactPos, Vector3 impactRot)
     {
         //Instantiate(bulletHolePrefab, impactPos + impactRot * 0.1f, Quaternion.LookRotation(impactRot));
         Instantiate(bulletFXPrefab, impactPos, Quaternion.LookRotation(impactRot));
         NetworkIdentity.spawned[shooterID].GetComponent<PlayerController>().MuzzleFlash();
+    }
 
-        Transform shooterTransform = NetworkIdentity.spawned[shooterID].GetComponent<Player>().GetComponent<Transform>();
+    /// <summary>
+    /// Play gunshot sound and show muzzle flash.
+    /// </summary>
+    [ClientRpc]
+    public void RpcPlayerShotGun(uint shooterId, int gunId)
+    {
+        NetworkIdentity.spawned[shooterId].GetComponent<PlayerController>().MuzzleFlash();
 
+        Transform shooterTransform = NetworkIdentity.spawned[shooterId].GetComponent<Player>().GetComponent<Transform>();
         float volumeDistModifier = (1000f - GetDistanceSquaredToTarget(shooterTransform)) / 1000f;
-        //Debug.Log("Playing gunshot with volume modifier: " + volumeDistModifier);
 
         AudioClip gunshotSound = DefaultGunshotSound;
         if (itemDatabase.GetGunByID(gunId).ShootSound != null)
@@ -240,9 +236,6 @@ public class PlayerController : NetworkBehaviour
 
         // Adjust volume of gunshot based on distance.
         this.AudioSource.PlayOneShot(gunshotSound, volumeDistModifier);
-
-        //Destroy(bulletFxPrefab, 2);
-        //Destroy(bulletHolePrefab, 10);
     }
 
     #endregion

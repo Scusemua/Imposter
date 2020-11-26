@@ -248,30 +248,39 @@ public class NetworkGameManager : NetworkRoomManager
     public void CastVote(Player voter, uint candidateId)
     {
         numVotesReceived += 1;
+
         Debug.Log("Received vote " + numVotesReceived + "/" + numVotesExpected + " from player " + voter.Nickname + ", netId = " + voter.netId);
 
-        Player voteRecipient = NetIdMap[candidateId];
-
-        if (voteRecipient.IsDead)
+        // Check if they simply skipped their vote.
+        if (candidateId == SKIPPED_VOTE_NET_ID)
         {
-            Debug.LogError("Player " + voter.Nickname + ", netId = " + voter.netId + " has cast a vote for a dead player...");
-            throw new InvalidOperationException("Player " + voter.netId + " cast vote for dead player " + voteRecipient.netId);
-        }
-
-        // Get the current number of votes for the candidate. This returns 0 if there are no votes yet.
-        votes.TryGetValue(candidateId, out List<Vote> currentVotes);
-
-        Vote vote = new Vote(candidateId, voter.netId);
-
-        // If there are no existing votes yet for this player, we'll create the list of votes.
-        if (currentVotes == null)
-        {
-            currentVotes = new List<Vote>();
-            currentVotes.Add(vote);
-            votes[candidateId] = currentVotes;
+            Debug.Log("Player skipped their vote.");
         }
         else
-            currentVotes.Add(vote);
+        {
+            Player voteRecipient = NetIdMap[candidateId];
+
+            if (voteRecipient.IsDead)
+            {
+                Debug.LogError("Player " + voter.Nickname + ", netId = " + voter.netId + " has cast a vote for a dead player...");
+                throw new InvalidOperationException("Player " + voter.netId + " cast vote for dead player " + voteRecipient.netId);
+            }
+
+            // Get the current number of votes for the candidate. This returns 0 if there are no votes yet.
+            votes.TryGetValue(candidateId, out List<Vote> currentVotes);
+
+            Vote vote = new Vote(candidateId, voter.netId);
+
+            // If there are no existing votes yet for this player, we'll create the list of votes.
+            if (currentVotes == null)
+            {
+                currentVotes = new List<Vote>();
+                currentVotes.Add(vote);
+                votes[candidateId] = currentVotes;
+            }
+            else
+                currentVotes.Add(vote);
+        }
 
         if (numVotesReceived == numVotesExpected)
         {

@@ -297,6 +297,7 @@ public class PlayerUI : MonoBehaviour
         PlayerImage.color = new Color(player.PlayerColor.r, player.PlayerColor.g, player.PlayerColor.b, PlayerImageAlpha);
 
         SetNickname(player.Nickname);
+        RegisterConsoleCommands();
     }
 
     
