@@ -325,29 +325,29 @@ public class PlayerController : NetworkBehaviour
         if (!gun.OnGround)
             return;
 
-        Debug.Log("Weapon on ground has " + gun.AmmoInClip + " bullets in its clip.");
+        //Debug.Log("Weapon on ground has " + gun.AmmoInClip + " bullets in its clip.");
 
         bool added = inventory.AddWeaponToInventory(gun.Id, weaponGameObject);
 
         if (added)
         {
-            weaponGameObject.GetComponent<Rigidbody>().isKinematic = true;
-            weaponGameObject.GetComponent<Rigidbody>().detectCollisions = false;
-            Array.ForEach(weaponGameObject.GetComponents<Collider>(), c => c.enabled = false); // Disable the colliders.
+            ModifyWeaponCollidersAndRigidbodyOnPickup(weaponGameObject);
 
             // Pick it up off the ground. Set the parent to our weapon container and update the gun's position and rotation.
             weaponGameObject.transform.SetParent(weaponContainer.transform);
-            weaponGameObject.transform.SetPositionAndRotation(weaponContainer.position, Quaternion.identity);
+            weaponGameObject.transform.SetPositionAndRotation(weaponContainer.position, weaponContainer.transform.rotation);
             gun.OnGround = false;
             gun.HoldingPlayer = this;
             TargetPlayPickupWeaponSound();
+
+            weaponGameObject.SetActive(false);
         }
     }
 
     [Command]
     public void CmdTryCycleInventory(int inventoryId)
     {
-        int nextWeaponIndex = -1;
+        int nextWeaponIndex;
 
         if (inventoryId == 0)
             nextWeaponIndex = inventory.GetNextWeaponOfType(Gun.GunType.PRIMARY, CurrentWeaponID);
@@ -361,7 +361,10 @@ public class PlayerController : NetworkBehaviour
             return;
         }
 
-        EquipWeapon(nextWeaponIndex);
+        Debug.Log("After cycling inventory, nextWeaponIndex = " + nextWeaponIndex + ".");
+
+        // Pass the unique ID of the gun stored at the identified index of the player's inventory.
+        EquipWeapon(inventory.GetGunIdAtIndex(nextWeaponIndex));
     }
 
     [Command]
@@ -452,9 +455,10 @@ public class PlayerController : NetworkBehaviour
         // Instantiate the scene object on the server a bit in front of the player so they don't instantly pick it up.
         Vector3 pos = transform.position + (transform.forward * 2.0f) ;
         Quaternion rot = weaponContainer.transform.rotation;
-        GameObject currentWeaponGameObject = CurrentWeapon.gameObject;
 
+        GameObject currentWeaponGameObject = CurrentWeapon.gameObject;
         currentWeaponGameObject.transform.SetParent(null);
+        currentWeaponGameObject.transform.SetPositionAndRotation(pos, rot);
 
         // Set the RigidBody as non-kinematic on the server only (isKinematic = true in prefab).
         Array.ForEach(currentWeaponGameObject.GetComponents<Collider>(), c => c.enabled = true); // Disable the colliders.
@@ -525,7 +529,6 @@ public class PlayerController : NetworkBehaviour
 
     public override void OnStartLocalPlayer()
     {
-        //Debug.Log("OnStartLocalPlayer() called for Player " + netId);
         enabled = true;
         MovementEnabled = true;
         GetComponent<Rigidbody>().isKinematic = false;
@@ -582,34 +585,6 @@ public class PlayerController : NetworkBehaviour
     public override void OnStartAuthority()
     {
         rigidbody = GetComponent<Rigidbody>();
-    }
-
-    [Client]
-    public void AssignWeaponClientSide(int id, int ammoInClip)
-    {
-        if (id == -1)
-        {
-            if (CurrentWeapon != null)
-            {
-                CurrentWeapon.OnReloadCompleted -= TargetReload;
-                CurrentWeapon.OnReloadStarted -= ShowReloadBar;
-                Destroy(CurrentWeapon.gameObject);
-                CurrentWeapon = null;
-            }
-
-            // Make sure to update the ammo display.
-            UpdateAmmoDisplay();
-            return;
-        }
-
-        if (itemDatabase == null)
-            itemDatabase = GameObject.FindGameObjectWithTag("ItemDatabase").GetComponent<ItemDatabase>();
-
-        CurrentWeapon.OnReloadStarted += ShowReloadBar;
-        CurrentWeapon.OnReloadCompleted += TargetReload;
-
-        // Make sure to update the ammo display.
-        UpdateAmmoDisplay();
     }
 
     [Client]
@@ -830,17 +805,6 @@ public class PlayerController : NetworkBehaviour
         GetComponent<Collider>().enabled = !state;
     }
 
-    public float GetSquaredDistanceToEmergencyButton()
-    {
-        Vector3 directionToTarget = EmergencyButton.GetComponent<Transform>().position - transform.position;
-        return directionToTarget.sqrMagnitude;
-    }
-
-    public float GetDistanceSquaredToTarget(Transform target)
-    {
-        return (transform.position - target.position).sqrMagnitude;
-    }
-
     #endregion
 
     #region Server
@@ -879,6 +843,10 @@ public class PlayerController : NetworkBehaviour
         Gun gunPrefab = itemDatabase.GetGunByID(weaponId);
         Gun instantiatedGun = Instantiate(gunPrefab, weaponContainer.position, Quaternion.identity, weaponContainer);
 
+        ModifyWeaponCollidersAndRigidbodyOnPickup(instantiatedGun.gameObject);
+        instantiatedGun.OnGround = false;
+        instantiatedGun.HoldingPlayer = this;
+
         // Add the weapon to the player's inventory. 
         inventory.AddWeaponToInventory(weaponId, instantiatedGun.gameObject);
 
@@ -903,11 +871,9 @@ public class PlayerController : NetworkBehaviour
     [Server]
     public void EquipWeapon(int nextWeaponID)
     {
-        if (!inventory.HasGun(nextWeaponID))
-            return;
-
         // Stop the reload in case we switched during a reload.
-        CancelReload();
+        if (CurrentWeaponID > 0)
+            CancelReload();
 
         // Deactivate our current weapon, if we're holding one.
         if (CurrentWeapon != null)
@@ -920,6 +886,14 @@ public class PlayerController : NetworkBehaviour
         {
             CurrentWeaponID = -1;
             CurrentWeapon = null;
+            RpcAssignCurrentWeapon(-1);
+            return;
+        }
+
+        // Do this check after putting our weapon away.
+        if (!inventory.HasGun(nextWeaponID))
+        {
+            Debug.Log("Weapon with ID " + nextWeaponID + " not in inventory. Cannot equip.");
             return;
         }
 
@@ -938,6 +912,34 @@ public class PlayerController : NetworkBehaviour
     #endregion
 
     #region Utility 
+
+    /// <summary>
+    /// This function should be called on a Gun's game object when it is being picked up.
+    /// 
+    /// The colliders need to be disabled and the rigid body needs to be set to kinematic.
+    /// </summary>
+    /// <param name="weaponGameObject"></param>
+    private void ModifyWeaponCollidersAndRigidbodyOnPickup(GameObject weaponGameObject)
+    {
+        weaponGameObject.GetComponent<Rigidbody>().isKinematic = true;
+        weaponGameObject.GetComponent<Rigidbody>().detectCollisions = false;
+        Array.ForEach(weaponGameObject.GetComponents<Collider>(), c => c.enabled = false); // Disable the colliders.
+    }
+
+    public float GetSquaredDistanceToEmergencyButton()
+    {
+        // If there is no emergency button, just return infinity lmao.
+        if (EmergencyButton == null)
+            return float.PositiveInfinity;
+
+        Vector3 directionToTarget = EmergencyButton.GetComponent<Transform>().position - transform.position;
+        return directionToTarget.sqrMagnitude;
+    }
+
+    public float GetDistanceSquaredToTarget(Transform target)
+    {
+        return (transform.position - target.position).sqrMagnitude;
+    }
 
     public string GetPlayerDebugString()
     {

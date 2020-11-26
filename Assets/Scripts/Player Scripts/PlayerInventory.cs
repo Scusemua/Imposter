@@ -41,6 +41,15 @@ public class PlayerInventory : NetworkBehaviour
     [SerializeField] public SyncList<int> GunInventory = new SyncList<int>();
 
     private ItemDatabase itemDatabase;
+    private ItemDatabase ItemDatabase
+    {
+        get
+        {
+            if (itemDatabase == null)
+                itemDatabase = FindObjectOfType<ItemDatabase>();
+            return itemDatabase;
+        }
+    }
 
     /// <summary>
     /// A mapping from gun ID to the associated game object of the weapon, if said weapon is in
@@ -85,6 +94,22 @@ public class PlayerInventory : NetworkBehaviour
     }
 
     /// <summary>
+    /// Return the game object of the gun stored at index <paramref name="index"/> of the player's inventory.
+    /// 
+    /// Returns null if there if the index is out of bounds.
+    /// </summary>
+    public GameObject GetGunGameObjectAtIndex(int index)
+    {
+        // Bounds check.
+        if (index < 0 || index >= GunInventory.Count)
+            return null;
+
+        WeaponGameObjects.TryGetValue(GunInventory[index], out GameObject gunGameObject);
+
+        return gunGameObject;
+    }
+
+    /// <summary>
     /// Return the index of the next weapon of the given gun type relative to the currently-equipped weapon's index.
     /// 
     /// Note that the currently-held/currently-equipped weapon need not be of the specified gun type.
@@ -92,20 +117,32 @@ public class PlayerInventory : NetworkBehaviour
     /// <param name="currentWeaponID">The currently-held/currently-equipped weapon.</param>
     public int GetNextWeaponOfType(Gun.GunType gunType, int currentWeaponID)
     {
-        int currentWeaponIndex = IndexOf(currentWeaponID);
+        int currentWeaponIndex;
 
-        if (currentWeaponIndex == -1)
+        // If the current weapon ID is negative one, then the player just doesn't have a weapon equipped.
+        if (currentWeaponID == -1)
+            currentWeaponIndex = -1;
+        else
         {
-            Debug.LogError("Player does NOT actually have weapon with ID " + currentWeaponID + " in their inventory.");
-            currentWeaponIndex = 0;
+            // If the player's current weapon ID is not -1, then they have an actual weapon, 
+            // and we should try to locate it in their inventory.
+            currentWeaponIndex = IndexOf(currentWeaponID);
+
+            if (currentWeaponIndex == -1)
+            {
+                Debug.LogError("Player does NOT actually have weapon with ID " + currentWeaponID + " in their inventory.");
+                currentWeaponIndex = 0;
+            }
         }
+
+        Debug.Log("Cycling inventory. Current weapon ID = " + currentWeaponID + ", current weapon index = " + currentWeaponIndex);
 
         for (int i = currentWeaponIndex + 1; i < GunInventory.Count; i++)
         {
             int gunId = GunInventory[i];
 
             // If the gun we're currently looking at is of the desired type, return i, which is the index of that gun.
-            if (itemDatabase.GetGunByID(gunId)._GunType == gunType)
+            if (ItemDatabase.GetGunByID(gunId)._GunType == gunType)
                 return i;
         }
 
@@ -119,7 +156,7 @@ public class PlayerInventory : NetworkBehaviour
                 int gunId = GunInventory[i];
 
                 // If the gun we're currently looking at is of the desired type, return i, which is the index of that gun.
-                if (itemDatabase.GetGunByID(gunId)._GunType == gunType)
+                if (ItemDatabase.GetGunByID(gunId)._GunType == gunType)
                     return i;
             }
         }
@@ -145,7 +182,7 @@ public class PlayerInventory : NetworkBehaviour
 
         foreach (int gunId in GunInventory)
         {
-            Gun gun = itemDatabase.GetGunByID(gunId);
+            Gun gun = ItemDatabase.GetGunByID(gunId);
             (gunNameLists[gun._GunType] as List<string>).Add(gun.Name);
         }
 
@@ -187,7 +224,7 @@ public class PlayerInventory : NetworkBehaviour
         // If the player already has this gun, return false.
         if (HasGun(weaponId)) return false;
 
-        Gun gun = itemDatabase.GetGunByID(weaponId);
+        Gun gun = ItemDatabase.GetGunByID(weaponId);
 
         Gun.GunType gunType = gun._GunType;
 
@@ -241,7 +278,7 @@ public class PlayerInventory : NetworkBehaviour
         if (!GunInventory.Contains(weaponId))
             return false;
 
-        Gun.GunType gunType = itemDatabase.GetGunByID(weaponId)._GunType;
+        Gun.GunType gunType = ItemDatabase.GetGunByID(weaponId)._GunType;
 
         if (gunType == Gun.GunType.PRIMARY)
             NumPrimariesHeld--;

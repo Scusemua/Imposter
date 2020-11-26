@@ -221,7 +221,7 @@ public class Player : NetworkBehaviour
 
     public override void OnStartLocalPlayer()
     {
-        //Debug.Log("OnStartLocalPlayer() called...");
+        if (!isLocalPlayer) return;
 
         // Create PlayerUI
         PlayerUIGameObject = Instantiate(PlayerUIPrefab);
