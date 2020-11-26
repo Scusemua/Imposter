@@ -713,7 +713,7 @@ public class PlayerController : NetworkBehaviour
         float h = Input.GetAxisRaw("Horizontal");
         float v = Input.GetAxisRaw("Vertical");
 
-        Vector3 movement = new Vector3(h, 0, v);
+        Vector3 movement = new Vector3(h, rigidbody.velocity.y, v);
 
         float weaponSpeedModifier = CurrentWeapon == null ? 1.0f : CurrentWeapon.SpeedModifier;
 
