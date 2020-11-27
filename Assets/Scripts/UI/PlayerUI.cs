@@ -108,6 +108,7 @@ public class PlayerUI : MonoBehaviour
                 {
                     TabMenuEntry entry = Instantiate(TabMenuEntryPrefab, TabMenuUIContent.transform).GetComponent<TabMenuEntry>();
                     entry.NameText.text = gamePlayer.name;
+                    entry.NameText.color = gamePlayer.PlayerColor;
                     entry.RoleText.text = gamePlayer.Role.ToString();
 
                     if (NetworkGameManager.IsImposterRole(gamePlayer.Role.ToString()))
@@ -143,6 +144,7 @@ public class PlayerUI : MonoBehaviour
                 {
                     TabMenuEntry entry = Instantiate(TabMenuEntryPrefab, TabMenuUIContent.transform).GetComponent<TabMenuEntry>();
                     entry.NameText.text = gamePlayer.name;
+                    entry.NameText.color = gamePlayer.PlayerColor;
 
                     // Crewmates can see the sheriff. Otherwise we just designate everyone as Crewmate, unless they're a dead imposter.
                     if (gamePlayer.Role.ToString() == "SHERIFF")
