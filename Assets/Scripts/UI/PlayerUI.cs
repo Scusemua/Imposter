@@ -112,11 +112,15 @@ public class PlayerUI : MonoBehaviour
 
                     if (NetworkGameManager.IsImposterRole(gamePlayer.Role.ToString()))
                     {
-                        entry.BackgroundColor = Color.red;
+                        entry.BackgroundColor = TabMenuEntry.ImposterColor;
                     }
                     else if (gamePlayer.Role.ToString() == "SHERIFF")
                     {
-                        entry.BackgroundColor = Color.blue;
+                        entry.BackgroundColor = TabMenuEntry.SheriffColor;
+                    }
+                    else
+                    {
+                        entry.BackgroundColor = TabMenuEntry.CrewmateColor;
                     }
 
                     // Since the local player is an imposter, we'll designate dead-but-unidentified players as such.
@@ -144,7 +148,7 @@ public class PlayerUI : MonoBehaviour
                     if (gamePlayer.Role.ToString() == "SHERIFF")
                     {
                         entry.RoleText.text = "Sheriff";
-                        entry.BackgroundColor = Color.blue;
+                        entry.BackgroundColor = TabMenuEntry.SheriffColor;
                     }
                     else
                     {
@@ -162,11 +166,14 @@ public class PlayerUI : MonoBehaviour
                             if (NetworkGameManager.IsImposterRole(gamePlayer.Role.ToString()))
                             {
                                 entry.RoleText.text = "Imposter";
-                                entry.BackgroundColor = Color.red;
+                                entry.BackgroundColor = TabMenuEntry.ImposterColor;
                             }
                         }
                         else
+                        {
                             entry.StatusText.text = "Alive";
+                            entry.BackgroundColor = TabMenuEntry.CrewmateColor;
+                        }
                     }
                 }
             }
