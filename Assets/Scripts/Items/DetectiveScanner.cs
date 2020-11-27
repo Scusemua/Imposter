@@ -4,14 +4,12 @@ using UnityEngine;
 using Mirror;
 using TMPro;
 
-public class DetectiveScanner : NetworkBehaviour, IUsableItem
+public class DetectiveScanner : UsableItem
 {
-    [Tooltip("The player who is currently holding the detective scanner.")]
-    public PlayerController HoldingPlayer;
     [Tooltip("The current body identified by the scanner.")]
     public Player CurrentBody;
-    [Tooltip("Indicates whether or not the scanner is on the ground.")] [SyncVar(hook = nameof(OnGroundStateChanged))]
-    public bool OnGround;
+
+    public new int Id = ItemDatabase.BodyScannerItemId;
 
     [Tooltip("This prefab is instantiated wherever the scanner points.")]
     public GameObject ScannerIndicatorPrefab;
@@ -31,8 +29,7 @@ public class DetectiveScanner : NetworkBehaviour, IUsableItem
     /// </summary>
     private float scanCooldown;
 
-    public string Name { get => "Detective Scanner"; }
-    public int ItemId { get => 0; }
+    public string ItemName { get => "Detective Scanner"; }
 
     // Start is called before the first frame update
     void Start()

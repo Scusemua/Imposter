@@ -4,7 +4,7 @@ using UnityEngine;
 using Mirror;
 using System;
 
-public class Gun : NetworkBehaviour
+public class Gun : UsableItem
 {
     #region Static Constants
     public static int MAX_PISTOL_AMMO = 175;
@@ -60,7 +60,6 @@ public class Gun : NetworkBehaviour
     public FiringMode _FiringMode = FiringMode.Automatic;
 
     [Header("Weapon Statistics")]
-    public int Id;                  // Unique identifier of the weapon.
     [Tooltip("Number of times that the player can shoot before needing to reload.")]
     public int ClipSize;            // Number of times that the player can shoot before needing to reload.
     [Tooltip("Firerate.")]
@@ -77,12 +76,10 @@ public class Gun : NetworkBehaviour
     public bool UsesHitscan;        // Uses hitscan for hit detection (as opposed to projectiles).
     [Tooltip("How much damage weapon does.")]
     public float Damage;            // How much damage weapon does.
-    [Tooltip("Name of the weapon.")]
-    public string Name;             // Name of the weapon.
     [Tooltip("How long it takes to put this gun away or take it out.")]
     public float SwapTime;          // How long it takes to put this gun away or take it out.
 
-    [SyncVar(hook = nameof(OnGroundStatusChanged))] public bool OnGround;
+    
     [Tooltip("How much ammo is in the clip of this gun.")] [HideInInspector]
     [SyncVar] public int AmmoInClip;          // How much ammo is in the clip of this gun.
     [Tooltip("Currently reloading?")] [HideInInspector]
@@ -104,11 +101,6 @@ public class Gun : NetworkBehaviour
     [Tooltip("The time, in seconds, for the shake to fade out.")]
     public float ShakeFadeOut = 0.2f;           // The time, in seconds, for the shake to fade out.
 
-    /// <summary>
-    /// The player who is holding this weapon.
-    /// </summary>
-    [HideInInspector] public PlayerController HoldingPlayer;
-
     [Header("Accuracy")]
     [Tooltip("How accurate this weapon is on a scale of 0 to 100")]
     public float Accuracy = 80.0f;
@@ -117,12 +109,6 @@ public class Gun : NetworkBehaviour
     public float AccuracyDropPerShot = 1.0f;
     [Tooltip("How quickly the accuracy recovers after each shot (value between 0 and 1)")]
     public float AccuracyRecoverRate = 0.1f;
-
-    [Header("Speed Modifiers")]
-    [Tooltip("If this is true, then you can specify an explicit speed modifier for the weapon. Otherwise it defaults to its class speed modifier.")]
-    public bool UseCustomSpeedModifier;
-    [Tooltip("Changing this value will not have an effect unless 'UseCustomSpeedModifier' is toggled (i.e., set to true).")]
-    public float SpeedModifier;
     
     [Header("Weapon Audio")]
     public AudioClip ShootSound;    // Sound that gets played when shooting.
@@ -138,12 +124,6 @@ public class Gun : NetworkBehaviour
     private float dryFireInterval = 0.3f; // How often we can play the dry fire sound effect.
 
     #region Client Functions 
-
-    public void OnGroundStatusChanged(bool _, bool _New)
-    {
-        if (_New)
-            HoldingPlayer = null;
-    }
 
     /// <summary>
     /// Check if the player is shooting, depending on the firing mode.

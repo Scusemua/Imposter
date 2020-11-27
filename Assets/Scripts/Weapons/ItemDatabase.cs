@@ -5,6 +5,16 @@ using UnityEngine;
 public class ItemDatabase : MonoBehaviour
 {
     /// <summary>
+    /// The unique item ID of the body scanner item.
+    /// </summary>
+    public static int BodyScannerItemId = 1000;
+
+    /// <summary>
+    /// Item ID's start at 1000.
+    /// </summary>
+    public static int FirstItemId = 1000;
+
+    /// <summary>
     /// List of all guns in the game.
     /// </summary>
     [SerializeField] private List<Gun> AllGuns = new List<Gun>();
@@ -20,11 +30,11 @@ public class ItemDatabase : MonoBehaviour
     [SerializeField] private List<AmmoBox> Medkits = new List<AmmoBox>();
 
     /// <summary>
-    /// List of all the items in the game. Note that items are distinct from weapons;
+    /// List of all the items in the game. This includes guns.
     /// </summary>
-    [SerializeField] private List<IUsableItem> AllItems = new List<IUsableItem>();
+    [SerializeField] private List<UsableItem> AllItems = new List<UsableItem>();
 
-    private Dictionary<int, IUsableItem> itemMap = new Dictionary<int, IUsableItem>();
+    private Dictionary<int, UsableItem> itemMap = new Dictionary<int, UsableItem>();
 
     private Dictionary<int, Gun> gunMap = new Dictionary<int, Gun>();
 
@@ -44,9 +54,9 @@ public class ItemDatabase : MonoBehaviour
     /// <summary>
     /// Return the item with the given ID.
     /// </summary>
-    public IUsableItem GetItemById(int id)
+    public UsableItem GetItemById(int id)
     {
-        IUsableItem item = null;
+        UsableItem item = null;
 
         if (itemMap.ContainsKey(id))
             item = itemMap[id];
@@ -88,7 +98,7 @@ public class ItemDatabase : MonoBehaviour
         foreach (Gun gun in AllGuns)
         gunMap[gun.Id] = gun;
 
-        foreach (IUsableItem item in AllItems)
+        foreach (UsableItem item in AllItems)
             itemMap[item.ItemId] = item;
     }
 
