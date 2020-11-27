@@ -44,14 +44,17 @@ public class PlayerUI : MonoBehaviour
     [Tooltip("The UI for identifying a dead player's body.")]
     public PlayerIdentificationUI PlayerIdentificationUI;
 
+    [Tooltip("The tab menu UI.")]
+    public GameObject TabMenuUI;
+    [Tooltip("The content portion of the tab menu UI scrollview.")]
+    public GameObject TabMenuUIContent;
+    public GameObject TabMenuEntryPrefab;
+
+    private List<TabMenuEntry> TabMenuEntries = new List<TabMenuEntry>();
+
     private List<GameObject> weaponUiEntries = new List<GameObject>();
 
     private Coroutine WeaponUiFadeRoutine;
-
-    /// <summary>
-    /// The largest SQUARED distance the player may be from an interactable to still be able to interact with it.
-    /// </summary>
-    private const float maximumIdentificationDistance = 25.0f;
 
     public GameObject RoleAnimator;
     public Text RoleAnimationText;
@@ -61,7 +64,6 @@ public class PlayerUI : MonoBehaviour
 
     private GameOptions gameOptions;
     private NetworkGameManager networkGameManager;
-    private bool canInteractWithEmergencyButton;
 
     public event Action<uint> OnPlayerVoted;
 
@@ -95,54 +97,87 @@ public class PlayerUI : MonoBehaviour
     {
         if (!player.isLocalPlayer) return;
 
-        float distToEmergencyButton = playerController.GetSquaredDistanceToEmergencyButton();
-
-        bool interactableWithinRange = false;
-        bool unidentifiedBodyWithinRange = false;
-
-        if (distToEmergencyButton <= maximumIdentificationDistance)
+        if (Input.GetKeyDown(KeyCode.Tab))
         {
-            interactableWithinRange = true;
-            canInteractWithEmergencyButton = true;
-        }
-        else
-            canInteractWithEmergencyButton = false;
+            TabMenuUI.SetActive(true);
 
-        // Calculate the distance to all unidentified, dead players. If we're close enough to 
-        // a body to interact with it, then keep track of that.
-        Player closestUnidentifiedDeadPlayer = null;
-        float closestDistanceToBody = float.PositiveInfinity;
-        foreach (Player player in networkGameManager.GamePlayers)
-        {
-            if (player.IsDead && !player.Identified)
+            // We build this menu differently depending on whether or not the local player is an Imposter of some sort.
+            if (NetworkGameManager.IsImposterRole(player.Role.ToString()))
             {
-                float distance = (player.GetComponent<Transform>().position - transform.position).sqrMagnitude;
-                if (distance < closestDistanceToBody)
+                foreach (Player gamePlayer in networkGameManager.GamePlayers)
                 {
-                    closestUnidentifiedDeadPlayer = player;
-                    closestDistanceToBody = distance;
+                    TabMenuEntry entry = Instantiate(TabMenuEntryPrefab, TabMenuUIContent.transform).GetComponent<TabMenuEntry>();
+                    entry.NameText.text = gamePlayer.name;
+                    entry.RoleText.text = gamePlayer.Role.ToString();
+
+                    if (NetworkGameManager.IsImposterRole(gamePlayer.Role.ToString()))
+                    {
+                        entry.BackgroundColor = Color.red;
+                    }
+                    else if (gamePlayer.Role.ToString() == "SHERIFF")
+                    {
+                        entry.BackgroundColor = Color.blue;
+                    }
+
+                    // Since the local player is an imposter, we'll designate dead-but-unidentified players as such.
+                    if (gamePlayer.IsDead)
+                    {
+                        if (gamePlayer.Identified)
+                            entry.StatusText.text = "Unidentified";
+                        else
+                            entry.StatusText.text = "Dead";
+                    }
+                    else
+                    {
+                        entry.StatusText.text = "Alive";
+                    }
+                }
+            }
+            else
+            {
+                foreach (Player gamePlayer in networkGameManager.GamePlayers)
+                {
+                    TabMenuEntry entry = Instantiate(TabMenuEntryPrefab, TabMenuUIContent.transform).GetComponent<TabMenuEntry>();
+                    entry.NameText.text = gamePlayer.name;
+
+                    // Crewmates can see the sheriff. Otherwise we just designate everyone as Crewmate, unless they're a dead imposter.
+                    if (gamePlayer.Role.ToString() == "SHERIFF")
+                    {
+                        entry.RoleText.text = "Sheriff";
+                        entry.BackgroundColor = Color.blue;
+                    }
+                    else
+                    {
+                        entry.RoleText.text = "Crewmate";
+                    }
+
+                    if (gamePlayer.IsDead)
+                    {
+                        // If the player is identified as dead, then we'll display that. Otherwise, display as alive.
+                        if (gamePlayer.Identified)
+                        {
+                            entry.StatusText.text = "Dead";
+
+                            // If the player is dead and they're an imposter, then we can indicate this by the color.
+                            if (NetworkGameManager.IsImposterRole(gamePlayer.Role.ToString()))
+                            {
+                                entry.RoleText.text = "Imposter";
+                                entry.BackgroundColor = Color.red;
+                            }
+                        }
+                        else
+                            entry.StatusText.text = "Alive";
+                    }
                 }
             }
         }
 
-        if (closestUnidentifiedDeadPlayer != null && closestDistanceToBody <= maximumIdentificationDistance)
+        if (Input.GetKeyUp(KeyCode.Tab))
         {
-            interactableWithinRange = true;
-            unidentifiedBodyWithinRange = true;
-        }
+            TabMenuUI.SetActive(false);
 
-        if (interactableWithinRange)
-            InteractableButton.enabled = true;
-        else
-            InteractableButton.enabled = false;
-
-        if (Input.GetKey(KeyCode.E) && interactableWithinRange)
-        {
-            // If the player could both interact with the button AND identify the body, then we'll just have them interact with the body.
-            if (unidentifiedBodyWithinRange)
-                closestUnidentifiedDeadPlayer.CmdIdentify(player.netId);
-            else if (canInteractWithEmergencyButton)
-                OnInteractWithEmergencyButton();
+            foreach (TabMenuEntry entry in TabMenuEntries)
+                Destroy(entry.gameObject);
         }
     }
 
@@ -156,8 +191,7 @@ public class PlayerUI : MonoBehaviour
     {
         if (!player.isLocalPlayer) return;
 
-        if (canInteractWithEmergencyButton)
-            OnInteractWithEmergencyButton();
+        playerController.InteractableInput();
     }
 
     /// <summary>
@@ -170,24 +204,6 @@ public class PlayerUI : MonoBehaviour
 
         // Go back to the room.
         networkGameManager.ServerChangeScene(networkGameManager.RoomScene);
-    }
-
-    
-    public void OnInteractWithBody()
-    {
-        if (!player.isLocalPlayer) return;
-
-        Debug.Log("Player interacted with body.");
-    }
-
-    
-    public void OnInteractWithEmergencyButton()
-    {
-        if (!player.isLocalPlayer) return;
-
-        Debug.Log("Player interacted with emergency button.");
-
-        player.CmdStartVote();
     }
 
     #endregion
@@ -333,6 +349,7 @@ public class PlayerUI : MonoBehaviour
         this.player = player;
         playerController = player.GetComponent<PlayerController>();
         PlayerImage.color = new Color(player.PlayerColor.r, player.PlayerColor.g, player.PlayerColor.b, PlayerImageAlpha);
+        InteractableButton.enabled = true; // Just make sure this is enabled for now.
 
         SetNickname(player.Nickname);
         RegisterConsoleCommands();

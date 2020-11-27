@@ -147,15 +147,20 @@ public class Player : NetworkBehaviour
     }
 
     [Command(ignoreAuthority = true)]
-    public void CmdIdentify(uint identifierId)
+    public void CmdIdentify(uint inspectorId)
     {
         if (!Identified)
         {
             Identified = true;
 
-            Player identifier = NetworkGameManager.NetIdMap[identifierId];
-            identifier.TargetShowIdentificationUI(netId);
+            // TODO: Do something now that they're identified?
         }
+        else
+        {
+            Player inspector = NetworkGameManager.NetIdMap[inspectorId];
+            inspector.TargetShowIdentificationUI(netId);
+        }
+
     }
 
     #endregion

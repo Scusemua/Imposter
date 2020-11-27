@@ -59,29 +59,9 @@ public class PlayerController : NetworkBehaviour
     };
 
     /// <summary>
-    /// The player's primary weapons.
+    /// The largest SQUARED distance the player may be from an interactable to still be able to interact with it.
     /// </summary>
-    //[SerializeField] private SyncList<InventoryGun> PrimaryInventory = new SyncList<InventoryGun>();
-
-    /// <summary>
-    /// The player's secondary weapons.
-    /// </summary>
-    //[SerializeField] private SyncList<InventoryGun> SecondaryInventory = new SyncList<InventoryGun>();
-
-    /// <summary>
-    /// The player's melee weapons.
-    /// </summary>
-    //[SerializeField] private SyncList<InventoryGun> MeleeInventory = new SyncList<InventoryGun>();
-
-    /// <summary>
-    /// The player's explosive weapons.
-    /// </summary>
-    //[SerializeField] private SyncList<InventoryGun> ExplosiveInventory = new SyncList<InventoryGun>();
-
-    /// <summary>
-    /// The player's grenades.
-    /// </summary>
-    //[SerializeField] private SyncList<InventoryGun> GrenadeInventory = new SyncList<InventoryGun>();
+    private const float maximumIdentificationDistance = 25.0f;
 
     private ItemDatabase itemDatabase;
     
@@ -97,8 +77,10 @@ public class PlayerController : NetworkBehaviour
     private float lastX;
     private float lastY;
 
-    // Reference to the reload coroutine so we can cancel the reload when necessary.
-    private Coroutine reloadCoroutine;
+    private NetworkGameManager NetworkGameManager
+    {
+        get => NetworkManager.singleton as NetworkGameManager;
+    }
 
     private GameOptions GameOptions { get => GameOptions.singleton; }
 
@@ -120,6 +102,11 @@ public class PlayerController : NetworkBehaviour
         if (Input.GetKey(KeyCode.Tilde) && !Player.IsDead)
         {
             MovementEnabled = !MovementEnabled;
+        }
+
+        if (Input.GetKeyDown(KeyCode.E))
+        {
+            InteractableInput();
         }
 
         if (Input.GetKey(KeyCode.B) && !Player.IsDead)
@@ -154,6 +141,64 @@ public class PlayerController : NetworkBehaviour
             Player.PlayerUI.ShowWeaponUI(gunNameLists[Gun.GunType.PRIMARY], 
                 gunNameLists[Gun.GunType.SECONDARY], gunNameLists[Gun.GunType.EXPLOSIVE]);
             CmdTryCycleInventory(2);
+        }
+    }
+
+    /// <summary>
+    /// Check for input pertaining to interactables.
+    /// </summary>
+    public void InteractableInput()
+    {
+        if (!isLocalPlayer) return;
+
+        float distToEmergencyButton = GetSquaredDistanceToEmergencyButton();
+
+        bool interactableWithinRange = false;
+        bool canInteractWithEmergencyButton;
+        bool bodyWithinRange = false;
+
+        if (distToEmergencyButton <= maximumIdentificationDistance)
+        {
+            interactableWithinRange = true;
+            canInteractWithEmergencyButton = true;
+        }
+        else
+            canInteractWithEmergencyButton = false;
+
+        // Calculate the distance to all dead players. If we're close enough to a body to interact with it, then keep track of that.
+        Player closestDeadPlayer = null;
+        float closestDistanceToBody = float.PositiveInfinity;
+        foreach (Player player in NetworkGameManager.GamePlayers)
+        {
+            if (player.IsDead && !player.Identified)
+            {
+                float distance = (player.GetComponent<Transform>().position - transform.position).sqrMagnitude;
+                if (distance < closestDistanceToBody)
+                {
+                    closestDeadPlayer = player;
+                    closestDistanceToBody = distance;
+                }
+            }
+        }
+
+        if (closestDeadPlayer != null && closestDistanceToBody <= maximumIdentificationDistance)
+        {
+            interactableWithinRange = true;
+            bodyWithinRange = true;
+        }
+
+        //if (interactableWithinRange)
+        //    Player.PlayerUI.InteractableButton.enabled = true;
+        //else
+        //    Player.PlayerUI.InteractableButton.enabled = false;
+
+        if (Input.GetKey(KeyCode.E) && interactableWithinRange)
+        {
+            // If the player could both interact with the button AND identify the body, then we'll just have them interact with the body.
+            if (bodyWithinRange)
+                closestDeadPlayer.CmdIdentify(Player.netId);
+            else if (canInteractWithEmergencyButton)
+                Player.CmdStartVote();
         }
     }
 
@@ -445,6 +490,10 @@ public class PlayerController : NetworkBehaviour
     private void CmdTryReload()
     {
         if (CurrentWeaponID < 0 || CurrentWeapon == null || CurrentWeapon.AmmoInClip == CurrentWeapon.ClipSize)
+            return;
+
+        // Do not try to reload if we don't have any reserve ammo of the correct type.
+        if (AmmoCounts[CurrentWeapon.GunClass] <= 0)
             return;
 
         Debug.Log("Reloading.");
