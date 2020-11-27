@@ -779,8 +779,6 @@ public class PlayerController : NetworkBehaviour
             AudioSource.PlayOneShot(ImpactSound);
 
         float _raycastDistance = 10f;
-        Vector3 dir = new Vector3(0, -1, 0);
-        //Debug.DrawRay(Player.transform.position, dir * _raycastDistance, Color.green);
 
         int mask = 1 << 13;    // Ground on layer 10 in the inspector
 

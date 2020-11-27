@@ -39,6 +39,8 @@ public class PlayerUI : MonoBehaviour
     public GameObject ExplosiveInventoryPanel;
     public GameObject WeaponUiEntryPrefab;
     public Crosshair PlayerCrosshair;
+    [Tooltip("The UI for the detective scanner item.")]
+    public DetectiveScannerUI DetectiveScannerUI;
 
     private List<GameObject> weaponUiEntries = new List<GameObject>();
 

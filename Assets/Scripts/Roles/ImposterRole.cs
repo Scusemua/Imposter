@@ -53,9 +53,9 @@ public class ImposterRole : Role
         {
             Debug.Log("Closest player is " + KillTarget.Nickname + ".");
 
-            this.transform.SetPositionAndRotation(KillTarget.transform.position, this.transform.rotation);
+            transform.SetPositionAndRotation(KillTarget.transform.position, this.transform.rotation);
 
-            KillTarget.CmdKill(this.player.Nickname, false);
+            KillTarget.CmdKill(player.netId);
 
             PrimaryActionLastUse = PrimaryActionCooldown;
             GameObject primaryActionButtonGameObject = playerUI.PrimaryActionButtonGameObject;

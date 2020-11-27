@@ -36,16 +36,20 @@ public class Player : NetworkBehaviour
     [SyncVar(hook = nameof(OnPlayerColorChanged))]
     public Color PlayerColor;
 
+    /// <summary>
+    /// The netId of the player who killed this player.
+    /// </summary>
+    [HideInInspector] [SyncVar] public uint KillerId;
+
     public IRole Role { get; set; }
 
+    [SyncVar]
+    private bool _isDead = false;
     public bool IsDead
     {
         get { return _isDead; }
         protected set { _isDead = value; }
     }
-
-    [SyncVar(hook = nameof(OnAliveStatusChanged))]
-    private bool _isDead = false;
 
     private static string[] default_nicknames = { "Sally", "Betty", "Charlie", "Anne", "Bob" };
 
@@ -63,15 +67,6 @@ public class Player : NetworkBehaviour
     }
 
     #region SyncVar Hooks
-    void OnAliveStatusChanged(bool _Old, bool _New)
-    {
-        if (IsDead)
-        {
-            CmdKill("Someone", false);
-            Debug.Log("Player " + Nickname + " is now dead.");
-            GetComponent<PlayerController>().Die();
-        }
-    }
 
     void OnNameChanged(string _Old, string _New)
     {
@@ -115,16 +110,18 @@ public class Player : NetworkBehaviour
     }
 
     [Command(ignoreAuthority = true)]
-    public void CmdKill(string killerNickname, bool serverKilled)
+    public void CmdKill(uint killerId)
     {
-        Debug.Log("The server has been informed that player " + Nickname + " has been killed by " + killerNickname);
-        RpcKill(killerNickname, serverKilled);
+        _isDead = true;
+        KillerId = killerId;
+        RpcKill();
     }
 
     [Command]
     public void CmdSuicide()
     {
-        RpcKill("SUICIDE", false);
+        _isDead = true;
+        RpcKill();
     }
 
     [Command(ignoreAuthority = true)]
@@ -213,14 +210,8 @@ public class Player : NetworkBehaviour
     }
 
     [ClientRpc]
-    public void RpcKill(string killerNickname, bool serverKilled)
+    public void RpcKill()
     {
-        if (serverKilled)
-            Debug.Log("The server has killed player " + this.Nickname);
-        else
-            Debug.Log("Player " + Nickname + " has been killed by player " + killerNickname + ".");
-
-        _isDead = true;
         GetComponent<PlayerController>().Die();
     }
 
