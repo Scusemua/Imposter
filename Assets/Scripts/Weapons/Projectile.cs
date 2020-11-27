@@ -50,6 +50,11 @@ namespace Imposters
         public bool DestroyOnHit = false;
 
         /// <summary>
+        /// The netId of the player who created this projectile via shooting.
+        /// </summary>
+        public uint ShooterId;
+
+        /// <summary>
         /// We only do direct hit damage the first time this hits something. That way, running  
         /// into a stationary grenade that hasn't gone off yet won't do damage to the player.
         /// </summary>
@@ -111,7 +116,7 @@ namespace Imposters
                 if (DamageType == DamageType.DirectHit)
                 {
                     if (col.collider.gameObject.CompareTag("Player"))
-                        col.collider.GetComponent<Player>().CmdDoDamage(Damage);
+                        col.collider.GetComponent<Player>().CmdDoDamage(Damage, ShooterId);
                 }
 
                 firstHit = true;

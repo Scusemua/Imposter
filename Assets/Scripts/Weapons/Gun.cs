@@ -290,7 +290,7 @@ public class Gun : NetworkBehaviour
             // Did we hit another player?
             if (hit.collider.CompareTag("Player") && hit.collider.GetComponent<NetworkIdentity>().netId != GetComponent<NetworkIdentity>().netId)
             {
-                hit.collider.GetComponent<Player>().Damage(Damage);
+                hit.collider.GetComponent<Player>().Damage(Damage, HoldingPlayer.Player.netId);
                 shooter.RpcGunshotHitEntity(hit.point, hit.normal);
             }
             // Did we hit an enemy? (Used for debugging)

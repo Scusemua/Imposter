@@ -41,10 +41,17 @@ public class PlayerUI : MonoBehaviour
     public Crosshair PlayerCrosshair;
     [Tooltip("The UI for the detective scanner item.")]
     public DetectiveScannerUI DetectiveScannerUI;
+    [Tooltip("The UI for identifying a dead player's body.")]
+    public PlayerIdentificationUI PlayerIdentificationUI;
 
     private List<GameObject> weaponUiEntries = new List<GameObject>();
 
     private Coroutine WeaponUiFadeRoutine;
+
+    /// <summary>
+    /// The largest SQUARED distance the player may be from an interactable to still be able to interact with it.
+    /// </summary>
+    private const float maximumIdentificationDistance = 25.0f;
 
     public GameObject RoleAnimator;
     public Text RoleAnimationText;
@@ -91,8 +98,9 @@ public class PlayerUI : MonoBehaviour
         float distToEmergencyButton = playerController.GetSquaredDistanceToEmergencyButton();
 
         bool interactableWithinRange = false;
+        bool unidentifiedBodyWithinRange = false;
 
-        if (distToEmergencyButton <= 25)
+        if (distToEmergencyButton <= maximumIdentificationDistance)
         {
             interactableWithinRange = true;
             canInteractWithEmergencyButton = true;
@@ -100,13 +108,42 @@ public class PlayerUI : MonoBehaviour
         else
             canInteractWithEmergencyButton = false;
 
+        // Calculate the distance to all unidentified, dead players. If we're close enough to 
+        // a body to interact with it, then keep track of that.
+        Player closestUnidentifiedDeadPlayer = null;
+        float closestDistanceToBody = float.PositiveInfinity;
+        foreach (Player player in networkGameManager.GamePlayers)
+        {
+            if (player.IsDead && !player.Identified)
+            {
+                float distance = (player.GetComponent<Transform>().position - transform.position).sqrMagnitude;
+                if (distance < closestDistanceToBody)
+                {
+                    closestUnidentifiedDeadPlayer = player;
+                    closestDistanceToBody = distance;
+                }
+            }
+        }
+
+        if (closestUnidentifiedDeadPlayer != null && closestDistanceToBody <= maximumIdentificationDistance)
+        {
+            interactableWithinRange = true;
+            unidentifiedBodyWithinRange = true;
+        }
+
         if (interactableWithinRange)
             InteractableButton.enabled = true;
         else
             InteractableButton.enabled = false;
 
-        if (Input.GetKey(KeyCode.E) && interactableWithinRange && canInteractWithEmergencyButton)
-            OnInteractWithEmergencyButton();
+        if (Input.GetKey(KeyCode.E) && interactableWithinRange)
+        {
+            // If the player could both interact with the button AND identify the body, then we'll just have them interact with the body.
+            if (unidentifiedBodyWithinRange)
+                closestUnidentifiedDeadPlayer.CmdIdentify(player.netId);
+            else if (canInteractWithEmergencyButton)
+                OnInteractWithEmergencyButton();
+        }
     }
 
     #region UI Handlers 
@@ -157,7 +194,6 @@ public class PlayerUI : MonoBehaviour
 
     #region Display UI
 
-    
     public void DisplayEndOfGameUI(bool crewmateVictory)
     {
         if (crewmateVictory)

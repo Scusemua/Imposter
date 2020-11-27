@@ -40,6 +40,7 @@ public class Player : NetworkBehaviour
     /// The netId of the player who killed this player.
     /// </summary>
     [HideInInspector] [SyncVar] public uint KillerId;
+    [HideInInspector] public CauseOfDeath CauseOfDeath;
 
     public IRole Role { get; set; }
 
@@ -50,6 +51,12 @@ public class Player : NetworkBehaviour
         get { return _isDead; }
         protected set { _isDead = value; }
     }
+
+    /// <summary>
+    /// Marks whether or not the player has been identified.
+    /// </summary>
+    [SyncVar]
+    public bool Identified = false;
 
     private static string[] default_nicknames = { "Sally", "Betty", "Charlie", "Anne", "Bob" };
 
@@ -112,9 +119,8 @@ public class Player : NetworkBehaviour
     [Command(ignoreAuthority = true)]
     public void CmdKill(uint killerId)
     {
-        _isDead = true;
-        KillerId = killerId;
-        RpcKill();
+        this.KillerId = killerId;
+        Die();
     }
 
     [Command]
@@ -125,9 +131,9 @@ public class Player : NetworkBehaviour
     }
 
     [Command(ignoreAuthority = true)]
-    public void CmdDoDamage(float amount)
+    public void CmdDoDamage(float amount, uint damageSrcPlayerId)
     {
-        Damage(amount);
+        Damage(amount, damageSrcPlayerId);
     }
 
     [Command(ignoreAuthority = true)]
@@ -138,6 +144,18 @@ public class Player : NetworkBehaviour
 
         if (Health <= 0)
             Die();
+    }
+
+    [Command(ignoreAuthority = true)]
+    public void CmdIdentify(uint identifierId)
+    {
+        if (!Identified)
+        {
+            Identified = true;
+
+            Player identifier = NetworkGameManager.NetIdMap[identifierId];
+            identifier.TargetShowIdentificationUI(netId);
+        }
     }
 
     #endregion
@@ -290,6 +308,13 @@ public class Player : NetworkBehaviour
     }
 
     [TargetRpc]
+    public void TargetShowIdentificationUI(uint targetId)
+    {
+        Player target = NetworkGameManager.NetIdMap[targetId];
+        PlayerUI.PlayerIdentificationUI.DisplayUI(target);
+    }
+
+    [TargetRpc]
     public void TargetDoCameraShake(bool explosion)
     {
         //ShakeParameters parameters = new ShakeParameters
@@ -311,13 +336,14 @@ public class Player : NetworkBehaviour
     #region Server Functions 
 
     [Server]
-    public void Damage(float amount)
+    public void Damage(float amount, uint damageSrcPlayerId)
     {
         Health -= amount;
         TargetGotDamaged();
 
         if (Health <= 0)
         {
+            KillerId = damageSrcPlayerId;
             Die();
         }
     }
@@ -325,8 +351,13 @@ public class Player : NetworkBehaviour
     [Server]
     public void Die()
     {
+        if (KillerId == netId)
+            CauseOfDeath = CauseOfDeath.Suicide;
+        else 
+            CauseOfDeath = CauseOfDeath.Unknown;
         _isDead = true;
         GetComponent<PlayerController>().Die();
+        RpcKill();
     }
 
     #endregion

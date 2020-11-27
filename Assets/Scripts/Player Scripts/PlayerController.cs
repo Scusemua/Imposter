@@ -133,7 +133,7 @@ public class PlayerController : NetworkBehaviour
         else if (Input.GetKeyDown(KeyCode.V))
             DropButton();
         else if (Input.GetKeyDown(KeyCode.H))
-            CmdTakeDamage(10.0f);
+            CmdTakeDamage(10.0f, Player.netId);
         else if (Input.GetKeyDown(KeyCode.Alpha1))
         {
             Dictionary<Gun.GunType, IEnumerable<string>> gunNameLists = inventory.GetGunsNamesOrganized();
@@ -353,9 +353,9 @@ public class PlayerController : NetworkBehaviour
     }
 
     [Command]
-    public void CmdTakeDamage(float damage)
+    public void CmdTakeDamage(float damage, uint damageSrcPlayerId)
     {
-        Player.Damage(damage);
+        Player.Damage(damage, damageSrcPlayerId);
     }
 
     [Command]

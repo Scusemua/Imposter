@@ -35,6 +35,11 @@ namespace Imposters
         [Tooltip("The time, in seconds, for the shake to fade out.")]
         public float ShakeFadeOut = 0.5f;           // The time, in seconds, for the shake to fade out.
 
+        /// <summary>
+        /// The netId of the player who ultimately resulted in this explosion happening.
+        /// </summary>
+        public uint SourceId;
+
         // Start is called before the first frame update
         public override void OnStartClient()
         {
@@ -60,7 +65,7 @@ namespace Imposters
                         float damageAmount = Damage * (1 / Vector3.Distance(transform.position, col.transform.position));
 
                         // The Easy Weapons health system
-                        col.GetComponent<Player>().Damage(damageAmount);
+                        col.GetComponent<Player>().Damage(damageAmount, SourceId);
 
                         if (ShakeCamera)
                         {
