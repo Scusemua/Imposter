@@ -50,7 +50,7 @@ public class PlayerUI : MonoBehaviour
     public GameObject TabMenuUIContent;
     public GameObject TabMenuEntryPrefab;
 
-    private List<TabMenuEntry> TabMenuEntries = new List<TabMenuEntry>();
+    private List<TabMenuEntry> tabMenuEntries = new List<TabMenuEntry>();
 
     private List<GameObject> weaponUiEntries = new List<GameObject>();
 
@@ -107,6 +107,7 @@ public class PlayerUI : MonoBehaviour
                 foreach (Player gamePlayer in networkGameManager.GamePlayers)
                 {
                     TabMenuEntry entry = Instantiate(TabMenuEntryPrefab, TabMenuUIContent.transform).GetComponent<TabMenuEntry>();
+                    tabMenuEntries.Add(entry);
                     entry.NameText.text = gamePlayer.name;
                     entry.NameText.color = gamePlayer.PlayerColor;
                     entry.RoleText.text = gamePlayer.Role.ToString();
@@ -143,6 +144,7 @@ public class PlayerUI : MonoBehaviour
                 foreach (Player gamePlayer in networkGameManager.GamePlayers)
                 {
                     TabMenuEntry entry = Instantiate(TabMenuEntryPrefab, TabMenuUIContent.transform).GetComponent<TabMenuEntry>();
+                    tabMenuEntries.Add(entry);
                     entry.NameText.text = gamePlayer.name;
                     entry.NameText.color = gamePlayer.PlayerColor;
 
@@ -185,8 +187,10 @@ public class PlayerUI : MonoBehaviour
         {
             TabMenuUI.SetActive(false);
 
-            foreach (TabMenuEntry entry in TabMenuEntries)
+            foreach (TabMenuEntry entry in tabMenuEntries)
                 Destroy(entry.gameObject);
+
+            tabMenuEntries.Clear();
         }
     }
 

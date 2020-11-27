@@ -17,15 +17,15 @@ public class CrewmateRole : Role
 
     public override bool PrimaryActionReady { get => throw new System.NotImplementedException(); set => throw new System.NotImplementedException(); }
 
-    private GameOptions gameOptions;
+    protected GameOptions gameOptions;
 
 
-    void Start()
+    protected void Start()
     {
         gameOptions = GameOptions.singleton;
     }
 
-    void Update()
+    protected void Update()
     {
 
     }

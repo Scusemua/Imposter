@@ -40,6 +40,11 @@ public class PlayerInventory : NetworkBehaviour
     /// </summary>
     [SerializeField] public SyncList<int> GunInventory = new SyncList<int>();
 
+    /// <summary>
+    /// The player's items (e.g., C4, body scanner, etc.).
+    /// </summary>
+    [SerializeField] public SyncList<int> ItemInventory = new SyncList<int>();
+
     private ItemDatabase itemDatabase;
     private ItemDatabase ItemDatabase
     {

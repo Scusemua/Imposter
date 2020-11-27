@@ -154,8 +154,11 @@ public class NetworkGameManager : NetworkRoomManager
         // First, get the constraints on roles.
         int numImposters = gameOptions.NumberOfImposters;
         int maxAssassins = gameOptions.MaxAssassins;
+        int numAssassins = 0;
         int maxSheriffs = gameOptions.MaxSheriffs;
+        int numSherrifs = 0;
         int maxSaboteurs = gameOptions.MaxSaboteurs;
+        int numSaboteurs = 0;
 
         bool sheriffsEnabled = gameOptions.SheriffEnabled;
         bool saboteurEnabled = gameOptions.SaboteurEnabled;
@@ -165,6 +168,9 @@ public class NetworkGameManager : NetworkRoomManager
         // Then, assign however many specialized roles as specified by the game options.
         List<Player> imposters = new List<Player>();
         List<Player> crewmates = new List<Player>();
+        List<Player> assassins = new List<Player>();
+        List<Player> saboteurs = new List<Player>();
+        List<Player> sheriffs = new List<Player>();
 
         List<Player> allPlayers = new List<Player>(GamePlayers);
 
@@ -184,18 +190,40 @@ public class NetworkGameManager : NetworkRoomManager
 
         // Add the remaining players to the crewmates list.
         for (; currentPlayerIndex < shuffledPlayers.Length; currentPlayerIndex++)
-            crewmates.Add(shuffledPlayers[currentPlayerIndex]);
+        {
+            if (sheriffsEnabled && numSherrifs < maxSheriffs)
+            {
+                sheriffs.Add(shuffledPlayers[currentPlayerIndex]);
+                numSherrifs++;
+            }
+            else
+            {
+                crewmates.Add(shuffledPlayers[currentPlayerIndex]);
+            }
+        }
+
+        if (assassins.Count > 0)
+            foreach (Player p in imposters)
+                p.RpcAssignRole("assassin");
+
+        if (saboteurs.Count > 0)
+            foreach (Player p in imposters)
+                p.RpcAssignRole("saboteur");
 
         if (imposters.Count > 0)
-            foreach (Player p in imposters)
+            foreach (Player p in crewmates)
                 p.RpcAssignRole("imposter");
+
+        if (sheriffs.Count > 0)
+            foreach (Player p in crewmates)
+                p.RpcAssignRole("sheriff");
 
         if (crewmates.Count > 0)
             foreach (Player p in crewmates)
                 p.RpcAssignRole("crewmate");
 
-        numCrewmatesAlive = crewmates.Count;
-        numImpostersAlive = imposters.Count;
+        numCrewmatesAlive = crewmates.Count + sheriffs.Count;
+        numImpostersAlive = imposters.Count + assassins.Count + saboteurs.Count;
 
         rolesAssigned = true;
 

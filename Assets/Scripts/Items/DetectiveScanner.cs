@@ -4,7 +4,7 @@ using UnityEngine;
 using Mirror;
 using TMPro;
 
-public class DetectiveScanner : NetworkBehaviour
+public class DetectiveScanner : NetworkBehaviour, IUsableItem
 {
     [Tooltip("The player who is currently holding the detective scanner.")]
     public PlayerController HoldingPlayer;
@@ -30,6 +30,9 @@ public class DetectiveScanner : NetworkBehaviour
     /// How long until this can be scanned again.
     /// </summary>
     private float scanCooldown;
+
+    public string Name { get => "Detective Scanner"; }
+    public int ItemId { get => 0; }
 
     // Start is called before the first frame update
     void Start()
