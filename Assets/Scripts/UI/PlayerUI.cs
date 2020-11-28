@@ -98,90 +98,7 @@ public class PlayerUI : MonoBehaviour
         if (!player.isLocalPlayer) return;
 
         if (Input.GetKeyDown(KeyCode.Tab))
-        {
-            TabMenuUI.SetActive(true);
-
-            // We build this menu differently depending on whether or not the local player is an Imposter of some sort.
-            if (NetworkGameManager.IsImposterRole(player.Role.ToString()))
-            {
-                foreach (Player gamePlayer in networkGameManager.GamePlayers)
-                {
-                    TabMenuEntry entry = Instantiate(TabMenuEntryPrefab, TabMenuUIContent.transform).GetComponent<TabMenuEntry>();
-                    tabMenuEntries.Add(entry);
-                    entry.NameText.text = gamePlayer.name;
-                    entry.NameText.color = gamePlayer.PlayerColor;
-                    entry.RoleText.text = gamePlayer.Role.ToString();
-
-                    if (NetworkGameManager.IsImposterRole(gamePlayer.Role.ToString()))
-                    {
-                        entry.BackgroundColor = TabMenuEntry.ImposterColor;
-                    }
-                    else if (gamePlayer.Role.ToString() == "SHERIFF")
-                    {
-                        entry.BackgroundColor = TabMenuEntry.SheriffColor;
-                    }
-                    else
-                    {
-                        entry.BackgroundColor = TabMenuEntry.CrewmateColor;
-                    }
-
-                    // Since the local player is an imposter, we'll designate dead-but-unidentified players as such.
-                    if (gamePlayer.IsDead)
-                    {
-                        if (gamePlayer.Identified)
-                            entry.StatusText.text = "Unidentified";
-                        else
-                            entry.StatusText.text = "Dead";
-                    }
-                    else
-                    {
-                        entry.StatusText.text = "Alive";
-                    }
-                }
-            }
-            else
-            {
-                foreach (Player gamePlayer in networkGameManager.GamePlayers)
-                {
-                    TabMenuEntry entry = Instantiate(TabMenuEntryPrefab, TabMenuUIContent.transform).GetComponent<TabMenuEntry>();
-                    tabMenuEntries.Add(entry);
-                    entry.NameText.text = gamePlayer.name;
-                    entry.NameText.color = gamePlayer.PlayerColor;
-
-                    // Crewmates can see the sheriff. Otherwise we just designate everyone as Crewmate, unless they're a dead imposter.
-                    if (gamePlayer.Role.ToString() == "SHERIFF")
-                    {
-                        entry.RoleText.text = "Sheriff";
-                        entry.BackgroundColor = TabMenuEntry.SheriffColor;
-                    }
-                    else
-                    {
-                        entry.RoleText.text = "Crewmate";
-                    }
-
-                    if (gamePlayer.IsDead)
-                    {
-                        // If the player is identified as dead, then we'll display that. Otherwise, display as alive.
-                        if (gamePlayer.Identified)
-                        {
-                            entry.StatusText.text = "Dead";
-
-                            // If the player is dead and they're an imposter, then we can indicate this by the color.
-                            if (NetworkGameManager.IsImposterRole(gamePlayer.Role.ToString()))
-                            {
-                                entry.RoleText.text = "Imposter";
-                                entry.BackgroundColor = TabMenuEntry.ImposterColor;
-                            }
-                        }
-                        else
-                        {
-                            entry.StatusText.text = "Alive";
-                            entry.BackgroundColor = TabMenuEntry.CrewmateColor;
-                        }
-                    }
-                }
-            }
-        }
+            CreateTabMenu();
 
         if (Input.GetKeyUp(KeyCode.Tab))
         {
@@ -196,6 +113,104 @@ public class PlayerUI : MonoBehaviour
 
     #region UI Handlers 
 
+    /// <summary>
+    /// Create and setup the tab menu.
+    /// </summary>
+    public void CreateTabMenu()
+    {
+        TabMenuUI.SetActive(true);
+
+        // We build this menu differently depending on whether or not the local player is an Imposter of some sort.
+        if (NetworkGameManager.IsImposterRole(player.Role.ToString()))
+        {
+            // Imposter setup.
+            foreach (Player gamePlayer in networkGameManager.GamePlayers)
+            {
+                TabMenuEntry entry = Instantiate(TabMenuEntryPrefab, TabMenuUIContent.transform).GetComponent<TabMenuEntry>();
+                tabMenuEntries.Add(entry);
+                entry.NameText.text = gamePlayer.name;
+                entry.NameText.color = gamePlayer.PlayerColor;
+                entry.RoleText.text = gamePlayer.Role.ToString();
+
+                if (NetworkGameManager.IsImposterRole(gamePlayer.Role.ToString()))
+                {
+                    entry.BackgroundColor = TabMenuEntry.ImposterColor;
+                }
+                else if (gamePlayer.Role.ToString() == "SHERIFF")
+                {
+                    entry.BackgroundColor = TabMenuEntry.SheriffColor;
+                }
+                else
+                {
+                    entry.BackgroundColor = TabMenuEntry.CrewmateColor;
+                }
+
+                // Since the local player is an imposter, we'll designate dead-but-unidentified players as such.
+                if (gamePlayer.IsDead)
+                {
+                    if (gamePlayer.Identified)
+                        entry.StatusText.text = "Unidentified";
+                    else
+                        entry.StatusText.text = "Dead";
+                }
+                else
+                {
+                    entry.StatusText.text = "Alive";
+                }
+            }
+        }
+        else
+        {
+            // Crewmate setup.
+            foreach (Player gamePlayer in networkGameManager.GamePlayers)
+            {
+                TabMenuEntry entry = Instantiate(TabMenuEntryPrefab, TabMenuUIContent.transform).GetComponent<TabMenuEntry>();
+                tabMenuEntries.Add(entry);
+                entry.NameText.text = gamePlayer.name;
+                entry.NameText.color = gamePlayer.PlayerColor;
+
+                // Crewmates can see the sheriff. Otherwise we just designate everyone as Crewmate, unless they're a dead imposter.
+                if (gamePlayer.Role.ToString() == "SHERIFF")
+                {
+                    entry.RoleText.text = "Sheriff";
+                    entry.BackgroundColor = TabMenuEntry.SheriffColor;
+                }
+                else
+                {
+                    entry.RoleText.text = "Crewmate";
+                }
+
+                if (gamePlayer.IsDead)
+                {
+                    // If the player for which we're creating an entry is identified as dead, then we'll display that. 
+                    // Likewise, if WE are dead, then we'll show any other dead players as dead. But if we're alive,
+                    // then we'll only show players as dead if they've been identified as such.
+                    if (gamePlayer.Identified)
+                    {
+                        entry.StatusText.text = "Dead";
+
+                        // If the player is dead and they're an imposter, then we can indicate this by the color.
+                        if (NetworkGameManager.IsImposterRole(gamePlayer.Role.ToString()))
+                        {
+                            entry.RoleText.text = "Imposter";
+                            entry.BackgroundColor = TabMenuEntry.ImposterColor;
+                        }
+                    }
+                    // If we're also dead, then we'll show them as unidentified, just as an imposter would see.
+                    else if (player.IsDead)
+                    {
+                        entry.StatusText.text = "Unidentified";
+                        entry.BackgroundColor = TabMenuEntry.CrewmateColor;
+                    }
+                    else
+                    {
+                        entry.StatusText.text = "Alive";
+                        entry.BackgroundColor = TabMenuEntry.CrewmateColor;
+                    }
+                }
+            }
+        }
+    }
     
     /// <summary>
     /// This function corresponds to the generic Inspect/Interact/Use button on the player's UI overlay.

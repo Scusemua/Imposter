@@ -8,6 +8,9 @@ using System;
 public class PlayerController : NetworkBehaviour
 {
     public Player Player;
+    [Tooltip("This is displayed to the player and any other dead players once this player has died.")]
+    public GameObject DeadPlayerBody;
+    public GameObject LivingPlayerBody;
     private Rigidbody rigidbody;
     private PlayerInventory inventory;
 
@@ -32,7 +35,8 @@ public class PlayerController : NetworkBehaviour
     public GameObject CameraPrefab;
     public GameObject CameraContainer;
     public Camera Camera;
-    public Animator Animator;
+    public Animator AliveAnimator;
+    public Animator DeadAnimator;
 
     [Header("Game-Related")]
     public GameObject EmergencyButton;
@@ -100,55 +104,61 @@ public class PlayerController : NetworkBehaviour
         if (!isLocalPlayer) return;
 
         // Disable movement when typing into console.
-        if (Input.GetKey(KeyCode.Tilde) && !Player.IsDead)
+        if (Input.GetKey(KeyCode.Tilde))
         {
             MovementEnabled = !MovementEnabled;
+            print("MovementEnabled = " + MovementEnabled.ToString());
         }
 
-        if (Input.GetKeyDown(KeyCode.E))
+        // Everything in here can only be performed when the player is alive.
+        if (!Player.IsDead)
         {
-            InteractableInput();
-        }
 
-        if (Input.GetKey(KeyCode.B) && !Player.IsDead)
-            Player.CmdSuicide();
+            if (Input.GetKeyDown(KeyCode.E))
+            {
+                InteractableInput();
+            }
 
-        if (CurrentItem != null && CurrentItem is Gun && (CurrentItem as Gun).DoShootTest())
-            ShootWeapon();
+            if (Input.GetKey(KeyCode.B))
+                Player.CmdSuicide();
 
-        if (Input.GetKeyDown(KeyCode.R))
-            ReloadButton();
-        else if (Input.GetKeyDown(KeyCode.V))
-            DropButton();
-        else if (Input.GetKeyDown(KeyCode.H))
-            CmdTakeDamage(10.0f, Player.netId);
-        else if (Input.GetKeyDown(KeyCode.Alpha1))
-        {
-            Dictionary<Gun.GunType, IEnumerable<string>> gunNameLists = inventory.GetGunNamesOrganized();
-            Player.PlayerUI.ShowWeaponUI(gunNameLists[Gun.GunType.PRIMARY], 
-                gunNameLists[Gun.GunType.SECONDARY], gunNameLists[Gun.GunType.EXPLOSIVE]);
-            CmdTryCycleInventory(0);
-        }
-        else if (Input.GetKeyDown(KeyCode.Alpha2))
-        {
-            Dictionary<Gun.GunType, IEnumerable<string>> gunNameLists = inventory.GetGunNamesOrganized();
-            Player.PlayerUI.ShowWeaponUI(gunNameLists[Gun.GunType.PRIMARY], 
-                gunNameLists[Gun.GunType.SECONDARY], gunNameLists[Gun.GunType.EXPLOSIVE]);
-            CmdTryCycleInventory(1);
-        }
-        else if (Input.GetKeyDown(KeyCode.Alpha3))
-        {
-            Dictionary<Gun.GunType, IEnumerable<string>> gunNameLists = inventory.GetGunNamesOrganized();
-            Player.PlayerUI.ShowWeaponUI(gunNameLists[Gun.GunType.PRIMARY], 
-                gunNameLists[Gun.GunType.SECONDARY], gunNameLists[Gun.GunType.EXPLOSIVE]);
-            CmdTryCycleInventory(2);
-        }
-        else if (Input.GetKeyDown(KeyCode.Alpha4))
-        {
-            Dictionary<Gun.GunType, IEnumerable<string>> gunNameLists = inventory.GetGunNamesOrganized();
-            Player.PlayerUI.ShowWeaponUI(gunNameLists[Gun.GunType.PRIMARY],
-                gunNameLists[Gun.GunType.SECONDARY], gunNameLists[Gun.GunType.EXPLOSIVE]);
-            CmdTryCycleInventory(3);
+            if (CurrentItem != null && CurrentItem is Gun && (CurrentItem as Gun).DoShootTest())
+                ShootWeapon();
+
+            if (Input.GetKeyDown(KeyCode.R))
+                ReloadButton();
+            else if (Input.GetKeyDown(KeyCode.V))
+                DropButton();
+            else if (Input.GetKeyDown(KeyCode.H))
+                Player.CmdDoDamage(10f, 0f, Player.netId, DamageSource.Suicide, transform.position);
+            else if (Input.GetKeyDown(KeyCode.Alpha1))
+            {
+                Dictionary<Gun.GunType, IEnumerable<string>> gunNameLists = inventory.GetGunNamesOrganized();
+                Player.PlayerUI.ShowWeaponUI(gunNameLists[Gun.GunType.PRIMARY],
+                    gunNameLists[Gun.GunType.SECONDARY], gunNameLists[Gun.GunType.EXPLOSIVE]);
+                CmdTryCycleInventory(0);
+            }
+            else if (Input.GetKeyDown(KeyCode.Alpha2))
+            {
+                Dictionary<Gun.GunType, IEnumerable<string>> gunNameLists = inventory.GetGunNamesOrganized();
+                Player.PlayerUI.ShowWeaponUI(gunNameLists[Gun.GunType.PRIMARY],
+                    gunNameLists[Gun.GunType.SECONDARY], gunNameLists[Gun.GunType.EXPLOSIVE]);
+                CmdTryCycleInventory(1);
+            }
+            else if (Input.GetKeyDown(KeyCode.Alpha3))
+            {
+                Dictionary<Gun.GunType, IEnumerable<string>> gunNameLists = inventory.GetGunNamesOrganized();
+                Player.PlayerUI.ShowWeaponUI(gunNameLists[Gun.GunType.PRIMARY],
+                    gunNameLists[Gun.GunType.SECONDARY], gunNameLists[Gun.GunType.EXPLOSIVE]);
+                CmdTryCycleInventory(2);
+            }
+            else if (Input.GetKeyDown(KeyCode.Alpha4))
+            {
+                Dictionary<Gun.GunType, IEnumerable<string>> gunNameLists = inventory.GetGunNamesOrganized();
+                Player.PlayerUI.ShowWeaponUI(gunNameLists[Gun.GunType.PRIMARY],
+                    gunNameLists[Gun.GunType.SECONDARY], gunNameLists[Gun.GunType.EXPLOSIVE]);
+                CmdTryCycleInventory(3);
+            }
         }
     }
 
@@ -228,11 +238,11 @@ public class PlayerController : NetworkBehaviour
 
     #region Client RPC
     [ClientRpc]
-    public void RpcAssignCurrentItem(int weaponId)
+    public void RpcAssignCurrentItem(int itemId)
     {
         if (isLocalPlayer)
         {
-            if (weaponId >= 0)
+            if (itemId >= 0)
             {
                 Player.PlayerUI.AmmoUI.SetActive(true);
                 UpdateAmmoDisplay();
@@ -411,13 +421,7 @@ public class PlayerController : NetworkBehaviour
     [Command(ignoreAuthority = true)]
     public void CmdGivePlayerWeapon(int weaponId, bool equip)
     {
-        GivePlayerItem(weaponId, false);
-    }
-
-    [Command]
-    public void CmdTakeDamage(float damage, uint damageSrcPlayerId)
-    {
-        Player.Damage(damage, damageSrcPlayerId);
+        GivePlayerItem(weaponId, equip);
     }
 
     [Command]
@@ -752,7 +756,7 @@ public class PlayerController : NetworkBehaviour
     [ClientCallback]
     void FixedUpdate()
     {
-        if (!isLocalPlayer || Player.IsDead || !MovementEnabled) return;
+        if (!isLocalPlayer || !MovementEnabled) return;
 
         float h = Input.GetAxisRaw("Horizontal");
         float v = Input.GetAxisRaw("Vertical");
@@ -793,51 +797,98 @@ public class PlayerController : NetworkBehaviour
     {
         if (dir.x == 0f && dir.y == 0f)
         {
-            Animator.SetFloat("LastDirX", lastX);
-            Animator.SetFloat("LastDirY", lastY);
-            Animator.SetBool("Movement", false);
+            if (Player.IsDead)
+            {
+                DeadAnimator.SetFloat("LastDirX", lastX);
+                DeadAnimator.SetFloat("LastDirY", lastY);
+                DeadAnimator.SetBool("Movement", false);
+            }
+            else
+            {
+                AliveAnimator.SetFloat("LastDirX", lastX);
+                AliveAnimator.SetFloat("LastDirY", lastY);
+                AliveAnimator.SetBool("Movement", false);
+            }
         }
         else
         {
             lastX = dir.x;
             lastY = dir.y;
-            Animator.SetBool("Movement", true);
+            if (Player.IsDead)
+                DeadAnimator.SetBool("Movement", true);
+            else
+                AliveAnimator.SetBool("Movement", true);
         }
 
-        Animator.SetFloat("DirX", dir.x);
-        Animator.SetFloat("DirY", dir.y);
+        if (Player.IsDead)
+        {
+            AliveAnimator.SetFloat("DirX", dir.x);
+            AliveAnimator.SetFloat("DirY", dir.y);
+        }
+        else
+        {
+            DeadAnimator.SetFloat("DirX", dir.x);
+            DeadAnimator.SetFloat("DirY", dir.y);
+        }
+    }
+
+    [Client]
+    public void DieFromExplosion(float explosiveForce, float explosionRadius, Vector3 explosionPosition)
+    {
+        Debug.Log(GetPlayerDebugString() + " is dying from an explosion.");
+        Die();
+
+        Rigidbody[] rigidbodies = GetComponentsInChildren<Rigidbody>();
+
+        foreach (Rigidbody rigidbody in rigidbodies)
+        {
+            rigidbody.AddExplosionForce(explosiveForce * 10, explosionPosition, explosionRadius, 1, ForceMode.Impulse);
+        }
     }
 
     [Client]
     public void Die()
     {
-        Animator.enabled = false;
+        AliveAnimator.enabled = false;
+        DeadAnimator.enabled = true;
 
-        setRigidbodyState(false);
-        setColliderState(true);
+        // Enable the ghost.
+        DeadPlayerBody.GetComponent<Outline>().OutlineColor = Player.PlayerColor;
+        DeadPlayerBody.SetActive(true);
 
+        // Turn the player's living body into a ragdoll now that they've died.
+        setRigidbodyState(false, DeadPlayerBody.GetComponentsInChildren<Rigidbody>());
+        setColliderState(true, DeadPlayerBody.GetComponentsInChildren<Collider>());
+
+        // Update the outline of the dead body.
         PlayerOutline.OutlineWidth = 8;
         PlayerOutline.OutlineColor = new Color32(245, 233, 66, 255);
 
-        if (isLocalPlayer)
-            AudioSource.PlayOneShot(ImpactSound);
+        // Detach the old body from the current player so it doesn't follow the ghost around.
+        LivingPlayerBody.transform.SetParent(null);
 
+        // Raycast to the ground to create some blood.
         float _raycastDistance = 10f;
-
         int mask = 1 << 13;    // Ground on layer 10 in the inspector
+        Vector3 start = new Vector3(Player.transform.position.x, Player.transform.position.y + 1, Player.transform.position.z);
+        if (Physics.Raycast(start, Vector3.down, out RaycastHit hit, _raycastDistance, mask))
+        {
+            GameObject bloodPool = Instantiate(BloodPoolPrefab); // Client-side only.
+            bloodPool.transform.position = new Vector3(hit.point.x, hit.point.y + 0.05f, hit.point.z);
+        }
+
+        GameObject deathEffect = Instantiate(DeathEffectPrefab);    // Client-side only.
+        deathEffect.transform.position = Player.transform.position;
+        Destroy(deathEffect, 1.25f);
 
         if (isLocalPlayer)
         {
-            Vector3 start = new Vector3(Player.transform.position.x, Player.transform.position.y + 1, Player.transform.position.z);
-            if (Physics.Raycast(start, Vector3.down, out RaycastHit hit, _raycastDistance, mask))
-            {
-                GameObject bloodPool = Instantiate(BloodPoolPrefab);
-                bloodPool.transform.position = new Vector3(hit.point.x, hit.point.y + 0.05f, hit.point.z);
-            }
+            // Play dead sound.
+            AudioSource.PlayOneShot(ImpactSound);
 
-            GameObject deathEffect = Instantiate(DeathEffectPrefab);
-            deathEffect.transform.position = Player.transform.position;
-            Destroy(deathEffect, 1.25f);
+            // Drop your weapon when you die.
+            // TODO: Should this only happen for the local player?
+            CmdTryDropCurrentItem();
         }
     }
 
@@ -857,6 +908,19 @@ public class PlayerController : NetworkBehaviour
     }
 
     [Client]
+    void setRigidbodyState(bool state, Rigidbody[] rigidbodies)
+    {
+        foreach (Rigidbody rigidbody in rigidbodies)
+        {
+            rigidbody.isKinematic = state;
+            rigidbody.detectCollisions = !state;
+        }
+
+        GetComponent<Rigidbody>().isKinematic = !state;
+        GetComponent<Rigidbody>().detectCollisions = state;
+    }
+
+    [Client]
     void setColliderState(bool state)
     {
         Collider[] colliders = GetComponentsInChildren<Collider>();
@@ -865,8 +929,15 @@ public class PlayerController : NetworkBehaviour
         {
             collider.enabled = state;
         }
+    }
 
-        GetComponent<Collider>().enabled = !state;
+    [Client]
+    void setColliderState(bool state, Collider[] colliders)
+    {
+        foreach (Collider collider in colliders)
+        {
+            collider.enabled = state;
+        }
     }
 
     #endregion

@@ -19,11 +19,6 @@ public class UsableItem : NetworkBehaviour
     public float SpeedModifier;
 
     /// <summary>
-    /// The item's unique ID.
-    /// </summary>
-    public int ItemId { get; }
-
-    /// <summary>
     /// The player currently holding this item.
     /// </summary>
     [HideInInspector] public PlayerController HoldingPlayer;

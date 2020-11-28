@@ -186,41 +186,61 @@ public class NetworkGameManager : NetworkRoomManager
 
         // Assign imposter roles randomly.
         for (currentPlayerIndex = 0; currentPlayerIndex < numImposters; currentPlayerIndex++)
+        {
+            Debug.Log("Adding player " + shuffledPlayers[currentPlayerIndex].Nickname + ", netId = " + shuffledPlayers[currentPlayerIndex].netId + ", to imposters list.");
             imposters.Add(shuffledPlayers[currentPlayerIndex]);
+        }
 
         // Add the remaining players to the crewmates list.
         for (; currentPlayerIndex < shuffledPlayers.Length; currentPlayerIndex++)
         {
             if (sheriffsEnabled && numSherrifs < maxSheriffs)
             {
+                Debug.Log("Adding player " + shuffledPlayers[currentPlayerIndex].Nickname + ", netId = " + shuffledPlayers[currentPlayerIndex].netId + ", to sheriffs list.");
                 sheriffs.Add(shuffledPlayers[currentPlayerIndex]);
                 numSherrifs++;
             }
             else
             {
+                Debug.Log("Adding player " + shuffledPlayers[currentPlayerIndex].Nickname + ", netId = " + shuffledPlayers[currentPlayerIndex].netId + ", to crewmates list.");
                 crewmates.Add(shuffledPlayers[currentPlayerIndex]);
             }
         }
 
         if (assassins.Count > 0)
-            foreach (Player p in imposters)
+            foreach (Player p in assassins)
+            {
+                Debug.Log("Assigning player " + p.Nickname + ", netId = " + p.netId + ", role of ASSASSIN.");
                 p.RpcAssignRole("assassin");
+            }
 
         if (saboteurs.Count > 0)
-            foreach (Player p in imposters)
+            foreach (Player p in saboteurs)
+            {
+                Debug.Log("Assigning player " + p.Nickname + ", netId = " + p.netId + ", role of SABOTEUR.");
                 p.RpcAssignRole("saboteur");
+            }
 
         if (imposters.Count > 0)
-            foreach (Player p in crewmates)
+            foreach (Player p in imposters)
+            {
+                Debug.Log("Assigning player " + p.Nickname + ", netId = " + p.netId + ", role of IMPOSTER.");
                 p.RpcAssignRole("imposter");
+            }
 
         if (sheriffs.Count > 0)
-            foreach (Player p in crewmates)
+            foreach (Player p in sheriffs)
+            {
+                Debug.Log("Assigning player " + p.Nickname + ", netId = " + p.netId + ", role of SHERIFF.");
                 p.RpcAssignRole("sheriff");
+            }
 
         if (crewmates.Count > 0)
             foreach (Player p in crewmates)
+            {
+                Debug.Log("Assigning player " + p.Nickname + ", netId = " + p.netId + ", role of CREWMATE.");
                 p.RpcAssignRole("crewmate");
+            }
 
         numCrewmatesAlive = crewmates.Count + sheriffs.Count;
         numImpostersAlive = imposters.Count + assassins.Count + saboteurs.Count;
@@ -229,6 +249,8 @@ public class NetworkGameManager : NetworkRoomManager
 
         // Game has officially started.
         currentGameState = GameState.IN_PROGRESS;
+
+        Debug.Log("Finished assigning roles.");
     }
 
     #endregion
@@ -432,7 +454,7 @@ public class NetworkGameManager : NetworkRoomManager
             foreach (Player p in GamePlayers)
             {
                 if (!p.IsDead)
-                    p.Die();
+                    p.Die(0, 0, p.transform.position);
 
                 p.DisplayEndOfGameUI(crewmateVictory);
             }

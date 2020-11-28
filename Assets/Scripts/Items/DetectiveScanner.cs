@@ -9,8 +9,6 @@ public class DetectiveScanner : UsableItem
     [Tooltip("The current body identified by the scanner.")]
     public Player CurrentBody;
 
-    public new int Id = ItemDatabase.BodyScannerItemId;
-
     [Tooltip("This prefab is instantiated wherever the scanner points.")]
     public GameObject ScannerIndicatorPrefab;
     public GameObject InstantiatedIndicator;
@@ -31,10 +29,23 @@ public class DetectiveScanner : UsableItem
 
     public string ItemName { get => "Detective Scanner"; }
 
+    void Awake()
+    {
+        // Not exactly sure where to put this, so I am putting it in multiple places.
+        Id = ItemDatabase.BodyScannerItemId;
+    }
+
+    void Alive()
+    {
+        // Not exactly sure where to put this, so I am putting it in multiple places.
+        Id = ItemDatabase.BodyScannerItemId;
+    }
+
     // Start is called before the first frame update
     void Start()
     {
-        
+        // Not exactly sure where to put this, so I am putting it in multiple places.
+        Id = ItemDatabase.BodyScannerItemId;
     }
 
     // Update is called once per frame

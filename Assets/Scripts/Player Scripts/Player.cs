@@ -20,6 +20,7 @@ public class Player : NetworkBehaviour
     [HideInInspector]
     public PlayerUI PlayerUI;
 
+    public GameObject FloatingInfo;
     public Healthbar FloatingHealthBar;
     public TextMesh PlayerNameText;
     [SerializeField] GameObject muzzleFlashPrefab;
@@ -40,7 +41,7 @@ public class Player : NetworkBehaviour
     /// The netId of the player who killed this player.
     /// </summary>
     [HideInInspector] [SyncVar] public uint KillerId;
-    [HideInInspector] public CauseOfDeath CauseOfDeath;
+    [HideInInspector] [SyncVar] public int CauseOfDeath;
 
     public IRole Role { get; set; }
 
@@ -120,20 +121,19 @@ public class Player : NetworkBehaviour
     public void CmdKill(uint killerId)
     {
         this.KillerId = killerId;
-        Die();
+        Die(1f, 0f, NetworkGameManager.NetIdMap[killerId].transform.position);
     }
 
     [Command]
     public void CmdSuicide()
     {
-        _isDead = true;
-        RpcKill();
+        Die(1f, 0f, transform.position);
     }
 
     [Command(ignoreAuthority = true)]
-    public void CmdDoDamage(float amount, uint damageSrcPlayerId)
+    public void CmdDoDamage(float amount, float force, uint damageSrcPlayerId, int damageType, Vector3 damagePosition)
     {
-        Damage(amount, damageSrcPlayerId);
+        Damage(amount, damageSrcPlayerId, damageType, damagePosition, force, 0f);
     }
 
     [Command(ignoreAuthority = true)]
@@ -143,7 +143,7 @@ public class Player : NetworkBehaviour
         TargetGotDamaged(); // Just updates UI.
 
         if (Health <= 0)
-            Die();
+            Die(0f, 0f, transform.position);
     }
 
     [Command(ignoreAuthority = true)]
@@ -233,9 +233,15 @@ public class Player : NetworkBehaviour
     }
 
     [ClientRpc]
-    public void RpcKill()
+    public void RpcKill(float damageForce, float extraArg, Vector3 damagePosition, int causeOfDeath)
     {
-        GetComponent<PlayerController>().Die();
+        // Disable the name and healthbar.
+        FloatingInfo.SetActive(false);
+
+        if (causeOfDeath == DamageSource.Explosion)
+            GetComponent<PlayerController>().DieFromExplosion(damageForce, extraArg, damagePosition);
+        else
+            GetComponent<PlayerController>().Die();
     }
 
     #endregion
@@ -340,8 +346,23 @@ public class Player : NetworkBehaviour
 
     #region Server Functions 
 
+    /// <summary>
+    /// Deal damage to this player.
+    /// </summary>
+    /// <param name="amount">Amount of damage dealt.</param>
+    /// <param name="damageSrcPlayerId">netId of the player responsible for damaging this player.</param>
+    /// <param name="damageSource">The type of damage being done to this player.</param>
+    /// <param name="damagePosition">The position/direction that this damage came from.</param>
+    /// <param name="damageForce">Any force associated with the damage (e.g., how much a bullet should push, or an explosive force).</param>
+    /// <param name="extraArg">Some extra argument that is relevant depending on the damage type.</param>
     [Server]
-    public void Damage(float amount, uint damageSrcPlayerId)
+    public void Damage(
+        float amount, 
+        uint damageSrcPlayerId, 
+        int damageSource,
+        Vector3 damagePosition,
+        float damageForce,
+        float extraArg)
     {
         Health -= amount;
         TargetGotDamaged();
@@ -349,20 +370,26 @@ public class Player : NetworkBehaviour
         if (Health <= 0)
         {
             KillerId = damageSrcPlayerId;
-            Die();
+            CauseOfDeath = damageSource;
+            Die(damageForce, extraArg, damagePosition);
         }
     }
 
+    /// <summary>
+    /// Handle death.
+    /// </summary>
+    /// <param name="damageForce">The force associated with whatever killed us (e.g., a bullet, a projectile, an explosion).</param>
+    /// <param name="extraArg">Some extra argument relevant to the damage source.</param>
+    /// <param name="damagePosition">The position/direction that the damage was inflicted from.</param>
     [Server]
-    public void Die()
+    public void Die(float damageForce, float extraArg, Vector3 damagePosition)
     {
         if (KillerId == netId)
-            CauseOfDeath = CauseOfDeath.Suicide;
-        else 
-            CauseOfDeath = CauseOfDeath.Unknown;
+            CauseOfDeath = DamageSource.Suicide;
+
         _isDead = true;
-        GetComponent<PlayerController>().Die();
-        RpcKill();
+
+        RpcKill(damageForce, extraArg, damagePosition, CauseOfDeath);
     }
 
     #endregion

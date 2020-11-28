@@ -8,7 +8,7 @@ namespace Imposters
     /// <summary>
     /// Projectiles can cause direct-hit damage (e.g., crossbow bolts) or explode (rockets, grenades).
     /// </summary>
-    public enum DamageType
+    public enum ProjectileDamageMode
     {
         DirectHit,
         Explosion
@@ -20,7 +20,7 @@ namespace Imposters
         public int Id;
 
         [Tooltip("The type of damage inflicted by this projectile.")]
-        public DamageType DamageType = DamageType.DirectHit;
+        public ProjectileDamageMode ProjectileDamageMode = ProjectileDamageMode.DirectHit;
 
         [Tooltip("Damage applied if damage type is direct hit (rather than explosion).")]
         public float Damage = 50.0f;
@@ -112,11 +112,16 @@ namespace Imposters
 
             if (!firstHit)
             {
-                // Apply damage to the hit object if damageType is set to Direct
-                if (DamageType == DamageType.DirectHit)
+                // Apply damage to the hit object if ProjectileDamageMode is set to Direct
+                if (ProjectileDamageMode == ProjectileDamageMode.DirectHit)
                 {
                     if (col.collider.gameObject.CompareTag("Player"))
-                        col.collider.GetComponent<Player>().CmdDoDamage(Damage, ShooterId);
+                        col.collider.GetComponent<Player>().CmdDoDamage(
+                            Damage, 
+                            col.relativeVelocity.magnitude, 
+                            ShooterId, 
+                            DamageSource.Projectile, 
+                            transform.position);
                 }
 
                 firstHit = true;

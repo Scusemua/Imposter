@@ -302,10 +302,23 @@ public class PlayerInventory : NetworkBehaviour
 
         UsableItem item = ItemDatabase.GetItemById(itemId);
 
+        if (item == null)
+        {
+            Debug.LogError("Attempting to add unknown item to inventory. Item ID = " + itemId);
+            return false;
+        }
+
         if (item is Gun)
+        {
+            Debug.Log("Adding gun " + item.Name + " (id=" + item.Id + ") to inventory.");
             return AddGunToInventory(itemId, itemGameObject);
+        }
         else
+        {
+            Debug.Log("Adding item " + item.Name + " (id=" + item.Id + ") to inventory.");
             ItemInventory.Add(itemId);
+            ItemGameObjects[itemId] = itemGameObject;
+        }
 
         // Make sure our state is okay.
         SanityCheck();

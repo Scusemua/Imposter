@@ -96,10 +96,10 @@ public class ItemDatabase : MonoBehaviour
     private void ConstructDatabase()
     {
         foreach (Gun gun in AllGuns)
-        gunMap[gun.Id] = gun;
+            gunMap[gun.Id] = gun;
 
         foreach (UsableItem item in AllItems)
-            itemMap[item.ItemId] = item;
+            itemMap[item.Id] = item;
     }
 
     void Awake()

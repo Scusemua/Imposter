@@ -65,7 +65,13 @@ namespace Imposters
                         float damageAmount = Damage * (1 / Vector3.Distance(transform.position, col.transform.position));
 
                         // The Easy Weapons health system
-                        col.GetComponent<Player>().Damage(damageAmount, SourceId);
+                        col.GetComponent<Player>().Damage(
+                            damageAmount, 
+                            SourceId, 
+                            DamageSource.Explosion,
+                            transform.position,
+                            ExplosionForce,
+                            ExplosionRadius);
 
                         if (ShakeCamera)
                         {

@@ -270,7 +270,13 @@ public class Gun : UsableItem
             // Did we hit another player?
             if (hit.collider.CompareTag("Player") && hit.collider.GetComponent<NetworkIdentity>().netId != GetComponent<NetworkIdentity>().netId)
             {
-                hit.collider.GetComponent<Player>().Damage(Damage, HoldingPlayer.Player.netId);
+                hit.collider.GetComponent<Player>().Damage(
+                    Damage, 
+                    HoldingPlayer.Player.netId, 
+                    DamageSource.Bullet,
+                    hit.point,
+                    BulletForce,
+                    0f);
                 shooter.RpcGunshotHitEntity(hit.point, hit.normal);
             }
             // Did we hit an enemy? (Used for debugging)
