@@ -822,13 +822,13 @@ public class PlayerController : NetworkBehaviour
 
         if (Player.IsDead)
         {
-            AliveAnimator.SetFloat("DirX", dir.x);
-            AliveAnimator.SetFloat("DirY", dir.y);
+            DeadAnimator.SetFloat("DirX", dir.x);
+            DeadAnimator.SetFloat("DirY", dir.y);
         }
         else
         {
-            DeadAnimator.SetFloat("DirX", dir.x);
-            DeadAnimator.SetFloat("DirY", dir.y);
+            AliveAnimator.SetFloat("DirX", dir.x);
+            AliveAnimator.SetFloat("DirY", dir.y);
         }
     }
 
@@ -886,6 +886,9 @@ public class PlayerController : NetworkBehaviour
             // Play dead sound.
             AudioSource.PlayOneShot(ImpactSound);
 
+            // Once we're dead, we can see other dead players.
+            Camera.cullingMask = 1 << LayerMask.NameToLayer("DeadPlayers");
+
             // Drop your weapon when you die.
             // TODO: Should this only happen for the local player?
             CmdTryDropCurrentItem();
@@ -915,9 +918,6 @@ public class PlayerController : NetworkBehaviour
             rigidbody.isKinematic = state;
             rigidbody.detectCollisions = !state;
         }
-
-        GetComponent<Rigidbody>().isKinematic = !state;
-        GetComponent<Rigidbody>().detectCollisions = state;
     }
 
     [Client]
@@ -929,6 +929,8 @@ public class PlayerController : NetworkBehaviour
         {
             collider.enabled = state;
         }
+
+        GetComponent<Collider>().enabled = !state;
     }
 
     [Client]

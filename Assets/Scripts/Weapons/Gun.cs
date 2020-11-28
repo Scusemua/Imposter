@@ -168,7 +168,12 @@ public class Gun : UsableItem
     [Server]
     public void InitReload()
     {
-        if (Reloading) return;
+        if (Reloading)
+        {
+            Debug.Log("Already reloading. Returning.");
+            return;
+        }
+        Debug.Log("Starting reload coroutine.");
         curCooldown = ReloadTime;
         StartCoroutine(DoReload());
     }
@@ -184,13 +189,14 @@ public class Gun : UsableItem
         // Make sure we're being held for this part.
         if (HoldingPlayer == null)
         {
+            Debug.Log("Player dropped us during reload.");
             Reloading = false;
             OnReloadCompleted?.Invoke();
             yield return null;
         }
         else
         {
-
+            Debug.Log("Reload completed. Updating ammo counts now.");
             // Determine how much ammo the player is missing.
             // If we have enough ammo in reserve to top off the clip/magazine,
             // then do so. Otherwise, put back however much ammo we have left.
