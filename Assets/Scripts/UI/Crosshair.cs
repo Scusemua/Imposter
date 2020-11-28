@@ -14,6 +14,12 @@ public class Crosshair : MonoBehaviour
         GetComponent<Image>().enabled = true;
     }
 
+    void Alive()
+    {
+        Cursor.visible = false;
+        GetComponent<Image>().enabled = true;
+    }
+
     // Update is called once per frame
     void Update()
     {

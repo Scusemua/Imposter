@@ -120,17 +120,22 @@ public class PlayerUI : MonoBehaviour
     {
         TabMenuUI.SetActive(true);
 
+        Debug.Log("player.Role.ToString() = " + player.Role.ToString());
+
         // We build this menu differently depending on whether or not the local player is an Imposter of some sort.
         if (NetworkGameManager.IsImposterRole(player.Role.ToString()))
         {
+            Debug.Log("Creating imposter tab menu.");
             // Imposter setup.
             foreach (Player gamePlayer in networkGameManager.GamePlayers)
             {
                 TabMenuEntry entry = Instantiate(TabMenuEntryPrefab, TabMenuUIContent.transform).GetComponent<TabMenuEntry>();
                 tabMenuEntries.Add(entry);
-                entry.NameText.text = gamePlayer.name;
+                entry.NameText.text = gamePlayer.Nickname;
                 entry.NameText.color = gamePlayer.PlayerColor;
                 entry.RoleText.text = gamePlayer.Role.ToString();
+
+                Debug.Log("gamePlayer " + gamePlayer.Nickname + ", netId = " + gamePlayer.netId + ", has role " + gamePlayer.Role.ToString());
 
                 if (NetworkGameManager.IsImposterRole(gamePlayer.Role.ToString()))
                 {
@@ -161,12 +166,14 @@ public class PlayerUI : MonoBehaviour
         }
         else
         {
+            Debug.Log("Creating crewmate tab menu.");
+
             // Crewmate setup.
             foreach (Player gamePlayer in networkGameManager.GamePlayers)
             {
                 TabMenuEntry entry = Instantiate(TabMenuEntryPrefab, TabMenuUIContent.transform).GetComponent<TabMenuEntry>();
                 tabMenuEntries.Add(entry);
-                entry.NameText.text = gamePlayer.name;
+                entry.NameText.text = gamePlayer.Nickname;
                 entry.NameText.color = gamePlayer.PlayerColor;
 
                 // Crewmates can see the sheriff. Otherwise we just designate everyone as Crewmate, unless they're a dead imposter.
@@ -175,38 +182,34 @@ public class PlayerUI : MonoBehaviour
                     entry.RoleText.text = "Sheriff";
                     entry.BackgroundColor = TabMenuEntry.SheriffColor;
                 }
+                // Only indicate that they're an imposter if they're dead and identified.
+                else if (NetworkGameManager.IsImposterRole(gamePlayer.Role.ToString()) && gamePlayer.Identified)
+                {
+                    entry.RoleText.text = "Imposter";
+                    entry.BackgroundColor = TabMenuEntry.ImposterColor;
+                }
                 else
                 {
                     entry.RoleText.text = "Crewmate";
+                    entry.BackgroundColor = TabMenuEntry.CrewmateColor;
                 }
 
-                if (gamePlayer.IsDead)
+                // If the player for which we're creating an entry is identified as dead, then we'll display that. 
+                // Likewise, if WE are dead, then we'll show any other dead players as dead. But if we're alive,
+                // then we'll only show players as dead if they've been identified as such.
+                if (gamePlayer.IsDead && gamePlayer.Identified) // dead & identified
                 {
-                    // If the player for which we're creating an entry is identified as dead, then we'll display that. 
-                    // Likewise, if WE are dead, then we'll show any other dead players as dead. But if we're alive,
-                    // then we'll only show players as dead if they've been identified as such.
-                    if (gamePlayer.Identified)
-                    {
-                        entry.StatusText.text = "Dead";
-
-                        // If the player is dead and they're an imposter, then we can indicate this by the color.
-                        if (NetworkGameManager.IsImposterRole(gamePlayer.Role.ToString()))
-                        {
-                            entry.RoleText.text = "Imposter";
-                            entry.BackgroundColor = TabMenuEntry.ImposterColor;
-                        }
-                    }
+                    // Only indicate that they're dead if they've been identified.
+                    entry.StatusText.text = "Dead";
+                }
+                else if (gamePlayer.IsDead && player.IsDead) // dead & unidentified
+                {
                     // If we're also dead, then we'll show them as unidentified, just as an imposter would see.
-                    else if (player.IsDead)
-                    {
-                        entry.StatusText.text = "Unidentified";
-                        entry.BackgroundColor = TabMenuEntry.CrewmateColor;
-                    }
-                    else
-                    {
-                        entry.StatusText.text = "Alive";
-                        entry.BackgroundColor = TabMenuEntry.CrewmateColor;
-                    }
+                    entry.StatusText.text = "Unidentified";
+                }
+                else
+                {
+                    entry.StatusText.text = "Alive";
                 }
             }
         }
@@ -290,7 +293,15 @@ public class PlayerUI : MonoBehaviour
         HealthText.text = ((int)health).ToString();
     }
 
-    
+    void OnDestroy()
+    {
+        Cursor.visible = true;
+
+        if (PlayerCrosshair != null)
+            PlayerCrosshair.DisableCrosshair();
+    }
+
+
     public void ShowWeaponUI(IEnumerable<string> primaryWeapons, IEnumerable<string> secondaryWeapons, IEnumerable<string> explosiveWeapons)
     {
         foreach (GameObject gameObject in weaponUiEntries)
@@ -444,7 +455,10 @@ public class PlayerUI : MonoBehaviour
     {
         uint netId = (uint)playerId;
 
-        networkGameManager.NetIdMap[netId].GetComponent<PlayerController>().CmdInfiniteAmmo();
+        if (networkGameManager.NetIdMap.ContainsKey(netId))
+            networkGameManager.NetIdMap[netId].GetComponent<PlayerController>().CmdInfiniteAmmo();
+        else
+            Debug.LogWarning("There is no player with netId " + netId);
     }
 
     private void TeleportPosition(int playerId, Vector3 newPosition)

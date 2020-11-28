@@ -123,6 +123,11 @@ public class Gun : UsableItem
     private float dryFireCooldown = 0f; // Prevents us from spamming the dry fire sound on automatic weapons.
     private float dryFireInterval = 0.3f; // How often we can play the dry fire sound effect.
 
+    /// <summary>
+    /// Used to cancel reloads if the weapon is dropped mid-reload.
+    /// </summary>
+    private Coroutine reloadingCoroutine;
+
     #region Client Functions 
 
     /// <summary>
@@ -175,7 +180,17 @@ public class Gun : UsableItem
         }
         Debug.Log("Starting reload coroutine.");
         curCooldown = ReloadTime;
-        StartCoroutine(DoReload());
+        reloadingCoroutine = StartCoroutine(DoReload());
+    }
+
+    [Server]
+    public void CancelReload()
+    {
+        if (reloadingCoroutine != null)
+            StopCoroutine(reloadingCoroutine);
+
+        Reloading = false;
+        curCooldown = 0f;
     }
 
     [Server]
@@ -189,14 +204,12 @@ public class Gun : UsableItem
         // Make sure we're being held for this part.
         if (HoldingPlayer == null)
         {
-            Debug.Log("Player dropped us during reload.");
             Reloading = false;
             OnReloadCompleted?.Invoke();
             yield return null;
         }
         else
         {
-            Debug.Log("Reload completed. Updating ammo counts now.");
             // Determine how much ammo the player is missing.
             // If we have enough ammo in reserve to top off the clip/magazine,
             // then do so. Otherwise, put back however much ammo we have left.

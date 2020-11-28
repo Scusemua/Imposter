@@ -50,6 +50,11 @@ public abstract class Role : NetworkBehaviour, IRole
         
     }
 
+    public override string ToString()
+    {
+        return Name;
+    }
+
     public virtual void AssignPlayer(Player _player)
     {
         player = _player;

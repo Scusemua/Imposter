@@ -7,9 +7,11 @@ using System;
 
 public class PlayerController : NetworkBehaviour
 {
+    [Header("Administrative")]
     public Player Player;
     [Tooltip("This is displayed to the player and any other dead players once this player has died.")]
-    public GameObject DeadPlayerBody;
+    public GameObject GhostPlayerBody;
+    [Tooltip("This is displayed when the player is alive.")]
     public GameObject LivingPlayerBody;
     private Rigidbody rigidbody;
     private PlayerInventory inventory;
@@ -35,12 +37,24 @@ public class PlayerController : NetworkBehaviour
     public GameObject CameraPrefab;
     public GameObject CameraContainer;
     public Camera Camera;
+    [Tooltip("Animator for the living player.")]
     public Animator AliveAnimator;
+    [Tooltip("Animator for the dead player.")]
     public Animator DeadAnimator;
+
+    public Vector3 CameraOffset;
+
+    /// <summary>
+    /// Displayed around a deadbody that has not yet been identified.
+    /// </summary>
+    public Outline AlivePlayerOutline;
 
     [Header("Game-Related")]
     public GameObject EmergencyButton;
     public bool MovementEnabled;
+
+    [SyncVar(hook = nameof(OnPlayerBodyIdentified))]
+    public bool Identified;
 
     [Header("Weapon")]
     [SerializeField] Transform itemContainer; // This is where the weapon goes.
@@ -88,16 +102,6 @@ public class PlayerController : NetworkBehaviour
     }
 
     private GameOptions GameOptions { get => GameOptions.singleton; }
-
-    public Vector3 CameraOffset;
-
-    /// <summary>
-    /// Displayed around a deadbody that has not yet been identified.
-    /// </summary>
-    public Outline PlayerOutline;
-
-    [SyncVar(hook = nameof(OnPlayerBodyIdentified))]
-    public bool Identified;
 
     void Update()
     {
@@ -264,8 +268,9 @@ public class PlayerController : NetworkBehaviour
         if (itemDatabase.GetGunByID(gunId).ShootSound != null)
             gunshotSound = itemDatabase.GetGunByID(gunId).ShootSound;
 
+        AudioSource.pitch = UnityEngine.Random.Range(0.8f, 1.25f);
         // Adjust volume of gunshot based on distance.
-        this.AudioSource.PlayOneShot(gunshotSound, volumeDistModifier);
+        AudioSource.PlayOneShot(gunshotSound, volumeDistModifier);
     }
 
     /// <summary>
@@ -303,8 +308,9 @@ public class PlayerController : NetworkBehaviour
         if (itemDatabase.GetGunByID(gunId).ShootSound != null)
             gunshotSound = itemDatabase.GetGunByID(gunId).ShootSound;
 
+        AudioSource.pitch = UnityEngine.Random.Range(0.8f, 1.25f);
         // Adjust volume of gunshot based on distance.
-        this.AudioSource.PlayOneShot(gunshotSound, volumeDistModifier);
+        AudioSource.PlayOneShot(gunshotSound, volumeDistModifier);
     }
 
     #endregion
@@ -313,6 +319,7 @@ public class PlayerController : NetworkBehaviour
     [TargetRpc]
     public void TargetPlayPickupAmmoSound()
     {
+        AudioSource.pitch = UnityEngine.Random.Range(0.95f, 1.05f);
         AudioSource.PlayOneShot(PickupAmmoSound);
     }
 
@@ -320,7 +327,10 @@ public class PlayerController : NetworkBehaviour
     public void TargetPlayReloadSound()
     {
         if (CurrentItem != null && CurrentItem is Gun)
+        {
+            AudioSource.pitch = UnityEngine.Random.Range(0.95f, 1.05f);
             AudioSource.PlayOneShot((CurrentItem as Gun).ReloadSound);
+        }
     }
 
     [TargetRpc]
@@ -330,24 +340,28 @@ public class PlayerController : NetworkBehaviour
         if (CurrentItem != null && CurrentItem is Gun && (CurrentItem as Gun).DryfireSound != null)
             dryfireSound = (CurrentItem as Gun).DryfireSound;
 
+        AudioSource.pitch = UnityEngine.Random.Range(0.95f, 1.05f);
         AudioSource.PlayOneShot(dryfireSound);
     }
 
     [TargetRpc]
     public void TargetPlayPickupHealthSound()
     {
+        AudioSource.pitch = UnityEngine.Random.Range(0.95f, 1.05f);
         AudioSource.PlayOneShot(PickupHealthSound);
     }
 
     [TargetRpc]
     public void TargetPlayPickupWeaponSound()
     {
+        AudioSource.pitch = UnityEngine.Random.Range(0.95f, 1.05f);
         AudioSource.PlayOneShot(PickupWeaponSound);
     }
 
     [TargetRpc]
     public void TargetPlayPickupItemSound()
     {
+        AudioSource.pitch = UnityEngine.Random.Range(0.95f, 1.05f);
         AudioSource.PlayOneShot(PickupItemSound);
     }
 
@@ -368,6 +382,7 @@ public class PlayerController : NetworkBehaviour
     [TargetRpc]
     public void TargetShowReloadBar(float reloadTime)
     {
+        Debug.Log("Showing reload bar now.");
         Player.PlayerUI.ReloadingProgressBar.health = 0;
         Player.PlayerUI.ReloadingProgressBar.healthPerSecond = 100f / reloadTime;
         Player.PlayerUI.ReloadingProgressBar.gameObject.SetActive(true);
@@ -518,7 +533,7 @@ public class PlayerController : NetworkBehaviour
     [Command]
     private void CmdTryReload()
     {
-        if (CurrentItemId < 0 || CurrentItem == null || !CurrentItem is Gun || (CurrentItem as Gun).AmmoInClip == (CurrentItem as Gun).ClipSize)
+        if (CurrentItemId < 0 || CurrentItem == null || CurrentItem.GetType() != typeof(Gun) || (CurrentItem as Gun).AmmoInClip == (CurrentItem as Gun).ClipSize)
             return;
 
         // Do not try to reload if we don't have any reserve ammo of the correct type.
@@ -533,7 +548,7 @@ public class PlayerController : NetworkBehaviour
     private void CmdTryShoot()
     {
         // TODO: Play error sound indicating no weapon? Or just punch?
-        if (CurrentItemId < 0 || CurrentItem == null || !CurrentItem is Gun || Player.IsDead)
+        if (CurrentItemId < 0 || CurrentItem == null || CurrentItem.GetType() != typeof(Gun) || Player.IsDead)
             return;
 
         (CurrentItem as Gun).Shoot(this, Player.WeaponMuzzle.transform);
@@ -542,8 +557,11 @@ public class PlayerController : NetworkBehaviour
     [Command]
     public void CmdTryDropCurrentItem()
     {
-        if (CurrentItemId < 0)
+        if (CurrentItemId < 0 || CurrentItem == null)
             return;
+
+        if (CurrentItem is Gun)
+            (CurrentItem as Gun).CancelReload();
 
         // Remove the gun from the player's inventory.
         inventory.RemoveItemFromInventory(CurrentItemId);
@@ -569,7 +587,7 @@ public class PlayerController : NetworkBehaviour
 
         // Set the player's SyncVar to nothing so clients will destroy the equipped child item.
         CurrentItemId = -1;
-        CancelReload();
+        TargetReload();
         CurrentItem = null;
     }
 
@@ -595,13 +613,17 @@ public class PlayerController : NetworkBehaviour
 
     void OnTriggerEnter(Collider other)
     {
-        if (other.gameObject.CompareTag("AmmoBox"))
+        // The player needs to be alive in order to pick up ammo, medkits, or weapons.
+        if (!Player.IsDead)
         {
-            CmdPickupAmmoBox(other.gameObject);
-        }   
-        else if (other.gameObject.CompareTag("Item") || other.gameObject.CompareTag("Weapon"))
-        {
-            CmdPickupItem(other.gameObject);
+            if (other.gameObject.CompareTag("AmmoBox"))
+            {
+                CmdPickupAmmoBox(other.gameObject);
+            }
+            else if (other.gameObject.CompareTag("Item") || other.gameObject.CompareTag("Weapon"))
+            {
+                CmdPickupItem(other.gameObject);
+            }
         }
     }
 
@@ -656,7 +678,7 @@ public class PlayerController : NetworkBehaviour
         if (_New)
         {
             Debug.Log(GetPlayerDebugString() + " has been identified.");
-            PlayerOutline.enabled = false;
+            AlivePlayerOutline.enabled = false;
         }
     }
 
@@ -709,6 +731,7 @@ public class PlayerController : NetworkBehaviour
     public void PlayImposterStart()
     {
         Debug.Log("Playing Imposter start sound.");
+        AudioSource.pitch = 1.0f;
         AudioSource.PlayOneShot(ImposterStart, 0.25f);
     }
 
@@ -719,6 +742,7 @@ public class PlayerController : NetworkBehaviour
     public void PlayCrewmateStart()
     {
         Debug.Log("Playing Crewmate start sound.");
+        AudioSource.pitch = 1.0f;
         AudioSource.PlayOneShot(CrewmateStart, 0.25f);
     }
 
@@ -729,6 +753,7 @@ public class PlayerController : NetworkBehaviour
     public void PlayImpactSound()
     {
         Debug.Log("Playing impact sound.");
+        AudioSource.pitch = 1.0f;
         AudioSource.PlayOneShot(ImpactSound, 0.75f);
     }
 
@@ -743,7 +768,7 @@ public class PlayerController : NetworkBehaviour
             Debug.LogError("Player is null for PlayerController!");
 
         Identified = false;
-        PlayerOutline.OutlineColor = Player.PlayerColor;
+        AlivePlayerOutline.OutlineColor = Player.PlayerColor;
 
         if (!isLocalPlayer)
         {
@@ -838,7 +863,8 @@ public class PlayerController : NetworkBehaviour
         Debug.Log(GetPlayerDebugString() + " is dying from an explosion.");
         Die();
 
-        Rigidbody[] rigidbodies = GetComponentsInChildren<Rigidbody>();
+        // Only add force to the living body, not the ghost body.
+        Rigidbody[] rigidbodies = LivingPlayerBody.GetComponentsInChildren<Rigidbody>();
 
         foreach (Rigidbody rigidbody in rigidbodies)
         {
@@ -852,20 +878,23 @@ public class PlayerController : NetworkBehaviour
         AliveAnimator.enabled = false;
         DeadAnimator.enabled = true;
 
-        // Enable the ghost.
-        DeadPlayerBody.GetComponent<Outline>().OutlineColor = Player.PlayerColor;
-        DeadPlayerBody.SetActive(true);
-
-        // Turn the player's living body into a ragdoll now that they've died.
-        setRigidbodyState(false, DeadPlayerBody.GetComponentsInChildren<Rigidbody>());
-        setColliderState(true, DeadPlayerBody.GetComponentsInChildren<Collider>());
-
-        // Update the outline of the dead body.
-        PlayerOutline.OutlineWidth = 8;
-        PlayerOutline.OutlineColor = new Color32(245, 233, 66, 255);
-
         // Detach the old body from the current player so it doesn't follow the ghost around.
         LivingPlayerBody.transform.SetParent(null);
+
+        // Turn the player's living body into a ragdoll now that they've died.
+        setRigidbodyState(false, LivingPlayerBody.GetComponentsInChildren<Rigidbody>());
+        setColliderState(true, LivingPlayerBody.GetComponentsInChildren<Collider>());
+
+        // Enable the ghost.
+        GhostPlayerBody.GetComponent<Outline>().OutlineColor = Player.PlayerColor;
+        GhostPlayerBody.SetActive(true);
+
+        // Now that we're a ghost, prevent our ghost body from moving from a hypothetical explosion that killed us.
+        GetComponent<Rigidbody>().velocity = new Vector3(0, 0, 0);
+
+        // Update the outline of the dead body.
+        AlivePlayerOutline.OutlineWidth = 8;
+        AlivePlayerOutline.OutlineColor = new Color32(245, 233, 66, 255);
 
         // Raycast to the ground to create some blood.
         float _raycastDistance = 10f;
@@ -884,10 +913,11 @@ public class PlayerController : NetworkBehaviour
         if (isLocalPlayer)
         {
             // Play dead sound.
+            AudioSource.pitch = 1.0f;
             AudioSource.PlayOneShot(ImpactSound);
 
             // Once we're dead, we can see other dead players.
-            Camera.cullingMask = 1 << LayerMask.NameToLayer("DeadPlayers");
+            Camera.cullingMask |= 1 << LayerMask.NameToLayer("DeadPlayers");
 
             // Drop your weapon when you die.
             // TODO: Should this only happen for the local player?
@@ -954,16 +984,6 @@ public class PlayerController : NetworkBehaviour
     }
 
     /// <summary>
-    /// Stop the reload coroutine. Useful if we drop or switch guns during a reload.
-    /// </summary>
-    [Server]
-    private void CancelReload()
-    {
-        Debug.Log("Cancelling reload.");
-        TargetReload();
-    }
-
-    /// <summary>
     /// Add the specified item to the player's inventory. If the 'equip' flag is set to true,
     /// then also equip the current item (put away whatever item the player may already be holding first).
     /// 
@@ -1010,11 +1030,18 @@ public class PlayerController : NetworkBehaviour
     {
         // Stop the reload in case we switched during a reload.
         if (CurrentItemId > 0)
-            CancelReload();
+        {
+            TargetReload(); // This just displays the ammo UI.
+        }
 
         // Deactivate our current item, if we're holding one.
         if (CurrentItem != null)
+        {
+            if (CurrentItem is Gun)
+                (CurrentItem as Gun).CancelReload();
+
             CurrentItem.gameObject.SetActive(false);
+        }
 
         // If the next item ID is negative, then all we need to do is put our current item away.
         // We've already disabled the game object of the currently-equipped item. 
