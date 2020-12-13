@@ -31,9 +31,18 @@ public class PlayerController : NetworkBehaviour
     public AudioClip PickupItemSound;
     public AudioSource AudioSource;
 
-    [Header("Visual")]
+    [Header("Visual Effects")]
     public GameObject DeathEffectPrefab;
     public GameObject BloodPoolPrefab;
+
+    [Tooltip("Effect that gets displayed when a player dies.")]
+    [SerializeField] private GameObject onDeathEffectPrefab;
+    [Tooltip("Effect that gets displayed when picking up a medkit.")]
+    [SerializeField] private GameObject medkitPickupEffectPrefab;
+    [Tooltip("One or many particle systems to trigger ")]
+    [SerializeField] private GameObject[] bulletImpactBloodParticleSystems;
+
+    [Header("Visual Properties")]
     public GameObject CameraPrefab;
     public GameObject CameraContainer;
     public Camera Camera;
@@ -56,11 +65,8 @@ public class PlayerController : NetworkBehaviour
     [SyncVar(hook = nameof(OnPlayerBodyIdentified))]
     public bool Identified;
 
-    [Header("Weapon")]
+    [Header("Weapon Properties")]
     [SerializeField] Transform itemContainer; // This is where the weapon goes.
-    [SerializeField] GameObject bulletHolePrefab;
-    [SerializeField] GameObject bulletFXPrefab;
-    [SerializeField] GameObject bulletBloodFXPrefab;
     public int StartingWeaponId = -1;
 
     [SyncVar] public int CurrentItemId = -1;
@@ -277,9 +283,16 @@ public class PlayerController : NetworkBehaviour
     /// Instantiate blood fx at the entity which was hit by the player.
     /// </summary>
     [ClientRpc]
-    public void RpcGunshotHitEntity(Vector3 impactPos, Vector3 impactRot)
+    public void RpcGunshotHitEntity(uint shooterID, Vector3 impactPos, Vector3 impactRot)
     {
-        Instantiate(bulletBloodFXPrefab, impactPos, Quaternion.LookRotation(impactRot));
+        NetworkIdentity.spawned[shooterID].GetComponent<PlayerController>().MuzzleFlash();
+
+        System.Random rng = new System.Random();
+        int index = rng.Next(0, bulletImpactBloodParticleSystems.Count());
+        GameObject bloodPrefab = bulletImpactBloodParticleSystems[index];
+        GameObject bloodGameobject = Instantiate(bloodPrefab, impactPos, Quaternion.LookRotation(impactRot));
+
+        Destroy(bloodGameobject, 5);
     }
 
     /// <summary>
@@ -288,9 +301,18 @@ public class PlayerController : NetworkBehaviour
     [ClientRpc]
     public void RpcGunshotHitEnvironment(uint shooterID, int gunId, Vector3 impactPos, Vector3 impactRot)
     {
-        //Instantiate(bulletHolePrefab, impactPos + impactRot * 0.1f, Quaternion.LookRotation(impactRot));
-        Instantiate(bulletFXPrefab, impactPos, Quaternion.LookRotation(impactRot));
         NetworkIdentity.spawned[shooterID].GetComponent<PlayerController>().MuzzleFlash();
+        
+        GameObject impactGameObject = itemDatabase.GetGunByID(gunId).ImpactDecal;
+        if (impactGameObject != null)
+            Instantiate(impactGameObject, impactPos, Quaternion.LookRotation(impactRot));
+    }
+
+    [ClientRpc]
+    public void RpcPlayHealEffects()
+    {
+        GameObject medkitEffect = Instantiate(medkitPickupEffectPrefab, transform.position, transform.rotation, transform);
+        Destroy(medkitEffect, 6);
     }
 
     /// <summary>
@@ -299,6 +321,9 @@ public class PlayerController : NetworkBehaviour
     [ClientRpc]
     public void RpcPlayerShotGun(uint shooterId, int gunId)
     {
+        if (itemDatabase == null)
+            itemDatabase = FindObjectOfType<ItemDatabase>();
+
         NetworkIdentity.spawned[shooterId].GetComponent<PlayerController>().MuzzleFlash();
 
         Transform shooterTransform = NetworkIdentity.spawned[shooterId].GetComponent<Player>().GetComponent<Transform>();
@@ -308,7 +333,7 @@ public class PlayerController : NetworkBehaviour
         if (itemDatabase.GetGunByID(gunId).ShootSound != null)
             gunshotSound = itemDatabase.GetGunByID(gunId).ShootSound;
 
-        AudioSource.pitch = UnityEngine.Random.Range(0.8f, 1.25f);
+        AudioSource.pitch = UnityEngine.Random.Range(0.9f, 1.1f);
         // Adjust volume of gunshot based on distance.
         AudioSource.PlayOneShot(gunshotSound, volumeDistModifier);
     }
@@ -526,6 +551,7 @@ public class PlayerController : NetworkBehaviour
                 Player.PlayerUI.UpdateHealth(Player.Health);
                 NetworkServer.Destroy(ammoBoxGameObject);
                 TargetPlayPickupHealthSound();
+                RpcPlayHealEffects();
             }
         }
     }
@@ -613,6 +639,8 @@ public class PlayerController : NetworkBehaviour
 
     void OnTriggerEnter(Collider other)
     {
+        if (!isLocalPlayer) return;
+
         // The player needs to be alive in order to pick up ammo, medkits, or weapons.
         if (!Player.IsDead)
         {

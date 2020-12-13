@@ -49,7 +49,6 @@ public class Gun : UsableItem
     }
 
     [Header("Prefabs")]
-    public GameObject MuzzleFlashPrefab;
     [Tooltip("Where the bullets get instantiated.")]
     public Transform WeaponMuzzle;  // Where the bullets get instantiated.
 
@@ -115,6 +114,11 @@ public class Gun : UsableItem
     public AudioClip ReloadSound;   // Sound that gets played when reloading.
     public AudioClip PickupSound;   // Sound that gets played when the player picks up the weapon.
     public AudioClip DryfireSound;  // Sound that plays when the player tries to shoot but is out of ammo.
+
+    [Header("Visual Effects")]
+    public GameObject MuzzleFlashPrefab;
+    [Tooltip("Used as a bullet hole or laser-impact.")]
+    public GameObject ImpactDecal;
 
     public event Action<float> OnReloadStarted;
     public event Action OnReloadCompleted;
@@ -296,11 +300,11 @@ public class Gun : UsableItem
                     hit.point,
                     BulletForce,
                     0f);
-                shooter.RpcGunshotHitEntity(hit.point, hit.normal);
+                shooter.RpcGunshotHitEntity(shooter.GetComponent<NetworkIdentity>().netId, hit.point, hit.normal);
             }
             // Did we hit an enemy? (Used for debugging)
             else if (hit.collider.CompareTag("Enemy"))
-                shooter.RpcGunshotHitEntity(hit.point, hit.normal);
+                shooter.RpcGunshotHitEntity(shooter.GetComponent<NetworkIdentity>().netId, hit.point, hit.normal);
             else // We just hit the environment.
                 shooter.RpcGunshotHitEnvironment(shooter.GetComponent<NetworkIdentity>().netId, Id, hit.point, hit.normal);
         }

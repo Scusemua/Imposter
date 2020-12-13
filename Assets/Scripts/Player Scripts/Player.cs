@@ -279,6 +279,15 @@ public class Player : NetworkBehaviour
     }
 
     [Client]
+    public void DoCameraShake(bool explosion)
+    {
+        if (explosion)
+            GetComponent<PlayerController>().Camera.GetComponent<Shaker>().Shake(ExplosionShakePreset);
+        else
+            GetComponent<PlayerController>().Camera.GetComponent<Shaker>().Shake(GunshotShakePreset);
+    }
+
+    [Client]
     public void PlayAudioClip(AudioClip clip)
     {
         GetComponent<AudioSource>().PlayOneShot(clip);
@@ -328,18 +337,7 @@ public class Player : NetworkBehaviour
     [TargetRpc]
     public void TargetDoCameraShake(bool explosion)
     {
-        //ShakeParameters parameters = new ShakeParameters
-        //{
-        //    Strength = magnitude,
-        //    Roughness = roughness,
-        //    FadeIn = fadeIn,
-        //    FadeOut = fadeOut,
-        //    ShakeType = ShakeType.OneShot
-        //};
-        if (explosion)
-            GetComponent<PlayerController>().Camera.GetComponent<Shaker>().Shake(ExplosionShakePreset);
-        else
-            GetComponent<PlayerController>().Camera.GetComponent<Shaker>().Shake(GunshotShakePreset);
+        DoCameraShake(explosion);
     }
 
     #endregion

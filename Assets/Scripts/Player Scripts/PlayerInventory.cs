@@ -310,7 +310,6 @@ public class PlayerInventory : NetworkBehaviour
 
         if (item is Gun)
         {
-            Debug.Log("Adding gun " + item.Name + " (id=" + item.Id + ") to inventory.");
             return AddGunToInventory(itemId, itemGameObject);
         }
         else
@@ -343,6 +342,7 @@ public class PlayerInventory : NetworkBehaviour
                     GunInventory.Add(gun.Id);
                     NumPrimariesHeld += 1;
                     ItemGameObjects.Add(gunId, gunGameObject);
+                    Debug.Log("Adding gun " + gun.Name + " (id=" + gun.Id + ") to inventory.");
                     return true;
                 }
                 break;
@@ -352,6 +352,7 @@ public class PlayerInventory : NetworkBehaviour
                     GunInventory.Add(gun.Id);
                     NumSecondariesHeld += 1;
                     ItemGameObjects.Add(gunId, gunGameObject);
+                    Debug.Log("Adding gun " + gun.Name + " (id=" + gun.Id + ") to inventory.");
                     return true;
                 }
                 break;
@@ -361,6 +362,7 @@ public class PlayerInventory : NetworkBehaviour
                     GunInventory.Add(gun.Id);
                     NumExplosiveWeaponsHeld += 1;
                     ItemGameObjects.Add(gunId, gunGameObject);
+                    Debug.Log("Adding gun " + gun.Name + " (id=" + gun.Id + ") to inventory.");
                     return true;
                 }
                 break;

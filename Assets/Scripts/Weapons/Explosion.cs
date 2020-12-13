@@ -35,6 +35,9 @@ namespace Imposters
         [Tooltip("The time, in seconds, for the shake to fade out.")]
         public float ShakeFadeOut = 0.5f;           // The time, in seconds, for the shake to fade out.
 
+        [Tooltip("Decal that gets left behind where the explosion occured.")]
+        public GameObject ExplosionDecal;
+
         /// <summary>
         /// The netId of the player who ultimately resulted in this explosion happening.
         /// </summary>
@@ -76,8 +79,9 @@ namespace Imposters
                         if (ShakeCamera)
                         {
                             float shakeAmount = 1 / (Vector3.Distance(transform.position, col.transform.position) * CameraShakeAmount);
-                            //col.GetComponent<Player>().TargetDoCameraShake(ShakeMagnitude, ShakeRoughness, ShakeFadeIn, ShakeFadeOut);
-                            col.GetComponent<Player>().TargetDoCameraShake(true);
+
+                            if (col.GetComponent<Player>().isLocalPlayer)
+                                col.GetComponent<Player>().DoCameraShake(true);
                         }
                     }
                 }
@@ -99,8 +103,9 @@ namespace Imposters
                 {
                     Player player = col.GetComponent<Player>();
                     float shakeAmount = 1 / (Vector3.Distance(transform.position, col.transform.position) * CameraShakeAmount);
-                    //player.TargetDoCameraShake(ShakeMagnitude, ShakeRoughness, ShakeFadeIn, ShakeFadeOut);
-                    player.TargetDoCameraShake(true);
+                    
+                    if (player.isLocalPlayer)
+                        player.DoCameraShake(true);
                 }
             }
 

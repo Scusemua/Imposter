@@ -69,6 +69,8 @@ namespace Imposters
 
         void Update()
         {
+            if (!hasAuthority) return;
+
             // Update the timer
             lifeTimer += Time.deltaTime;
 
